@@ -22,6 +22,7 @@ var (
 type Tester[T any, S any] struct {
 	nodes map[int]*T
 
+	// Responsibility for maintaining the state space.
 	sm StateManager[T, S]
 
 	messageQueue []Message
