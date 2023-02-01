@@ -89,6 +89,31 @@ func main() {
 	fmt.Println(sch.EventRoot.Newick())
 
 	checker := tester.NewPredicateChecker(
+		tester.PredEventually(
+			func(states map[int]State, terminal bool) bool {
+				// RB1: Validity
+				for _, node := range states {
+					for sentMsg := range node.sent {
+						if !node.delivered[sentMsg] {
+							return false
+						}
+					}
+				}
+				return true
+			}),
+		func(states map[int]State, terminal bool) bool {
+			// RB2: No duplication
+			for _, node := range states {
+				delivered := make(map[message]bool)
+				for _, msg := range node.deliveredSlice {
+					if delivered[msg] {
+						return false
+					}
+					delivered[msg] = true
+				}
+			}
+			return true
+		},
 		func(states map[int]State, terminal bool) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
@@ -106,18 +131,6 @@ func main() {
 			}
 			return true
 		},
-		tester.PredEventually(
-			func(states map[int]State, terminal bool) bool {
-				// RB1: Validity
-				for _, node := range states {
-					for sentMsg := range node.sent {
-						if !node.delivered[sentMsg] {
-							return false
-						}
-					}
-				}
-				return true
-			}),
 		tester.PredEventually(
 			func(states map[int]State, terminal bool) bool {
 				// RB4 Agreement
@@ -139,18 +152,6 @@ func main() {
 				}
 				return true
 			}),
-		func(states map[int]State, terminal bool) bool {
-			for _, node := range states {
-				delivered := make(map[message]bool)
-				for _, msg := range node.deliveredSlice {
-					if delivered[msg] {
-						return false
-					}
-					delivered[msg] = true
-				}
-			}
-			return true
-		},
 	)
 
 	resp := checker.Check(&sm.StateRoot)

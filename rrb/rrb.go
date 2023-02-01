@@ -62,6 +62,7 @@ func (rrb *Rrb) Deliver(from int, to int, msg []byte) {
 		panic(err)
 	}
 
+	// violation of RB2:No Duplication
 	rrb.deliveredSlice = append(rrb.deliveredSlice, message)
 	if !rrb.delivered[message] {
 		rrb.delivered[message] = true
