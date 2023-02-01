@@ -70,9 +70,7 @@ func main() {
 			return nodes
 		},
 		func(nodes map[int]*Rrb) {
-			for i := 0; i < 1; i++ {
-				nodes[0].Broadcast(fmt.Sprintf("Test Message - %v", i))
-			}
+			nodes[0].Broadcast("Test Message")
 		},
 	)
 	fmt.Println(sch.EventRoot)

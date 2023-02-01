@@ -12,7 +12,7 @@ type message struct {
 }
 
 func (m message) String() string {
-	return fmt.Sprintf("From: %v, index: %v", m.From, m.Index)
+	return fmt.Sprintf("Msg{ From: %v, index: %v }", m.From, m.Index)
 }
 
 type Rrb struct {
