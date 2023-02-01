@@ -89,7 +89,7 @@ func main() {
 	fmt.Println(sch.EventRoot.Newick())
 
 	checker := tester.NewPredicateChecker(
-		func(states map[int]State, leaf bool) bool {
+		func(states map[int]State, terminal bool) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
 			for _, node := range states {
@@ -107,7 +107,7 @@ func main() {
 			return true
 		},
 		tester.PredEventually(
-			func(states map[int]State, leaf bool) bool {
+			func(states map[int]State, terminal bool) bool {
 				// RB1: Validity
 				for _, node := range states {
 					for sentMsg := range node.sent {
@@ -119,7 +119,7 @@ func main() {
 				return true
 			}),
 		tester.PredEventually(
-			func(states map[int]State, leaf bool) bool {
+			func(states map[int]State, terminal bool) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties
@@ -139,7 +139,7 @@ func main() {
 				}
 				return true
 			}),
-		func(states map[int]State, leaf bool) bool {
+		func(states map[int]State, terminal bool) bool {
 			for _, node := range states {
 				delivered := make(map[message]bool)
 				for _, msg := range node.deliveredSlice {
