@@ -89,9 +89,8 @@ func main() {
 	fmt.Println(sch.EventRoot.Newick())
 
 	checker := tester.NewPredicateChecker(
-		func(states map[int]State, leaf bool) (bool, string) {
+		func(states map[int]State, leaf bool) bool {
 			// RB3: No creation
-			desc := "RB3: No Creation"
 			sentMessages := map[message]bool{}
 			for _, node := range states {
 				for sent := range node.sent {
@@ -101,69 +100,60 @@ func main() {
 			for _, state := range states {
 				for delivered := range state.delivered {
 					if !sentMessages[delivered] {
-						return false, desc
+						return false
 					}
 				}
 			}
-			return true, desc
+			return true
 		},
-		func(states map[int]State, leaf bool) (bool, string) {
-			// RB1: Validity
-			desc := "RB1: Validity"
-			if !leaf {
-				return true, desc
-			}
-			for _, node := range states {
-				for sentMsg := range node.sent {
-					if !node.delivered[sentMsg] {
-						return false, desc
-					}
-				}
-			}
-			return true, desc
-		},
-		func(states map[int]State, leaf bool) (bool, string) {
-			// RB4 Agreement
-			desc := "RB4: Agreement"
-			// Use leaf nodes to check for liveness properties
-			// Can not say that the predicate has been broken for non-leaf nodes
-			if !leaf {
-				return true, desc
-			}
-			delivered := map[message]bool{}
-			for _, node := range states {
-				for msg := range node.delivered {
-					delivered[msg] = true
-				}
-			}
-			for msg := range delivered {
+		tester.PredEventually(
+			func(states map[int]State, leaf bool) bool {
+				// RB1: Validity
 				for _, node := range states {
-					if !node.delivered[msg] {
-						return false, desc
+					for sentMsg := range node.sent {
+						if !node.delivered[sentMsg] {
+							return false
+						}
 					}
 				}
-			}
-			return true, desc
-		},
-		func(states map[int]State, leaf bool) (bool, string) {
-			desc := "RB2: No duplication"
+				return true
+			}),
+		tester.PredEventually(
+			func(states map[int]State, leaf bool) bool {
+				// RB4 Agreement
+
+				// Use leaf nodes to check for liveness properties
+				// Can not say that the predicate has been broken for non-leaf nodes
+				delivered := map[message]bool{}
+				for _, node := range states {
+					for msg := range node.delivered {
+						delivered[msg] = true
+					}
+				}
+				for msg := range delivered {
+					for _, node := range states {
+						if !node.delivered[msg] {
+							return false
+						}
+					}
+				}
+				return true
+			}),
+		func(states map[int]State, leaf bool) bool {
 			for _, node := range states {
 				delivered := make(map[message]bool)
 				for _, msg := range node.deliveredSlice {
 					if delivered[msg] {
-						return false, desc
+						return false
 					}
 					delivered[msg] = true
 				}
 			}
-			return true, desc
+			return true
 		},
 	)
 
-	if resp := checker.Check(&sm.StateRoot); !resp.Result {
-		fmt.Println("Node broke predicate:", resp.Test)
-		for _, state := range resp.Sequence {
-			fmt.Println(state)
-		}
-	}
+	resp := checker.Check(&sm.StateRoot)
+	_, desc := resp.Response()
+	print(desc)
 }
