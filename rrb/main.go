@@ -52,8 +52,8 @@ func main() {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	tester := tester.CreateTester[Rrb, State](sch, sm)
-	tester.Simulate(
+	tst := tester.CreateTester[Rrb, State](sch, sm)
+	tst.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
@@ -64,7 +64,7 @@ func main() {
 				nodes[id] = NewRrb(
 					id,
 					nodeIds,
-					tester.Send,
+					tst.Send,
 				)
 			}
 			return nodes
@@ -72,16 +72,6 @@ func main() {
 		func(nodes map[int]*Rrb) {
 			for i := 0; i < 1; i++ {
 				nodes[0].Broadcast(fmt.Sprintf("Test Message - %v", i))
-				// message := message{
-				// 	From:    0,
-				// 	Index:   0,
-				// 	Payload: "test",
-				// }
-				// byteMsg, err := json.Marshal(message)
-				// if err != nil {
-				// 	panic(err)
-				// }
-				// nodes[1].Deliver(0, 1, byteMsg)
 			}
 		},
 	)
@@ -90,4 +80,70 @@ func main() {
 
 	fmt.Println(sm.StateRoot.Newick())
 	fmt.Println(sch.EventRoot.Newick())
+
+	checker := tester.NewPredicateChecker(
+		func(states map[int]State, leaf bool) (bool, string) {
+			// RB3: No creation
+			desc := "RB3: No Creation"
+			sentMessages := map[message]bool{}
+			for _, node := range states {
+				for sent := range node.sent {
+					sentMessages[sent] = true
+				}
+			}
+			for _, state := range states {
+				for delivered := range state.delivered {
+					if !sentMessages[delivered] {
+						return false, desc
+					}
+				}
+			}
+			return true, desc
+		},
+		func(states map[int]State, leaf bool) (bool, string) {
+			// RB1: Validity
+			desc := "RB1: Validity"
+			if !leaf {
+				return true, desc
+			}
+			for _, node := range states {
+				for sentMsg := range node.sent {
+					if !node.delivered[sentMsg] {
+						return false, desc
+					}
+				}
+			}
+			return true, desc
+		},
+		func(states map[int]State, leaf bool) (bool, string) {
+			// RB4 Agreement
+			desc := "RB4: Agreement"
+			// Use leaf nodes to check for liveness properties
+			// Can not say that the predicate has been broken for non-leaf nodes
+			if !leaf {
+				return true, desc
+			}
+			delivered := map[message]bool{}
+			for _, node := range states {
+				for msg := range node.delivered {
+					delivered[msg] = true
+				}
+			}
+			for msg := range delivered {
+				for _, node := range states {
+					if !node.delivered[msg] {
+						return false, desc
+					}
+				}
+			}
+			return true, desc
+		},
+	)
+
+	if resp := checker.Check(&sm.StateRoot); !resp.Result {
+		fmt.Println("Node broke predicate:", resp.Test)
+		for _, state := range resp.Sequence {
+			fmt.Println(state)
+		}
+	}
 }
