@@ -22,6 +22,8 @@ type Rrb struct {
 	delivered map[message]bool
 	sent      map[message]bool
 	send      func(from, to int, msgType string, msg []byte)
+
+	deliveredSlice []message
 }
 
 func NewRrb(id int, nodes []int, send func(int, int, string, []byte)) *Rrb {
@@ -60,6 +62,7 @@ func (rrb *Rrb) Deliver(from int, to int, msg []byte) {
 		panic(err)
 	}
 
+	rrb.deliveredSlice = append(rrb.deliveredSlice, message)
 	if !rrb.delivered[message] {
 		rrb.delivered[message] = true
 		for _, target := range rrb.nodes {

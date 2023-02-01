@@ -6,17 +6,19 @@ import (
 	"strings"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 type State struct {
-	delivered map[message]bool
-	sent      map[message]bool
+	delivered      map[message]bool
+	sent           map[message]bool
+	deliveredSlice []message
 }
 
 func (s State) String() string {
 	bldr := strings.Builder{}
 	bldr.WriteString("Delivered: {")
-	for key := range s.delivered {
+	for _, key := range s.deliveredSlice {
 		bldr.WriteString(fmt.Sprintf(" %v ", key))
 	}
 	bldr.WriteString("} Sent: {")
@@ -24,6 +26,7 @@ func (s State) String() string {
 		bldr.WriteString(fmt.Sprintf(" %v ", key))
 	}
 	bldr.WriteString("}")
+
 	return bldr.String()
 }
 
@@ -40,13 +43,19 @@ func main() {
 			for key, value := range node.sent {
 				newSent[key] = value
 			}
+			newDeliveredSlice := make([]message, len(node.deliveredSlice))
+			copy(newDeliveredSlice, node.deliveredSlice)
 			return State{
-				delivered: newDelivered,
-				sent:      newSent,
+				delivered:      newDelivered,
+				sent:           newSent,
+				deliveredSlice: newDeliveredSlice,
 			}
 		},
 		func(s1, s2 State) bool {
 			if !maps.Equal(s1.delivered, s2.delivered) {
+				return false
+			}
+			if !slices.Equal(s1.deliveredSlice, s2.deliveredSlice) {
 				return false
 			}
 			return maps.Equal(s1.sent, s2.sent)
@@ -132,6 +141,19 @@ func main() {
 					if !node.delivered[msg] {
 						return false, desc
 					}
+				}
+			}
+			return true, desc
+		},
+		func(states map[int]State, leaf bool) (bool, string) {
+			desc := "RB2: No duplication"
+			for _, node := range states {
+				delivered := make(map[message]bool)
+				for _, msg := range node.deliveredSlice {
+					if delivered[msg] {
+						return false, desc
+					}
+					delivered[msg] = true
 				}
 			}
 			return true, desc
