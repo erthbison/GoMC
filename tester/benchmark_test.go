@@ -2,15 +2,8 @@ package tester_test
 
 import (
 	"experimentation/tester"
-	"fmt"
 	"testing"
 )
-
-type State string
-
-// func (s State) String() string {
-// 	return fmt.Sprintf("%v%v", s.numDelivered, s.numAcked)
-// }
 
 type DeliverMsg struct {
 	From    int
@@ -65,13 +58,21 @@ func (n *Node) Ack(from, to int, message []byte) {
 	n.Acked++
 }
 
+type State struct {
+	delivered int
+	acked     int
+}
+
 func Benchmark(b *testing.B) {
 	numNodes := 2
 	for i := 0; i < b.N; i++ {
 		sch := tester.NewBasicScheduler()
 		sm := tester.NewStateManager(
 			func(node *Node) State {
-				return State(fmt.Sprintf("%v%v", node.Delivered, node.Acked))
+				return State{
+					delivered: node.Delivered,
+					acked:     node.Acked,
+				}
 			},
 			func(s1, s2 State) bool {
 				return s1 == s2

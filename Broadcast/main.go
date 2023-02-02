@@ -5,15 +5,20 @@ import (
 	"fmt"
 )
 
-type State string
+type State struct {
+	delivered int
+	acked     int
+}
 
 func main() {
 	numNodes := 2
-	// sch := tester.NewRunScheduler()
 	sch := tester.NewBasicScheduler()
 	sm := tester.NewStateManager(
 		func(node *Node) State {
-			return State(fmt.Sprintf("%v%v", node.Delivered, node.Acked))
+			return State{
+				delivered: node.Delivered,
+				acked:     node.Acked,
+			}
 		},
 		func(s1, s2 State) bool {
 			return s1 == s2
