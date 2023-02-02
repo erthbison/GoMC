@@ -78,7 +78,7 @@ func Benchmark(b *testing.B) {
 				return s1 == s2
 			},
 		)
-		tester := tester.CreateSimulator[Node, State](sch, sm)
+		tester := tester.NewSimulator[Node, State](sch, sm)
 		tester.Simulate(
 			func() map[int]*Node {
 				nodes := map[int]*Node{}

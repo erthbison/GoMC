@@ -32,7 +32,7 @@ type Simulator[T any, S any] struct {
 	numRuns int
 }
 
-func CreateSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
 		nodes:     map[int]*T{},
 		Scheduler: sch,
@@ -44,6 +44,7 @@ func CreateSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simula
 
 func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]*T)) {
 	// t.getLocalState = getLocalState
+outer:
 	for !t.isCompleted() {
 		// Create nodes and init states for this run
 		t.nodes = initNodes()
@@ -57,6 +58,7 @@ func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, start func(map[i
 					// If there are no available events that means that all possible event chains have been attempted and we are done
 					// Update the end flag
 					t.end = true
+					break outer
 				} else if errors.Is(err, RunEndedError) {
 					break
 				} else {
