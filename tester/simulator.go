@@ -18,7 +18,7 @@ var (
 		- The message type in the Send function must correspond to a method of the node that takes the input (int, int, []byte)
 */
 
-type Tester[T any, S any] struct {
+type Simulator[T any, S any] struct {
 	nodes map[int]*T
 
 	// Responsibility for maintaining the state space.
@@ -32,8 +32,8 @@ type Tester[T any, S any] struct {
 	numRuns int
 }
 
-func CreateTester[T any, S any](sch Scheduler, sm StateManager[T, S]) *Tester[T, S] {
-	return &Tester[T, S]{
+func CreateSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator[T, S] {
+	return &Simulator[T, S]{
 		nodes:     map[int]*T{},
 		Scheduler: sch,
 		sm:        sm,
@@ -42,7 +42,7 @@ func CreateTester[T any, S any](sch Scheduler, sm StateManager[T, S]) *Tester[T,
 	}
 }
 
-func (t *Tester[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]*T)) {
+func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]*T)) {
 	// t.getLocalState = getLocalState
 	for !t.isCompleted() {
 		// Create nodes and init states for this run
@@ -77,7 +77,7 @@ func (t *Tester[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]
 	}
 }
 
-func (t *Tester[T, S]) Send(from, to int, msgType string, msg []byte) {
+func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
 	t.Scheduler.AddEvent(Event{
 		Type: "Message",
 		Payload: Message{
@@ -89,7 +89,7 @@ func (t *Tester[T, S]) Send(from, to int, msgType string, msg []byte) {
 	})
 }
 
-func (t *Tester[T, S]) executeNextEvent() error {
+func (t *Simulator[T, S]) executeNextEvent() error {
 	event, err := t.Scheduler.GetEvent()
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (t *Tester[T, S]) executeNextEvent() error {
 	return nil
 }
 
-func (t *Tester[T, S]) sendMessage(msg Message) {
+func (t *Simulator[T, S]) sendMessage(msg Message) {
 	// Use reflection to call the specified method on the node
 	node := t.nodes[msg.To]
 	method := reflect.ValueOf(node).MethodByName(msg.Type)
@@ -114,7 +114,7 @@ func (t *Tester[T, S]) sendMessage(msg Message) {
 	})
 }
 
-func (t *Tester[T, S]) isCompleted() bool {
+func (t *Simulator[T, S]) isCompleted() bool {
 	// Is complete if all possible interleavings has been completed, i.e. all leaf nodes are "End" events
 	if t.numRuns > 50000 {
 		// If the simulation has run more than 50k runs we automatically stop it

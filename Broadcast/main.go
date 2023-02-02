@@ -19,7 +19,7 @@ func main() {
 			return s1 == s2
 		},
 	)
-	tester := tester.CreateTester[Node, State](sch, sm)
+	tester := tester.CreateSimulator[Node, State](sch, sm)
 	tester.Simulate(func() map[int]*Node {
 		nodeMap := map[int]*Node{}
 		nodes := []int{}

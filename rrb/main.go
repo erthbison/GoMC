@@ -61,7 +61,7 @@ func main() {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	tst := tester.CreateTester[Rrb, State](sch, sm)
+	tst := tester.CreateSimulator[Rrb, State](sch, sm)
 	tst.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}
