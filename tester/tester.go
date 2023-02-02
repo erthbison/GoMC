@@ -60,7 +60,7 @@ func (t *Tester[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]
 					// If there are no available events that means that all possible event chains have been attempted and we are done
 					// Update the end flag
 					t.end = true
-				} else if errors.Is(err, NoPendingEventsError) {
+				} else if errors.Is(err, RunEndedError) {
 					break
 				} else {
 					log.Panicf("An error occurred while scheduling the next message: %v", err)

@@ -13,8 +13,8 @@ type Scheduler interface {
 }
 
 var (
-	NoPendingEventsError = errors.New("Scheduler: No pending events")
-	NoEventError         = errors.New("scheduler: No available next event")
+	RunEndedError = errors.New("scheduler: The run has ended. Reset the state.")
+	NoEventError  = errors.New("scheduler: No available next event")
 )
 
 type BasicScheduler struct {
@@ -35,7 +35,7 @@ func NewBasicScheduler() *BasicScheduler {
 
 func (bs *BasicScheduler) GetEvent() (*Event, error) {
 	if len(bs.pendingEvents) == 0 {
-		return nil, NoPendingEventsError
+		return nil, RunEndedError
 	}
 	for _, event := range bs.pendingEvents {
 		if !bs.currentEvent.HasChild(event) {
