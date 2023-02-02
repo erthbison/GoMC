@@ -1,6 +1,7 @@
 package tester
 
 import (
+	"errors"
 	"experimentation/sequence"
 	"experimentation/tree"
 )
@@ -11,24 +12,42 @@ type Scheduler interface {
 	EndRun()
 }
 
+var (
+	NoPendingEventsError = errors.New("Scheduler: No pending events")
+	NoEventError         = errors.New("scheduler: No available next event")
+)
+
 type BasicScheduler struct {
 	EventRoot    tree.Tree[Event]
 	currentEvent *tree.Tree[Event]
+
+	pendingEvents []Event
 }
 
 func NewBasicScheduler() *BasicScheduler {
 	eventTree := tree.New(Event{Type: "Start"}, EventsEquals)
 	return &BasicScheduler{
-		EventRoot:    eventTree,
-		currentEvent: &eventTree,
+		EventRoot:     eventTree,
+		currentEvent:  &eventTree,
+		pendingEvents: make([]Event, 0),
 	}
 }
 
 func (bs *BasicScheduler) GetEvent() (*Event, error) {
+	if len(bs.pendingEvents) == 0 {
+		return nil, NoPendingEventsError
+	}
+	for _, event := range bs.pendingEvents {
+		if !bs.currentEvent.HasChild(event) {
+			bs.currentEvent.AddChild(event)
+		}
+	}
+
 	for _, child := range bs.currentEvent.Children {
 		// iteratively check if each child can be the next event
 		// a child can be the next event if it has some descendent leaf node that is not an "End" event
 		if child.SearchLeafNodes(func(e Event) bool { return e.Type != "End" }) {
+			bs.removeEvent(child.Payload)
 			bs.currentEvent = child
 			return &child.Payload, nil
 		}
@@ -36,10 +55,18 @@ func (bs *BasicScheduler) GetEvent() (*Event, error) {
 	return nil, NoEventError
 }
 
-func (bs *BasicScheduler) AddEvent(event Event) {
-	if !bs.currentEvent.HasChild(event) {
-		bs.currentEvent.AddChild(event)
+func (bs *BasicScheduler) removeEvent(event Event) {
+	// Remove the message from the message queue
+	for i, evt := range bs.pendingEvents {
+		if EventsEquals(event, evt) {
+			bs.pendingEvents = append(bs.pendingEvents[0:i], bs.pendingEvents[i+1:]...)
+			break
+		}
 	}
+}
+
+func (bs *BasicScheduler) AddEvent(event Event) {
+	bs.pendingEvents = append(bs.pendingEvents, event)
 }
 
 func (bs *BasicScheduler) EndRun() {
