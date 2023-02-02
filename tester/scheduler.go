@@ -7,9 +7,9 @@ import (
 )
 
 type Scheduler interface {
-	GetEvent() (*Event, error)
-	AddEvent(Event)
-	EndRun()
+	GetEvent() (*Event, error) // Get the next event in the run
+	AddEvent(Event)            // Add an event to the list of possible events
+	EndRun()                   // Finish the current run and prepare for the next one
 }
 
 var (
@@ -37,6 +37,8 @@ func (bs *BasicScheduler) GetEvent() (*Event, error) {
 	if len(bs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
+
+	// Create new branching paths for all pending events from the current event
 	for _, event := range bs.pendingEvents {
 		if !bs.currentEvent.HasChild(event) {
 			bs.currentEvent.AddChild(event)

@@ -5,8 +5,8 @@ import (
 )
 
 type StateManager[T any, S any] interface {
-	UpdateGlobalState(map[int]*T)
-	EndRun()
+	UpdateGlobalState(map[int]*T) // Update the state stored for this tick
+	EndRun()                      // End the current run and prepare for the next
 }
 
 type stateManager[T any, S any] struct {
@@ -32,7 +32,7 @@ func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S)
 		}
 		return true
 	})
-	
+
 	return &stateManager[T, S]{
 		StateRoot:     stateRoot,
 		currentState:  &stateRoot,
