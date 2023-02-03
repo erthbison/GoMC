@@ -90,7 +90,7 @@ func main() {
 
 	checker := tester.NewPredicateChecker(
 		tester.PredEventually(
-			func(states map[int]State, terminal bool) bool {
+			func(states map[int]State, terminal bool, _ []map[int]State) bool {
 				// RB1: Validity
 				for _, node := range states {
 					for sentMsg := range node.sent {
@@ -101,7 +101,7 @@ func main() {
 				}
 				return true
 			}),
-		func(states map[int]State, terminal bool) bool {
+		func(states map[int]State, terminal bool, _ []map[int]State) bool {
 			// RB2: No duplication
 			for _, node := range states {
 				delivered := make(map[message]bool)
@@ -114,7 +114,7 @@ func main() {
 			}
 			return true
 		},
-		func(states map[int]State, terminal bool) bool {
+		func(states map[int]State, terminal bool, _ []map[int]State) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
 			for _, node := range states {
@@ -132,7 +132,7 @@ func main() {
 			return true
 		},
 		tester.PredEventually(
-			func(states map[int]State, terminal bool) bool {
+			func(states map[int]State, terminal bool, _ []map[int]State) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties

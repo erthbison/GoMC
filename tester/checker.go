@@ -37,10 +37,10 @@ type PredicateChecker[S any] struct {
 	// A slice of predicates that returns true if the predicate holds.
 	// If the predicate is broken it returns false and a counterexample
 	// The functions take the state and a boolean value indicating wether the node is a leaf node or not
-	predicates []func(map[int]S, bool) bool
+	predicates []func(map[int]S, bool, []map[int]S) bool
 }
 
-func NewPredicateChecker[S any](preds ...func(map[int]S, bool) bool) *PredicateChecker[S] {
+func NewPredicateChecker[S any](preds ...func(map[int]S, bool, []map[int]S) bool) *PredicateChecker[S] {
 	return &PredicateChecker[S]{
 		predicates: preds,
 	}
@@ -48,7 +48,7 @@ func NewPredicateChecker[S any](preds ...func(map[int]S, bool) bool) *PredicateC
 
 func (pc *PredicateChecker[S]) Check(root *tree.Tree[map[int]S]) *predicateCheckerResponse[S] {
 	// Checks that all predicates holds for all nodes. Nodes are searched depth first and the search is interrupted if some state that breaks the predicates are provided
-	if resp := pc.checkNode(root); resp != nil {
+	if resp := pc.checkNode(root, []map[int]S{}); resp != nil {
 		return resp
 	}
 	return &predicateCheckerResponse[S]{
@@ -58,41 +58,42 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[map[int]S]) *predicateCheck
 	}
 }
 
-func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[map[int]S]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[map[int]S], sequence []map[int]S) *predicateCheckerResponse[S] {
 	// Use a depth first search to search trough all nodes and check with predicates
 	// Immediately stops when finding a state that breaches the predicates
-	if ok, index := pc.checkState(node.Payload, node.IsLeafNode()); !ok {
+	sequence = append(sequence, node.Payload)
+	if ok, index := pc.checkState(node.Payload, node.IsLeafNode(), sequence); !ok {
 		return &predicateCheckerResponse[S]{
 			Result:   false,
-			Sequence: pc.getSequence(node),
+			Sequence: sequence,
 			Test:     index,
 		}
 	}
 
 	for _, child := range node.Children {
-		if resp := pc.checkNode(child); resp != nil {
+		if resp := pc.checkNode(child, sequence); resp != nil {
 			return resp
 		}
 	}
 	return nil
 }
 
-func (pc *PredicateChecker[S]) checkState(state map[int]S, terminalState bool) (bool, int) {
+func (pc *PredicateChecker[S]) checkState(state map[int]S, terminalState bool, sequence []map[int]S) (bool, int) {
 	// Check the state of a node on all predicates. The leafNode variable is true if this is a leaf node
 	for index, pred := range pc.predicates {
-		if !pred(state, terminalState) {
+		if !pred(state, terminalState, sequence) {
 			return false, index
 		}
 	}
 	return true, -1
 }
 
-func (pc *PredicateChecker[S]) getSequence(node *tree.Tree[map[int]S]) []map[int]S {
-	// Get the sequence leading to the provided nodes by traversing the tree upwards until it reaches the root
-	sequence := make([]map[int]S, node.Depth+1)
-	for i := node.Depth; i >= 0; i-- {
-		sequence[i] = node.Payload
-		node = node.Parent
-	}
-	return sequence
-}
+// func (pc *PredicateChecker[S]) getSequence(node *tree.Tree[map[int]S]) []map[int]S {
+// 	// Get the sequence leading to the provided nodes by traversing the tree upwards until it reaches the root
+// 	sequence := make([]map[int]S, node.Depth+1)
+// 	for i := node.Depth; i >= 0; i-- {
+// 		sequence[i] = node.Payload
+// 		node = node.Parent
+// 	}
+// 	return sequence
+// }
