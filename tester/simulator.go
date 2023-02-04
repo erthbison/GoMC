@@ -43,7 +43,6 @@ func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simula
 }
 
 func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T) error) {
-	// t.getLocalState = getLocalState
 outer:
 	for !t.isCompleted() {
 		// Create nodes and init states for this run
@@ -102,29 +101,7 @@ func (t *Simulator[T, S]) executeNextEvent() error {
 		return err
 	}
 	return event.Execute(t.nodes)
-	// switch evt := event.(type) {
-	// case MessageEvent:
-	// 	t.sendMessage(evt)
-	// case FunctionEvent[T]:
-	// 	evt.F(t.nodes)
-	// case TimeoutEvent:
-	// 	evt.Timeout <- time.Time{}
-	// default:
-	// 	return UnknownEvent
-	// }
-	// return nil
 }
-
-// func (t *Simulator[T, S]) sendMessage(evt MessageEvent) {
-// 	// Use reflection to call the specified method on the node
-// 	node := t.nodes[evt.To]
-// 	method := reflect.ValueOf(node).MethodByName(evt.Type)
-// 	method.Call([]reflect.Value{
-// 		reflect.ValueOf(evt.From),
-// 		reflect.ValueOf(evt.To),
-// 		reflect.ValueOf(evt.Value),
-// 	})
-// }
 
 func (t *Simulator[T, S]) isCompleted() bool {
 	// Is complete if all possible interleavings has been completed, i.e. all leaf nodes are "End" events
