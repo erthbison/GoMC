@@ -9,7 +9,7 @@ type State string
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler()
+	sch := tester.NewBasicScheduler[fifo]()
 	sm := tester.NewStateManager(
 		func(node *fifo) State {
 			return State(fmt.Sprintf("%v", len(node.Received)))
@@ -29,10 +29,11 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*fifo) {
+		func(nodes map[int]*fifo) error {
 			for i := 0; i < 3; i++ {
 				nodes[0].Send(1, []byte(fmt.Sprintf("Test Message - %v", i)))
 			}
+			return nil
 		},
 	)
 	fmt.Println(sch.EventRoot)

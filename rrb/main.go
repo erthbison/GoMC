@@ -32,7 +32,7 @@ func (s State) String() string {
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler()
+	sch := tester.NewBasicScheduler[Rrb]()
 	sm := tester.NewStateManager(
 		func(node *Rrb) State {
 			newDelivered := map[message]bool{}
@@ -78,8 +78,9 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*Rrb) {
+		func(nodes map[int]*Rrb) error {
 			nodes[0].Broadcast("Test Message")
+			return nil
 		},
 	)
 	fmt.Println(sch.EventRoot)

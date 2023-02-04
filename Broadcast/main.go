@@ -12,7 +12,7 @@ type State struct {
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler()
+	sch := tester.NewBasicScheduler[Node]()
 	sm := tester.NewStateManager(
 		func(node *Node) State {
 			return State{
@@ -42,8 +42,9 @@ func main() {
 		}
 		return nodeMap
 	},
-		func(nodes map[int]*Node) {
+		func(nodes map[int]*Node) error {
 			nodes[0].Broadcast([]byte("1"))
+			return nil
 		},
 	)
 	fmt.Println(sch.EventRoot)

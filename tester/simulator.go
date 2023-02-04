@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"reflect"
+	"runtime"
+	"time"
 )
 
 var (
@@ -27,13 +28,13 @@ type Simulator[T any, S any] struct {
 
 	// The event tree should be a tree of events that has been discovered during the traversal of the state space
 	// It includes both paths that have been fully explored, and potential paths that we know need further interleaving of the messages to fully explore
-	Scheduler Scheduler
+	Scheduler Scheduler[T]
 
 	end     bool
 	numRuns int
 }
 
-func NewSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
 		nodes:     map[int]*T{},
 		Scheduler: sch,
@@ -43,7 +44,7 @@ func NewSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator
 	}
 }
 
-func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T)) {
+func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T) error) {
 	// t.getLocalState = getLocalState
 outer:
 	for !t.isCompleted() {
@@ -51,7 +52,7 @@ outer:
 		t.nodes = initNodes()
 		t.sm.UpdateGlobalState(t.nodes)
 
-		// Add all the function events to be scheduled
+		// Add all the function events to the scheduler
 		for i, f := range funcs {
 			t.Scheduler.AddEvent(
 				FunctionEvent[T]{
@@ -89,7 +90,7 @@ outer:
 }
 
 func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
-	t.Scheduler.AddEvent(MessageEvent{
+	t.Scheduler.AddEvent(MessageEvent[T]{
 		From:  from,
 		To:    to,
 		Type:  msgType,
@@ -97,32 +98,45 @@ func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
 	})
 }
 
+func (t *Simulator[T, S]) Timeout(_ time.Duration) <-chan time.Time {
+	_, file, line, _ := runtime.Caller(1)
+	waitChan := make(chan time.Time)
+	t.Scheduler.AddEvent(TimeoutEvent[T]{
+		caller:  fmt.Sprintf("File: %v, Line: %v", file, line),
+		Timeout: waitChan,
+	})
+	return waitChan
+}
+
 func (t *Simulator[T, S]) executeNextEvent() error {
 	event, err := t.Scheduler.GetEvent()
 	if err != nil {
 		return err
 	}
-	switch evt := event.(type) {
-	case MessageEvent:
-		t.sendMessage(evt)
-	case FunctionEvent[T]:
-		evt.F(t.nodes)
-	default:
-		return UnknownEvent
-	}
-	return nil
+	return event.Execute(t.nodes)
+	// switch evt := event.(type) {
+	// case MessageEvent:
+	// 	t.sendMessage(evt)
+	// case FunctionEvent[T]:
+	// 	evt.F(t.nodes)
+	// case TimeoutEvent:
+	// 	evt.Timeout <- time.Time{}
+	// default:
+	// 	return UnknownEvent
+	// }
+	// return nil
 }
 
-func (t *Simulator[T, S]) sendMessage(evt MessageEvent) {
-	// Use reflection to call the specified method on the node
-	node := t.nodes[evt.To]
-	method := reflect.ValueOf(node).MethodByName(evt.Type)
-	method.Call([]reflect.Value{
-		reflect.ValueOf(evt.From),
-		reflect.ValueOf(evt.To),
-		reflect.ValueOf(evt.Value),
-	})
-}
+// func (t *Simulator[T, S]) sendMessage(evt MessageEvent) {
+// 	// Use reflection to call the specified method on the node
+// 	node := t.nodes[evt.To]
+// 	method := reflect.ValueOf(node).MethodByName(evt.Type)
+// 	method.Call([]reflect.Value{
+// 		reflect.ValueOf(evt.From),
+// 		reflect.ValueOf(evt.To),
+// 		reflect.ValueOf(evt.Value),
+// 	})
+// }
 
 func (t *Simulator[T, S]) isCompleted() bool {
 	// Is complete if all possible interleavings has been completed, i.e. all leaf nodes are "End" events

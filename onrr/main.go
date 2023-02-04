@@ -21,7 +21,7 @@ type State struct {
 
 func main() {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
-	sch := tester.NewBasicScheduler()
+	sch := tester.NewBasicScheduler[onrr]()
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
 	sm := tester.NewStateManager(
@@ -79,15 +79,17 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*onrr) {
+		func(nodes map[int]*onrr) error {
 			go func() {
 				// ignore the write indication
 				<-nodes[0].WriteIndicator
 			}()
 			nodes[0].Write(2)
+			return nil
 		},
-		func(nodes map[int]*onrr) {
+		func(nodes map[int]*onrr) error {
 			nodes[1].Read()
+			return nil
 		},
 	)
 
