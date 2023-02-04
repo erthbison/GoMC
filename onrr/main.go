@@ -85,15 +85,17 @@ func main() {
 				<-nodes[0].WriteIndicator
 			}()
 			nodes[0].Write(2)
+		},
+		func(nodes map[int]*onrr) {
 			nodes[1].Read()
 		},
 	)
 
-	// fmt.Println(sch.EventRoot)
-	fmt.Println(sm.StateRoot)
+	fmt.Println(sch.EventRoot)
+	// fmt.Println(sm.StateRoot)
 
-	fmt.Println(sm.StateRoot.Newick())
-	// fmt.Println(sch.EventRoot.Newick())
+	// fmt.Println(sm.StateRoot.Newick())
+	fmt.Println(sch.EventRoot.Newick())
 
 	checker := tester.NewPredicateChecker(
 		tester.PredEventually(
