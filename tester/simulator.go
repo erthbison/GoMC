@@ -16,6 +16,7 @@ var (
 	Requirements of nodes:
 		- Must call the Send function with the required input when sending a message.
 		- The message type in the Send function must correspond to a method of the node that takes the input (int, int, []byte)
+		- All functions must run to completion without waiting for a response from the tester
 */
 
 type Simulator[T any, S any] struct {
@@ -42,7 +43,7 @@ func NewSimulator[T any, S any](sch Scheduler, sm StateManager[T, S]) *Simulator
 	}
 }
 
-func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, start func(map[int]*T)) {
+func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T)) {
 	// t.getLocalState = getLocalState
 outer:
 	for !t.isCompleted() {
@@ -50,7 +51,15 @@ outer:
 		t.nodes = initNodes()
 		t.sm.UpdateGlobalState(t.nodes)
 
-		start(t.nodes)
+		// Add all the function events to be scheduled
+		for i, f := range funcs {
+			t.Scheduler.AddEvent(
+				FunctionEvent[T]{
+					index: i,
+					F:     f,
+				},
+			)
+		}
 		for {
 			err := t.executeNextEvent()
 			if err != nil {
@@ -80,14 +89,11 @@ outer:
 }
 
 func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
-	t.Scheduler.AddEvent(Event{
-		Type: "Message",
-		Payload: Message{
-			From:  from,
-			To:    to,
-			Type:  msgType,
-			Value: msg,
-		},
+	t.Scheduler.AddEvent(MessageEvent{
+		From:  from,
+		To:    to,
+		Type:  msgType,
+		Value: msg,
 	})
 }
 
@@ -96,23 +102,25 @@ func (t *Simulator[T, S]) executeNextEvent() error {
 	if err != nil {
 		return err
 	}
-	switch event.Type {
-	case "Message":
-		t.sendMessage(event.Payload)
+	switch evt := event.(type) {
+	case MessageEvent:
+		t.sendMessage(evt)
+	case FunctionEvent[T]:
+		evt.F(t.nodes)
 	default:
 		return UnknownEvent
 	}
 	return nil
 }
 
-func (t *Simulator[T, S]) sendMessage(msg Message) {
+func (t *Simulator[T, S]) sendMessage(evt MessageEvent) {
 	// Use reflection to call the specified method on the node
-	node := t.nodes[msg.To]
-	method := reflect.ValueOf(node).MethodByName(msg.Type)
+	node := t.nodes[evt.To]
+	method := reflect.ValueOf(node).MethodByName(evt.Type)
 	method.Call([]reflect.Value{
-		reflect.ValueOf(msg.From),
-		reflect.ValueOf(msg.To),
-		reflect.ValueOf(msg.Value),
+		reflect.ValueOf(evt.From),
+		reflect.ValueOf(evt.To),
+		reflect.ValueOf(evt.Value),
 	})
 }
 

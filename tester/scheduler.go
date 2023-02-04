@@ -2,14 +2,13 @@ package tester
 
 import (
 	"errors"
-	"experimentation/sequence"
 	"experimentation/tree"
 )
 
 type Scheduler interface {
-	GetEvent() (*Event, error) // Get the next event in the run
-	AddEvent(Event)            // Add an event to the list of possible events
-	EndRun()                   // Finish the current run and prepare for the next one
+	GetEvent() (Event, error) // Get the next event in the run
+	AddEvent(Event)           // Add an event to the list of possible events
+	EndRun()                  // Finish the current run and prepare for the next one
 }
 
 var (
@@ -25,7 +24,7 @@ type BasicScheduler struct {
 }
 
 func NewBasicScheduler() *BasicScheduler {
-	eventTree := tree.New(Event{Type: "Start"}, EventsEquals)
+	eventTree := tree.New[Event](StartEvent{}, EventsEquals)
 	return &BasicScheduler{
 		EventRoot:     eventTree,
 		currentEvent:  &eventTree,
@@ -33,7 +32,7 @@ func NewBasicScheduler() *BasicScheduler {
 	}
 }
 
-func (bs *BasicScheduler) GetEvent() (*Event, error) {
+func (bs *BasicScheduler) GetEvent() (Event, error) {
 	if len(bs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
@@ -48,10 +47,10 @@ func (bs *BasicScheduler) GetEvent() (*Event, error) {
 	for _, child := range bs.currentEvent.Children {
 		// iteratively check if each child can be the next event
 		// a child can be the next event if it has some descendent leaf node that is not an "End" event
-		if child.SearchLeafNodes(func(e Event) bool { return e.Type != "End" }) {
+		if child.SearchLeafNodes(func(e Event) bool { _, ok := e.(EndEvent); return !ok }) {
 			bs.removeEvent(child.Payload)
 			bs.currentEvent = child
-			return &child.Payload, nil
+			return child.Payload, nil
 		}
 	}
 	return nil, NoEventError
@@ -74,10 +73,11 @@ func (bs *BasicScheduler) AddEvent(event Event) {
 func (bs *BasicScheduler) EndRun() {
 	// Add an "End" event to the end of the chain
 	// Then change the current event to the root of the event tree
-	bs.currentEvent.AddChild(Event{Type: "End"})
+	bs.currentEvent.AddChild(EndEvent{})
 	bs.currentEvent = &bs.EventRoot
 }
 
+/*
 type RunScheduler struct {
 	EventRoot    tree.Tree[Event]
 	currentEvent *tree.Tree[Event]
@@ -87,7 +87,7 @@ type RunScheduler struct {
 }
 
 func NewRunScheduler() *RunScheduler {
-	eventTree := tree.New(Event{Type: "Start"}, EventsEquals)
+	eventTree := tree.New(StartEvent, EventsEquals)
 	return &RunScheduler{
 		EventRoot:    eventTree,
 		currentEvent: &eventTree,
@@ -133,3 +133,4 @@ func (rs *RunScheduler) EndRun() {
 	}
 
 }
+*/
