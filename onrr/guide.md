@@ -67,7 +67,7 @@ Notes:
 
     - All functions must run to completion. Since functions are executed sequentially with the simulator, if it for some reason stop to wait for some input from the simulator, e.g. waiting for the simulator to empty or fill a channel, the program will freeze. To solve this we might move the program into its own goroutine and use an indicator to let the simulator know when the program is waiting and when it is running.
 
-    - can not specify multiple start functions and ensure that all orders of them are tried. Requires that the user think more about how the start functions work. Could be solved by creating an event for function calls
+    - SOLVED can not specify multiple start functions and ensure that all orders of them are tried. Requires that the user think more about how the start functions work. Could be solved by creating an event for function calls.
 
     - Tedious to convert messages into `[]byte` before sending it. Could do it automatically using glob. Could be harder to do the decoding, but we might be able to use reflection to find the expected type and use that. 
 

@@ -3,7 +3,6 @@ package tester
 import (
 	"fmt"
 	"reflect"
-	"time"
 )
 
 type Event[T any] interface {
@@ -11,8 +10,6 @@ type Event[T any] interface {
 	Id() string
 	Execute(map[int]*T) error
 }
-
-// TODO: Consider having an `Execute(map[int]Node) error` function where the event execute whatever transition it represents
 
 func EventsEquals[T any](a, b Event[T]) bool {
 	return a.Id() == b.Id()
@@ -90,22 +87,4 @@ func (fe FunctionEvent[T]) String() string {
 
 func (fe FunctionEvent[T]) Execute(node map[int]*T) error {
 	return fe.F(node)
-}
-
-type TimeoutEvent[T any] struct {
-	caller  string
-	Timeout chan<- time.Time
-}
-
-func (te TimeoutEvent[T]) Id() string {
-	return fmt.Sprintf("Timeout Caller: %v", te.caller)
-}
-
-func (te TimeoutEvent[T]) String() string {
-	return fmt.Sprintf("{Timeout Caller: %v}", te.caller)
-}
-
-func (te TimeoutEvent[T]) Execute(node map[int]*T) error {
-	te.Timeout <- time.Time{}
-	return nil
 }

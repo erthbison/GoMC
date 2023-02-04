@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"runtime"
-	"time"
 )
 
 var (
@@ -96,16 +94,6 @@ func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
 		Type:  msgType,
 		Value: msg,
 	})
-}
-
-func (t *Simulator[T, S]) Timeout(_ time.Duration) <-chan time.Time {
-	_, file, line, _ := runtime.Caller(1)
-	waitChan := make(chan time.Time)
-	t.Scheduler.AddEvent(TimeoutEvent[T]{
-		caller:  fmt.Sprintf("File: %v, Line: %v", file, line),
-		Timeout: waitChan,
-	})
-	return waitChan
 }
 
 func (t *Simulator[T, S]) executeNextEvent() error {
