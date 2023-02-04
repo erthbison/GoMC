@@ -65,9 +65,16 @@ To run the checker we call the run function with the root of the state tree as p
 Notes:
     - hard to define predicates. In particular it is hard to check the returned values in the moment they where returned. Found a solution where we check the channel in the getLocalState function. Requires the channel to be buffered (or for it to be filled in a goroutine i suppose, but that might be weird)
 
+    - All functions must run to completion. Since functions are executed sequentially with the simulator, if it for some reason stop to wait for some input from the simulator, e.g. waiting for the simulator to empty or fill a channel, the program will freeze. To solve this we might move the program into its own goroutine and use an indicator to let the simulator know when the program is waiting and when it is running.
+
     - can not specify multiple start functions and ensure that all orders of them are tried. Requires that the user think more about how the start functions work. Could be solved by creating an event for function calls
 
     - Tedious to convert messages into `[]byte` before sending it. Could do it automatically using glob. Could be harder to do the decoding, but we might be able to use reflection to find the expected type and use that. 
 
+    - Tedious to manually assign the msgType for a message, i.e. the function that will be called when receiving the message. Unknown how to solve this. The message type that is used could be named after the function that will be called. I.e. If you want to call a method that is named "AckWrite" you send an "AckWrite" message to the node.
+
     - Output from the checker is not that useful in identifying what happened. We should also create a way to export and import the states tree so that we dont have to run the simulation every time we want to run the checker. Can be done by implementing a NewickRead function
+
+    - Could also generate a utility function for broadcasts, but it is not a big issue
+
  -->
