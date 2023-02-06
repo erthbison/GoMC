@@ -62,7 +62,7 @@ func main() {
 		},
 	)
 	tst := tester.NewSimulator[Rrb, State](sch, sm)
-	tst.Simulate(
+	err := tst.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
@@ -83,6 +83,9 @@ func main() {
 			return nil
 		},
 	)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)
 

@@ -19,7 +19,7 @@ func main() {
 		},
 	)
 	tester := tester.NewSimulator[fifo, State](sch, sm)
-	tester.Simulate(
+	err := tester.Simulate(
 		func() map[int]*fifo {
 			nodes := map[int]*fifo{}
 			for i := 0; i < numNodes; i++ {
@@ -36,6 +36,10 @@ func main() {
 			return nil
 		},
 	)
+
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)
 

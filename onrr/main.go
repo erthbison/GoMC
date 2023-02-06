@@ -65,7 +65,7 @@ func main() {
 
 	// Create a simulator. providing a function specifying how to instantiate the nodes and a function specifying how to start the test
 	simulator := tester.NewSimulator[onrr, State](sch, sm)
-	simulator.Simulate(
+	err := simulator.Simulate(
 		func() map[int]*onrr {
 			numNodes := 2
 
@@ -92,6 +92,10 @@ func main() {
 			return nil
 		},
 	)
+
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println(sch.EventRoot)
 	// fmt.Println(sm.StateRoot)
