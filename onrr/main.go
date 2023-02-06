@@ -1,7 +1,7 @@
 package main
 
 import (
-	"experimentation/tester"
+	"experimentation/gomc"
 	"fmt"
 
 	"golang.org/x/exp/slices"
@@ -21,10 +21,10 @@ type State struct {
 
 func main() {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
-	sch := tester.NewBasicScheduler[onrr]()
+	sch := gomc.NewBasicScheduler[onrr]()
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
-	sm := tester.NewStateManager(
+	sm := gomc.NewStateManager(
 		func(node *onrr) State {
 			reads := []int{}
 			reads = append(reads, node.possibleReads...)
@@ -64,7 +64,7 @@ func main() {
 	)
 
 	// Create a simulator. providing a function specifying how to instantiate the nodes and a function specifying how to start the test
-	simulator := tester.NewSimulator[onrr, State](sch, sm)
+	simulator := gomc.NewSimulator[onrr, State](sch, sm)
 	err := simulator.Simulate(
 		func() map[int]*onrr {
 			numNodes := 2
@@ -103,8 +103,8 @@ func main() {
 	// fmt.Println(sm.StateRoot.Newick())
 	fmt.Println(sch.EventRoot.Newick())
 
-	checker := tester.NewPredicateChecker(
-		tester.PredEventually(
+	checker := gomc.NewPredicateChecker(
+		gomc.PredEventually(
 			func(states map[int]State, _ bool, _ []map[int]State) bool {
 				for _, state := range states {
 					if state.ongoingRead || state.ongoingWrite {
@@ -114,7 +114,7 @@ func main() {
 				return true
 			},
 		),
-		tester.PredEventually(
+		gomc.PredEventually(
 			func(state map[int]State, _ bool, seq []map[int]State) bool {
 				writer := 0
 				possibleReadSlice := make([][]int, len(seq))

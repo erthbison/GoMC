@@ -1,7 +1,7 @@
 package main
 
 import (
-	"experimentation/tester"
+	"experimentation/gomc"
 	"fmt"
 )
 
@@ -9,8 +9,8 @@ type State string
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler[fifo]()
-	sm := tester.NewStateManager(
+	sch := gomc.NewBasicScheduler[fifo]()
+	sm := gomc.NewStateManager(
 		func(node *fifo) State {
 			return State(fmt.Sprintf("%v", len(node.Received)))
 		},
@@ -18,7 +18,7 @@ func main() {
 			return s1 == s2
 		},
 	)
-	tester := tester.NewSimulator[fifo, State](sch, sm)
+	tester := gomc.NewSimulator[fifo, State](sch, sm)
 	err := tester.Simulate(
 		func() map[int]*fifo {
 			nodes := map[int]*fifo{}

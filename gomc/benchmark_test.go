@@ -1,7 +1,7 @@
-package tester_test
+package gomc_test
 
 import (
-	"experimentation/tester"
+	"experimentation/gomc"
 	"testing"
 )
 
@@ -66,8 +66,8 @@ type State struct {
 func Benchmark(b *testing.B) {
 	numNodes := 2
 	for i := 0; i < b.N; i++ {
-		sch := tester.NewBasicScheduler[Node]()
-		sm := tester.NewStateManager(
+		sch := gomc.NewBasicScheduler[Node]()
+		sm := gomc.NewStateManager(
 			func(node *Node) State {
 				return State{
 					delivered: node.Delivered,
@@ -78,7 +78,7 @@ func Benchmark(b *testing.B) {
 				return s1 == s2
 			},
 		)
-		tester := tester.NewSimulator[Node, State](sch, sm)
+		tester := gomc.NewSimulator[Node, State](sch, sm)
 		err := tester.Simulate(
 			func() map[int]*Node {
 				nodes := map[int]*Node{}

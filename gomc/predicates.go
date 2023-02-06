@@ -1,4 +1,4 @@
-package tester
+package gomc
 
 func PredEventually[S any](pred func(map[int]S, bool, []map[int]S) bool) func(map[int]S, bool, []map[int]S) bool {
 	return func(states map[int]S, terminalState bool, sequence []map[int]S) bool {

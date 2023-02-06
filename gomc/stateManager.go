@@ -1,4 +1,4 @@
-package tester
+package gomc
 
 import (
 	"experimentation/tree"

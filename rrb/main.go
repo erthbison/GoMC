@@ -1,7 +1,7 @@
 package main
 
 import (
-	"experimentation/tester"
+	"experimentation/gomc"
 	"fmt"
 	"strings"
 
@@ -32,8 +32,8 @@ func (s State) String() string {
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler[Rrb]()
-	sm := tester.NewStateManager(
+	sch := gomc.NewBasicScheduler[Rrb]()
+	sm := gomc.NewStateManager(
 		func(node *Rrb) State {
 			newDelivered := map[message]bool{}
 			for key, value := range node.delivered {
@@ -61,7 +61,7 @@ func main() {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	tst := tester.NewSimulator[Rrb, State](sch, sm)
+	tst := gomc.NewSimulator[Rrb, State](sch, sm)
 	err := tst.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}
@@ -92,8 +92,8 @@ func main() {
 	fmt.Println(sm.StateRoot.Newick())
 	fmt.Println(sch.EventRoot.Newick())
 
-	checker := tester.NewPredicateChecker(
-		tester.PredEventually(
+	checker := gomc.NewPredicateChecker(
+		gomc.PredEventually(
 			func(states map[int]State, terminal bool, _ []map[int]State) bool {
 				// RB1: Validity
 				for _, node := range states {
@@ -135,7 +135,7 @@ func main() {
 			}
 			return true
 		},
-		tester.PredEventually(
+		gomc.PredEventually(
 			func(states map[int]State, terminal bool, _ []map[int]State) bool {
 				// RB4 Agreement
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"experimentation/tester"
+	"experimentation/gomc"
 	"fmt"
 )
 
@@ -12,8 +12,8 @@ type State struct {
 
 func main() {
 	numNodes := 2
-	sch := tester.NewBasicScheduler[Node]()
-	sm := tester.NewStateManager(
+	sch := gomc.NewBasicScheduler[Node]()
+	sm := gomc.NewStateManager(
 		func(node *Node) State {
 			return State{
 				delivered: node.Delivered,
@@ -24,7 +24,7 @@ func main() {
 			return s1 == s2
 		},
 	)
-	tester := tester.NewSimulator[Node, State](sch, sm)
+	tester := gomc.NewSimulator[Node, State](sch, sm)
 	err := tester.Simulate(func() map[int]*Node {
 		nodeMap := map[int]*Node{}
 		nodes := []int{}
