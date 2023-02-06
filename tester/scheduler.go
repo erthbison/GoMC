@@ -20,6 +20,7 @@ type BasicScheduler[T any] struct {
 	EventRoot    tree.Tree[Event[T]]
 	currentEvent *tree.Tree[Event[T]]
 
+	// Must be a slice to allow for duplicate entries of messages. If the same message has been sent twice we want it to arrive twice
 	pendingEvents []Event[T]
 }
 
