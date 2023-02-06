@@ -88,12 +88,3 @@ func (pc *PredicateChecker[S]) checkState(state map[int]S, terminalState bool, s
 	return true, -1
 }
 
-// func (pc *PredicateChecker[S]) getSequence(node *tree.Tree[map[int]S]) []map[int]S {
-// 	// Get the sequence leading to the provided nodes by traversing the tree upwards until it reaches the root
-// 	sequence := make([]map[int]S, node.Depth+1)
-// 	for i := node.Depth; i >= 0; i-- {
-// 		sequence[i] = node.Payload
-// 		node = node.Parent
-// 	}
-// 	return sequence
-// }
