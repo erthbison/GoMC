@@ -79,7 +79,7 @@ func Benchmark(b *testing.B) {
 			},
 		)
 		tester := tester.NewSimulator[Node, State](sch, sm)
-		tester.Simulate(
+		err := tester.Simulate(
 			func() map[int]*Node {
 				nodes := map[int]*Node{}
 				for i := 0; i < numNodes; i++ {
@@ -101,5 +101,8 @@ func Benchmark(b *testing.B) {
 				return nil
 			},
 		)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
