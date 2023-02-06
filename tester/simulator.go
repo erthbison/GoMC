@@ -20,8 +20,6 @@ var (
 */
 
 type Simulator[T any, S any] struct {
-	nodes map[int]*T
-
 	// Responsibility for maintaining the state space.
 	sm StateManager[T, S]
 
@@ -38,7 +36,6 @@ type Simulator[T any, S any] struct {
 
 func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
-		nodes:        map[int]*T{},
 		Scheduler:    sch,
 		sm:           sm,
 		nextEvt:      make(chan error),
@@ -49,11 +46,10 @@ func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simula
 }
 
 func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T) error) error {
-outer:
-	for !s.isCompleted() {
-		// Perform initialization of the simulation
-		s.nodes = initNodes()
-		s.sm.UpdateGlobalState(s.nodes)
+	for s.numRuns < 50000 {
+		// Perform initialization of the run
+		nodes := initNodes()
+		s.sm.UpdateGlobalState(nodes)
 
 		// Add all the function events to the scheduler
 		for i, f := range funcs {
@@ -65,40 +61,42 @@ outer:
 			)
 		}
 
-		// Begin executing events
-		for {
-			// Select an event
-			evt, err := s.Scheduler.GetEvent()
-			if err != nil {
-				if errors.Is(err, NoEventError) {
-					// If there are no available events that means that all possible event chains have been attempted and we are done
-					// Update the end flag
-					s.end = true
-					break outer
-				} else if errors.Is(err, RunEndedError) {
-					break
-				} else {
-					return fmt.Errorf("An error occurred while scheduling the next event: %w", err)
-				}
-			}
-			// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
-			go evt.Execute(s.nodes, s.nextEvt)
-			err = <-s.nextEvt
-			if err != nil {
-				return fmt.Errorf("An error occurred while executing the next event: %w", err)
-			}
-			s.sm.UpdateGlobalState(s.nodes)
+		err := s.executeRun(nodes)
+		if errors.Is(err, NoEventError) {
+			// If there are no available events that means that all possible event chains have been attempted and we are done
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("An error occurred while scheduling the next event: %w", err)
 		}
+		// End the run
 		// Add an end event at the end of this path of the event tree
 		s.Scheduler.EndRun()
 		s.sm.EndRun()
-
 		s.numRuns++
 		if s.numRuns%1000 == 0 {
 			fmt.Println("Running Simulation:", s.numRuns)
 		}
 	}
 	return nil
+}
+
+func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
+	for {
+		// Select an event
+		evt, err := s.Scheduler.GetEvent()
+		if errors.Is(err, RunEndedError) {
+			return nil
+		} else if err != nil {
+			return err
+		}
+		// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
+		go evt.Execute(nodes, s.nextEvt)
+		err = <-s.nextEvt
+		if err != nil {
+			return fmt.Errorf("An error occurred while executing the next event: %w", err)
+		}
+		s.sm.UpdateGlobalState(nodes)
+	}
 }
 
 func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
@@ -118,13 +116,4 @@ func (t *Simulator[T, S]) Timeout(_ time.Duration) <-chan time.Time {
 	// The simulator can now proceed with scheduling events
 	t.nextEvt <- nil
 	return t.timeoutChans[evt.Id()]
-}
-
-func (t *Simulator[T, S]) isCompleted() bool {
-	// Is complete if all possible interleavings has been completed, i.e. all leaf nodes are "End" events
-	if t.numRuns > 50000 {
-		// If the simulation has run more than 50k runs we automatically stop it
-		return true
-	}
-	return t.end
 }
