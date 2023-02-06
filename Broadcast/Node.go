@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type DeliverMsg struct {
 	From    int
 	To      int
@@ -18,9 +20,11 @@ type Node struct {
 	Delivered int
 	Acked     int
 	send      func(int, int, string, []byte)
+	timeout   func(time.Duration) <-chan time.Time
 }
 
 func (n *Node) Broadcast(message []byte) {
+	<-n.timeout(time.Second)
 	for _, id := range n.nodes {
 		n.send(
 			n.Id,

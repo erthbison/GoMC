@@ -3,7 +3,8 @@ package tester
 import (
 	"errors"
 	"fmt"
-	"log"
+	"runtime"
+	"time"
 )
 
 var (
@@ -28,62 +29,76 @@ type Simulator[T any, S any] struct {
 	// It includes both paths that have been fully explored, and potential paths that we know need further interleaving of the messages to fully explore
 	Scheduler Scheduler[T]
 
+	nextEvt      chan error
+	timeoutChans map[string]chan time.Time
+
 	end     bool
 	numRuns int
 }
 
 func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
-		nodes:     map[int]*T{},
-		Scheduler: sch,
-		sm:        sm,
-		numRuns:   0,
-		end:       false,
+		nodes:        map[int]*T{},
+		Scheduler:    sch,
+		sm:           sm,
+		nextEvt:      make(chan error),
+		numRuns:      0,
+		end:          false,
+		timeoutChans: make(map[string]chan time.Time),
 	}
 }
 
-func (t *Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T) error) {
+func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map[int]*T) error) error {
 outer:
-	for !t.isCompleted() {
-		// Create nodes and init states for this run
-		t.nodes = initNodes()
-		t.sm.UpdateGlobalState(t.nodes)
+	for !s.isCompleted() {
+		// Perform initialization of the simulation
+		s.nodes = initNodes()
+		s.sm.UpdateGlobalState(s.nodes)
 
 		// Add all the function events to the scheduler
 		for i, f := range funcs {
-			t.Scheduler.AddEvent(
+			s.Scheduler.AddEvent(
 				FunctionEvent[T]{
 					index: i,
 					F:     f,
 				},
 			)
 		}
+
+		// Begin executing events
 		for {
-			err := t.executeNextEvent()
+			// Select an event
+			evt, err := s.Scheduler.GetEvent()
 			if err != nil {
 				if errors.Is(err, NoEventError) {
 					// If there are no available events that means that all possible event chains have been attempted and we are done
 					// Update the end flag
-					t.end = true
+					s.end = true
 					break outer
 				} else if errors.Is(err, RunEndedError) {
 					break
 				} else {
-					log.Panicf("An error occurred while scheduling the next message: %v", err)
+					return fmt.Errorf("An error occurred while scheduling the next event: %w", err)
 				}
-				break
 			}
-			t.sm.UpdateGlobalState(t.nodes)
+			// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
+			go evt.Execute(s.nodes, s.nextEvt)
+			err = <-s.nextEvt
+			if err != nil {
+				return fmt.Errorf("An error occurred while executing the next event: %w", err)
+			}
+			s.sm.UpdateGlobalState(s.nodes)
 		}
 		// Add an end event at the end of this path of the event tree
-		t.Scheduler.EndRun()
-		t.sm.EndRun()
+		s.Scheduler.EndRun()
+		s.sm.EndRun()
 
-		t.numRuns++
-		if t.numRuns%1000 == 0 {
-			fmt.Println("Running Simulation:", t.numRuns)
+		s.numRuns++
+		if s.numRuns%1000 == 0 {
+			fmt.Println("Running Simulation:", s.numRuns)
 		}
 	}
+	return nil
 }
 
 func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
@@ -95,12 +110,14 @@ func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
 	})
 }
 
-func (t *Simulator[T, S]) executeNextEvent() error {
-	event, err := t.Scheduler.GetEvent()
-	if err != nil {
-		return err
-	}
-	return event.Execute(t.nodes)
+func (t *Simulator[T, S]) Timeout(_ time.Duration) <-chan time.Time {
+	_, file, line, _ := runtime.Caller(1)
+	evt := NewTimeoutEvent[T](fmt.Sprintf("File: %v, Line: %v", file, line), t.timeoutChans)
+	t.Scheduler.AddEvent(evt)
+	// Inform the simulator that the process is currently waiting for a scheduled timeout
+	// The simulator can now proceed with scheduling events
+	t.nextEvt <- nil
+	return t.timeoutChans[evt.Id()]
 }
 
 func (t *Simulator[T, S]) isCompleted() bool {

@@ -25,7 +25,7 @@ func main() {
 		},
 	)
 	tester := tester.NewSimulator[Node, State](sch, sm)
-	tester.Simulate(func() map[int]*Node {
+	err := tester.Simulate(func() map[int]*Node {
 		nodeMap := map[int]*Node{}
 		nodes := []int{}
 		for i := 0; i < numNodes; i++ {
@@ -38,6 +38,7 @@ func main() {
 				Delivered: 0,
 				Acked:     0,
 				nodes:     nodes,
+				timeout:   tester.Timeout,
 			}
 		}
 		return nodeMap
@@ -47,6 +48,9 @@ func main() {
 			return nil
 		},
 	)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)
 

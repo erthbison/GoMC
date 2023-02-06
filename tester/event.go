@@ -3,12 +3,13 @@ package tester
 import (
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type Event[T any] interface {
 	// An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
 	Id() string
-	Execute(map[int]*T) error
+	Execute(map[int]*T, chan error)
 }
 
 func EventsEquals[T any](a, b Event[T]) bool {
@@ -25,9 +26,7 @@ func (se StartEvent[T]) String() string {
 	return "{Start}"
 }
 
-func (se StartEvent[T]) Execute(_ map[int]*T) error {
-	return nil
-}
+func (se StartEvent[T]) Execute(_ map[int]*T, _ chan error) {}
 
 type EndEvent[T any] struct{}
 
@@ -39,9 +38,7 @@ func (ee EndEvent[T]) String() string {
 	return "{End}"
 }
 
-func (ee EndEvent[T]) Execute(_ map[int]*T) error {
-	return nil
-}
+func (ee EndEvent[T]) Execute(_ map[int]*T, _ chan error) {}
 
 type MessageEvent[T any] struct {
 	From  int
@@ -58,7 +55,7 @@ func (me MessageEvent[T]) String() string {
 	return fmt.Sprintf("{From: %v, To: %v, Type: %s}", me.From, me.To, me.Type)
 }
 
-func (me MessageEvent[T]) Execute(nodes map[int]*T) error {
+func (me MessageEvent[T]) Execute(nodes map[int]*T, nextEvt chan error) {
 	// Use reflection to call the specified method on the node
 	node := nodes[me.To]
 	method := reflect.ValueOf(node).MethodByName(me.Type)
@@ -67,7 +64,7 @@ func (me MessageEvent[T]) Execute(nodes map[int]*T) error {
 		reflect.ValueOf(me.To),
 		reflect.ValueOf(me.Value),
 	})
-	return nil
+	nextEvt <- nil
 }
 
 type FunctionEvent[T any] struct {
@@ -85,6 +82,35 @@ func (fe FunctionEvent[T]) String() string {
 	return fmt.Sprintf("{Function %v}", fe.index)
 }
 
-func (fe FunctionEvent[T]) Execute(node map[int]*T) error {
-	return fe.F(node)
+func (fe FunctionEvent[T]) Execute(node map[int]*T, nextEvt chan error) {
+	nextEvt <- fe.F(node)
+}
+
+type TimeoutEvent[T any] struct {
+	caller      string
+	timeoutChan map[string]chan time.Time
+}
+
+func (te TimeoutEvent[T]) Id() string {
+	return fmt.Sprintf("Timeout Caller: %v", te.caller)
+}
+
+func (te TimeoutEvent[T]) String() string {
+	return fmt.Sprintf("{Timeout Caller: %v}", te.caller)
+}
+
+func (te TimeoutEvent[T]) Execute(node map[int]*T, _ chan error) {
+	timeout := te.timeoutChan[te.Id()]
+	timeout <- time.Time{}
+	close(timeout)
+}
+
+func NewTimeoutEvent[T any](caller string, timeoutChan map[string]chan time.Time) TimeoutEvent[T] {
+	waitChan := make(chan time.Time)
+	evt := TimeoutEvent[T]{
+		caller:      caller,
+		timeoutChan: timeoutChan,
+	}
+	timeoutChan[evt.Id()] = waitChan
+	return evt
 }
