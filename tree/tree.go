@@ -25,14 +25,15 @@ func New[T any](payload T, eq func(a, b T) bool) Tree[T] {
 
 // Returns the total number of elements in the tree
 func (t *Tree[T]) Len() int {
-	len := 0
+	len := 1
 	for _, child := range t.Children {
 		len += child.Len()
 	}
 	return len
 }
 
-// Adds a new child with the provided payload as a child of the TreeNode
+// Adds a new child with the provided payload as a child of the current Tree
+// Returns the child when done
 func (t *Tree[T]) AddChild(payload T) *Tree[T] {
 	treeNode := &Tree[T]{
 		Payload:  payload,
@@ -88,7 +89,7 @@ func (t *Tree[T]) IsLeafNode() bool {
 	return len(t.Children) == 0
 }
 
-// Returns a slice of all tree nodes that are a descendent of this three node
+// Returns a slice of all tree nodes that are a descendent of this tree node
 func (t *Tree[T]) GetAllLeafNodes() []*Tree[T] {
 	leafNodes := []*Tree[T]{}
 	if t.IsLeafNode() {
@@ -116,13 +117,14 @@ func (t *Tree[T]) SearchLeafNodes(search func(T) bool) bool {
 	return false
 }
 
-// Returns true if the search function is true for some leaf node
+// Returns true if the search function is true for some node
+// Performs a DFS to find the node
 func (t *Tree[T]) DepthFirstSearch(search func(T) bool) bool {
 	if search(t.Payload) {
 		return true
 	}
 	for _, child := range t.Children {
-		if child.SearchLeafNodes(search) {
+		if child.DepthFirstSearch(search) {
 			return true
 		}
 	}
@@ -133,11 +135,8 @@ func (t *Tree[T]) Newick() string {
 	out := strings.Builder{}
 	if len(t.Children) > 0 {
 		out.WriteString("(")
-		first := true
-		for _, child := range t.Children {
-			if first {
-				first = false
-			} else {
+		for i, child := range t.Children {
+			if i > 0 {
 				out.WriteString(",")
 			}
 			out.WriteString(child.Newick())
