@@ -114,6 +114,8 @@ func NewSleepEvent[T any](caller string, timeoutChan map[string]chan time.Time) 
 		caller:      caller,
 		timeoutChan: timeoutChan,
 	}
-	timeoutChan[evt.Id()] = waitChan
+	if _, ok := timeoutChan[evt.Id()]; !ok {
+		timeoutChan[evt.Id()] = waitChan
+	}
 	return evt
 }
