@@ -28,4 +28,16 @@ func TestTreeAddChild(t *testing.T) {
 	}) {
 		t.Fatalf("The value \"Tree 1-2-1\" should be a descendant of this node, but it cant be found with a depth first search")
 	}
+
+	if tree.SearchLeafNodes(func(s string) bool {
+		return s == "Tree 1-2"
+	}) {
+		t.Fatalf("There is no element with value \"Tree 1-2\" in a leaf node")
+	}
+
+	if !tree.SearchLeafNodes(func(s string) bool {
+		return s == "Tree 1-1"
+	}) {
+		t.Fatalf("There should be an element with value \"Tree 1-1\" in a leaf node")
+	}
 }
