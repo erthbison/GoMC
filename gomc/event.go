@@ -12,6 +12,8 @@ type Event[T any] interface {
 
 	// A method executing the event. The event will be executed on a separate goroutine.
 	// It should signal on the channel if it is clear for the simulator to proceed to processing of the state and the next event.
+	// An event should be able to be executed multiple times and any two events with the same Id should be interchangeable.
+	// I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 	Execute(map[int]*T, chan error)
 }
 
