@@ -9,6 +9,9 @@ import (
 type Event[T any] interface {
 	// An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
 	Id() string
+
+	// A method executing the event. The event will be executed on a separate goroutine.
+	// It should signal on the channel if it is clear for the simulator to proceed to processing of the state and the next event.
 	Execute(map[int]*T, chan error)
 }
 
