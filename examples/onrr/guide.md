@@ -56,7 +56,7 @@ We then define a `Checker` and provides functions that takes an instance of the 
 <!-- What functions do we use to verify the properties ??? -->
 To create a function that verifies the *Termination* property we can simply check that the `ongoingRead` and `ongoingWrite` variables are false for all nodes. Since the property states that it should eventually complete, we should not check all global states in the execution. Therefore we only check terminal nodes. This can be done by checking the `terminal` variable or by using the `PredEventually` function.
 
-To verify the *Validity* we check that any value returned by the `ReadIndicator`, i.e. the value stored in `read`, is in the set of possible reads. 
+To verify the *Validity* property we only consider the terminal nodes and then construct a timeline from the start showing when there was an ongoing write operation. We then go trough all read events, and for each event find possible values depending on if they where concurrent with some write operation or not. We then check that the value returned on the `ReadIndicator` is some value in the set of possible values. The set of possible values is the last written value when the operation started and all concurrently written values. 
 
 To run the checker we call the run function with the root of the state tree as parameter. 
 
