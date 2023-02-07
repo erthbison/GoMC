@@ -25,6 +25,8 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[Node, State](sch, sm)
+	sleep := gomc.NewSleepManager[Node](sch, tester)
+	sender := gomc.NewSender[Node](sch)
 	err := tester.Simulate(func() map[int]*Node {
 		nodeMap := map[int]*Node{}
 		nodes := []int{}
@@ -34,11 +36,11 @@ func main() {
 		for _, id := range nodes {
 			nodeMap[id] = &Node{
 				Id:        id,
-				send:      tester.Send,
+				send:      sender.Send,
 				Delivered: 0,
 				Acked:     0,
 				nodes:     nodes,
-				sleep:     tester.Sleep,
+				sleep:     sleep.Sleep,
 			}
 		}
 		return nodeMap

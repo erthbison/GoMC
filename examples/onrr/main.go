@@ -65,6 +65,7 @@ func main() {
 
 	// Create a simulator. providing a function specifying how to instantiate the nodes and a function specifying how to start the test
 	simulator := gomc.NewSimulator[onrr, State](sch, sm)
+	sender := gomc.NewSender[onrr](sch)
 	err := simulator.Simulate(
 		func() map[int]*onrr {
 			numNodes := 2
@@ -75,7 +76,7 @@ func main() {
 			}
 			nodes := make(map[int]*onrr)
 			for _, id := range nodeIds {
-				nodes[id] = NewOnrr(id, simulator.Send, nodeIds)
+				nodes[id] = NewOnrr(id, sender.Send, nodeIds)
 			}
 			return nodes
 		},

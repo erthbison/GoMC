@@ -19,12 +19,13 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[fifo, State](sch, sm)
+	sender := gomc.NewSender[fifo](sch)
 	err := tester.Simulate(
 		func() map[int]*fifo {
 			nodes := map[int]*fifo{}
 			for i := 0; i < numNodes; i++ {
 				nodes[i] = &fifo{
-					send: tester.Send,
+					send: sender.Send,
 				}
 			}
 			return nodes

@@ -3,8 +3,6 @@ package gomc
 import (
 	"errors"
 	"fmt"
-	"runtime"
-	"time"
 )
 
 var (
@@ -27,8 +25,8 @@ type Simulator[T any, S any] struct {
 	// It includes both paths that have been fully explored, and potential paths that we know need further interleaving of the messages to fully explore
 	Scheduler Scheduler[T]
 
-	nextEvt      chan error
-	timeoutChans map[string]chan time.Time
+	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
+	nextEvt chan error
 
 	end     bool
 	numRuns int
@@ -36,12 +34,11 @@ type Simulator[T any, S any] struct {
 
 func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
-		Scheduler:    sch,
-		sm:           sm,
-		nextEvt:      make(chan error),
-		numRuns:      0,
-		end:          false,
-		timeoutChans: make(map[string]chan time.Time),
+		Scheduler: sch,
+		sm:        sm,
+		nextEvt:   make(chan error),
+		numRuns:   0,
+		end:       false,
 	}
 }
 
@@ -97,23 +94,4 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		}
 		s.sm.UpdateGlobalState(nodes)
 	}
-}
-
-func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
-	t.Scheduler.AddEvent(MessageEvent[T]{
-		From:  from,
-		To:    to,
-		Type:  msgType,
-		Value: msg,
-	})
-}
-
-func (t *Simulator[T, S]) Sleep(_ time.Duration) {
-	_, file, line, _ := runtime.Caller(1)
-	evt := NewSleepEvent[T](fmt.Sprintf("File: %v, Line: %v", file, line), t.timeoutChans)
-	t.Scheduler.AddEvent(evt)
-	// Inform the simulator that the process is currently waiting for a scheduled timeout
-	// The simulator can now proceed with scheduling events
-	t.nextEvt <- nil
-	<-t.timeoutChans[evt.Id()]
 }
