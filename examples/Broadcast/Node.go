@@ -20,11 +20,11 @@ type Node struct {
 	Delivered int
 	Acked     int
 	send      func(int, int, string, []byte)
-	timeout   func(time.Duration) <-chan time.Time
+	sleep     func(time.Duration)
 }
 
 func (n *Node) Broadcast(message []byte) {
-	<-n.timeout(time.Second)
+	n.sleep(time.Second)
 	for _, id := range n.nodes {
 		n.send(
 			n.Id,

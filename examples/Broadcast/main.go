@@ -38,7 +38,7 @@ func main() {
 				Delivered: 0,
 				Acked:     0,
 				nodes:     nodes,
-				timeout:   tester.Timeout,
+				sleep:     tester.Sleep,
 			}
 		}
 		return nodeMap
