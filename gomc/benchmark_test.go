@@ -79,13 +79,14 @@ func Benchmark(b *testing.B) {
 			},
 		)
 		tester := gomc.NewSimulator[Node, State](sch, sm)
+		sender := gomc.NewSender[Node](sch)
 		err := tester.Simulate(
 			func() map[int]*Node {
 				nodes := map[int]*Node{}
 				for i := 0; i < numNodes; i++ {
 					nodes[i] = &Node{
 						Id:        i,
-						send:      tester.Send,
+						send:      sender.Send,
 						Delivered: 0,
 						Acked:     0,
 						nodes:     map[int]*Node{},
