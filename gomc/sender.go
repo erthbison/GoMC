@@ -8,8 +8,8 @@ func NewSender[T any](sch Scheduler[T]) *Sender[T] {
 	return &Sender[T]{sch: sch}
 }
 
-func (bs *Sender[T]) Send(from, to int, msgType string, msg []byte) {
-	bs.sch.AddEvent(MessageEvent[T]{
+func (s *Sender[T]) Send(from, to int, msgType string, msg []byte) {
+	s.sch.AddEvent(MessageEvent[T]{
 		From:  from,
 		To:    to,
 		Type:  msgType,

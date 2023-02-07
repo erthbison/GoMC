@@ -61,8 +61,9 @@ func main() {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	tst := gomc.NewSimulator[Rrb, State](sch, sm)
-	err := tst.Simulate(
+	sender := gomc.NewSender[Rrb](sch)
+	sim := gomc.NewSimulator[Rrb, State](sch, sm)
+	err := sim.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
@@ -73,7 +74,7 @@ func main() {
 				nodes[id] = NewRrb(
 					id,
 					nodeIds,
-					tst.Send,
+					sender.Send,
 				)
 			}
 			return nodes
