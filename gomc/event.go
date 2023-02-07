@@ -108,7 +108,7 @@ func (se SleepEvent[T]) Execute(node map[int]*T, _ chan error) {
 	se.timeoutChan[se.Id()] <- time.Time{}
 }
 
-func NewTimeoutEvent[T any](caller string, timeoutChan map[string]chan time.Time) SleepEvent[T] {
+func NewSleepEvent[T any](caller string, timeoutChan map[string]chan time.Time) SleepEvent[T] {
 	waitChan := make(chan time.Time)
 	evt := SleepEvent[T]{
 		caller:      caller,

@@ -110,7 +110,7 @@ func (t *Simulator[T, S]) Send(from, to int, msgType string, msg []byte) {
 
 func (t *Simulator[T, S]) Sleep(_ time.Duration) {
 	_, file, line, _ := runtime.Caller(1)
-	evt := NewTimeoutEvent[T](fmt.Sprintf("File: %v, Line: %v", file, line), t.timeoutChans)
+	evt := NewSleepEvent[T](fmt.Sprintf("File: %v, Line: %v", file, line), t.timeoutChans)
 	t.Scheduler.AddEvent(evt)
 	// Inform the simulator that the process is currently waiting for a scheduled timeout
 	// The simulator can now proceed with scheduling events
