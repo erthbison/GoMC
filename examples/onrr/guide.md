@@ -58,7 +58,7 @@ To create a function that verifies the *Termination* property we can simply chec
 
 To verify the *Validity* property we only consider the terminal nodes and then construct a timeline from the start showing when there was an ongoing write operation. We then go trough all read events, and for each event find possible values depending on if they where concurrent with some write operation or not. We then check that the value returned on the `ReadIndicator` is some value in the set of possible values. The set of possible values is the last written value when the operation started and all concurrently written values. 
 
-To run the checker we call the run function with the root of the state tree as parameter. 
+To run the checker we call the `Check` function with the root of the state tree as parameter. 
 
 
 <!-- 
