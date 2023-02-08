@@ -45,13 +45,13 @@ func (bs *BasicScheduler[T]) GetEvent() (Event[T], error) {
 		}
 	}
 
-	for _, child := range bs.currentEvent.Children {
+	for _, child := range bs.currentEvent.Children() {
 		// iteratively check if each child can be the next event
 		// a child can be the next event if it has some descendent leaf node that is not an "End" event
 		if child.SearchLeafNodes(func(e Event[T]) bool { _, ok := e.(EndEvent[T]); return !ok }) {
-			bs.removeEvent(child.Payload)
+			bs.removeEvent(child.Payload())
 			bs.currentEvent = child
-			return child.Payload, nil
+			return child.Payload(), nil
 		}
 	}
 	return nil, NoEventError

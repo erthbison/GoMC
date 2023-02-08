@@ -61,8 +61,8 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[map[int]S]) *predicateCheck
 func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[map[int]S], sequence []map[int]S) *predicateCheckerResponse[S] {
 	// Use a depth first search to search trough all nodes and check with predicates
 	// Immediately stops when finding a state that breaches the predicates
-	sequence = append(sequence, node.Payload)
-	if ok, index := pc.checkState(node.Payload, node.IsLeafNode(), sequence); !ok {
+	sequence = append(sequence, node.Payload())
+	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
 		return &predicateCheckerResponse[S]{
 			Result:   false,
 			Sequence: sequence,
@@ -70,7 +70,7 @@ func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[map[int]S], sequence []
 		}
 	}
 
-	for _, child := range node.Children {
+	for _, child := range node.Children() {
 		if resp := pc.checkNode(child, sequence); resp != nil {
 			return resp
 		}
@@ -87,4 +87,3 @@ func (pc *PredicateChecker[S]) checkState(state map[int]S, terminalState bool, s
 	}
 	return true, -1
 }
-
