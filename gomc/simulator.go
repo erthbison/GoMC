@@ -26,7 +26,7 @@ type Simulator[T any, S any] struct {
 	Scheduler Scheduler[T]
 
 	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
-	nextEvt chan error
+	NextEvt chan error
 
 	end     bool
 	numRuns int
@@ -36,7 +36,7 @@ func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simula
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		sm:        sm,
-		nextEvt:   make(chan error),
+		NextEvt:   make(chan error),
 		numRuns:   0,
 		end:       false,
 	}
@@ -87,8 +87,8 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 			return err
 		}
 		// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
-		go evt.Execute(nodes, s.nextEvt)
-		err = <-s.nextEvt
+		go evt.Execute(nodes, s.NextEvt)
+		err = <-s.NextEvt
 		if err != nil {
 			return fmt.Errorf("An error occurred while executing the next event: %w", err)
 		}
