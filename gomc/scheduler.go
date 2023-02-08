@@ -17,7 +17,7 @@ var (
 )
 
 type BasicScheduler[T any] struct {
-	EventRoot    tree.Tree[Event[T]]
+	EventRoot    *tree.Tree[Event[T]]
 	currentEvent *tree.Tree[Event[T]]
 
 	// Must be a slice to allow for duplicate entries of messages. If the same message has been sent twice we want it to arrive twice
@@ -27,7 +27,7 @@ type BasicScheduler[T any] struct {
 func NewBasicScheduler[T any]() *BasicScheduler[T] {
 	eventTree := tree.New[Event[T]](StartEvent[T]{}, EventsEquals[T])
 	return &BasicScheduler[T]{
-		EventRoot:     eventTree,
+		EventRoot:     &eventTree,
 		currentEvent:  &eventTree,
 		pendingEvents: make([]Event[T], 0),
 	}
@@ -75,5 +75,5 @@ func (bs *BasicScheduler[T]) EndRun() {
 	// Add an "End" event to the end of the chain
 	// Then change the current event to the root of the event tree
 	bs.currentEvent.AddChild(EndEvent[T]{})
-	bs.currentEvent = &bs.EventRoot
+	bs.currentEvent = bs.EventRoot
 }
