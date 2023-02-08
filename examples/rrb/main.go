@@ -159,7 +159,7 @@ func main() {
 			}),
 	)
 
-	resp := checker.Check(&sm.StateRoot)
+	resp := checker.Check(sm.StateRoot)
 	_, desc := resp.Response()
 	print(desc)
 }

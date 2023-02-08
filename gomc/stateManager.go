@@ -10,7 +10,7 @@ type StateManager[T any, S any] interface {
 }
 
 type stateManager[T any, S any] struct {
-	StateRoot     tree.Tree[map[int]S]
+	StateRoot     *tree.Tree[map[int]S]
 	currentState  *tree.Tree[map[int]S]
 	getLocalState func(*T) S
 
@@ -34,7 +34,7 @@ func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S)
 	})
 
 	return &stateManager[T, S]{
-		StateRoot:     stateRoot,
+		StateRoot:     &stateRoot,
 		currentState:  &stateRoot,
 		getLocalState: getLocalState,
 		stateCmp:      stateCmp,
@@ -57,5 +57,5 @@ func (sm *stateManager[T, S]) UpdateGlobalState(nodes map[int]*T) {
 }
 
 func (sm *stateManager[T, S]) EndRun() {
-	sm.currentState = &sm.StateRoot
+	sm.currentState = sm.StateRoot
 }
