@@ -15,8 +15,8 @@ func TestTreeAddChild(t *testing.T) {
 	if tree.Len() != 4 {
 		t.Fatalf("Added four elements to the tree. Has length: %v", tree.Len())
 	}
-	if len(tree.Children) != 2 {
-		t.Fatalf("Added two children to the tree. Got: %v", len(tree.Children))
+	if len(tree.Children()) != 2 {
+		t.Fatalf("Added two children to the tree. Got: %v", len(tree.Children()))
 	}
 	if child.IsRoot() {
 		t.Fatalf("This should be a child node. IsRoot(): %v", child.IsRoot())
