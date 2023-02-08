@@ -25,7 +25,7 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[Node, State](sch, sm)
-	sleep := gomc.NewSleepManager[Node](sch, tester)
+	sleep := gomc.NewSleepManager[Node](sch, tester.NextEvt)
 	sender := gomc.NewSender[Node](sch)
 	err := tester.Simulate(func() map[int]*Node {
 		nodeMap := map[int]*Node{}
