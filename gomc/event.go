@@ -50,10 +50,22 @@ type MessageEvent[T any] struct {
 	To    int
 	Type  string
 	Value []byte
+
+	id string
+}
+
+func NewMessageEvent[T any](from, to int, msgType string, val []byte) MessageEvent[T] {
+	return MessageEvent[T]{
+		From:  from,
+		To:    to,
+		Type:  msgType,
+		Value: val,
+		id:    fmt.Sprintf("Message From: %v, To: %v, Type: %v, Value: %v", from, to, msgType, val),
+	}
 }
 
 func (me MessageEvent[T]) Id() string {
-	return fmt.Sprintf("Message From: %v, To: %v, Type: %v, Value: %v", me.From, me.To, me.Type, me.Value)
+	return me.id
 }
 
 func (me MessageEvent[T]) String() string {
