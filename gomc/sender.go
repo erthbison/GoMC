@@ -9,10 +9,5 @@ func NewSender[T any](sch Scheduler[T]) *Sender[T] {
 }
 
 func (s *Sender[T]) Send(from, to int, msgType string, msg []byte) {
-	s.sch.AddEvent(MessageEvent[T]{
-		From:  from,
-		To:    to,
-		Type:  msgType,
-		Value: msg,
-	})
+	s.sch.AddEvent(NewMessageEvent[T](from, to, msgType, msg))
 }
