@@ -159,7 +159,7 @@ func (t *Tree[T]) Newick() string {
 		}
 		out.WriteString(")")
 	}
-	out.WriteString(fmt.Sprintf("\"%v\"", t.Payload))
+	out.WriteString(fmt.Sprintf("\"%v\"", t.Payload()))
 	if t.IsRoot() {
 		out.WriteString(";")
 	}
