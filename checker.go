@@ -1,8 +1,8 @@
 package gomc
 
 import (
-	"gomc/tree"
 	"fmt"
+	"gomc/tree"
 )
 
 type CheckerResponse interface {
@@ -37,9 +37,9 @@ type PredicateChecker[S any] struct {
 	predicates []func(map[int]S, bool, []map[int]S) bool
 }
 
-func NewPredicateChecker[S any](preds ...func(map[int]S, bool, []map[int]S) bool) *PredicateChecker[S] {
+func NewPredicateChecker[S any](predicates ...func(map[int]S, bool, []map[int]S) bool) *PredicateChecker[S] {
 	return &PredicateChecker[S]{
-		predicates: preds,
+		predicates: predicates,
 	}
 }
 

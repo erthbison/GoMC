@@ -32,7 +32,7 @@ type onrr struct {
 	wts      int           // Write timestamp
 	acks     int           // Number of acks received for the current value
 	rid      int           // A read request identifier
-	readlist map[int]Value // A slice of all values
+	readList map[int]Value // A slice of all values
 
 	WriteIndicator chan bool
 	ReadIndicator  chan int
@@ -56,7 +56,7 @@ func NewOnrr(id int, send func(to int, msgType string, msg []byte), nodes []int)
 		wts:      0,
 		acks:     0,
 		rid:      0,
-		readlist: make(map[int]Value),
+		readList: make(map[int]Value),
 
 		// Indicator channels
 		WriteIndicator: make(chan bool, 1),
@@ -122,7 +122,7 @@ func (onrr *onrr) Read() {
 	onrr.ongoingRead = true
 
 	onrr.rid++
-	onrr.readlist = make(map[int]Value)
+	onrr.readList = make(map[int]Value)
 	msg := encodeMsg(BroadcastReadMsg{
 		Rid: onrr.rid,
 	})
@@ -145,10 +145,10 @@ func (onrr *onrr) ReadValue(from int, to int, msg []byte) {
 	if valMsg.Rid != onrr.rid {
 		return
 	}
-	onrr.readlist[from] = valMsg.Val
-	if len(onrr.readlist) > len(onrr.nodes)/2 {
-		val := getvalue(onrr.readlist)
-		onrr.readlist = make(map[int]Value)
+	onrr.readList[from] = valMsg.Val
+	if len(onrr.readList) > len(onrr.nodes)/2 {
+		val := getvalue(onrr.readList)
+		onrr.readList = make(map[int]Value)
 
 		onrr.ongoingRead = false
 		onrr.ReadIndicator <- val.Val
@@ -169,7 +169,7 @@ func encodeMsg(v interface{}) []byte {
 	var buffer bytes.Buffer
 	err := gob.NewEncoder(&buffer).Encode(v)
 	if err != nil {
-		// Unoptimal error handling, but we do it for simplicity
+		// Un-optimal error handling, but we do it for simplicity
 		panic(err)
 	}
 	return buffer.Bytes()
@@ -180,7 +180,7 @@ func decodeMsg[T any](input []byte) T {
 	buffer := bytes.NewBuffer(input)
 	err := gob.NewDecoder(buffer).Decode(&msg)
 	if err != nil {
-		// Unoptimal error handling, but we do it for simplicity
+		// Un-optimal error handling, but we do it for simplicity
 		panic(err)
 	}
 	return msg
