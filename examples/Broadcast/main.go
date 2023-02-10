@@ -37,7 +37,7 @@ func main() {
 		for _, id := range nodes {
 			nodeMap[id] = &Node{
 				Id:        id,
-				send:      sender.Send,
+				send:      sender.SendFunc(id),
 				Delivered: 0,
 				Acked:     0,
 				nodes:     nodes,

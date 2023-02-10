@@ -21,12 +21,12 @@ type Rrb struct {
 
 	delivered map[message]bool
 	sent      map[message]bool
-	send      func(from, to int, msgType string, msg []byte)
+	send      func(to int, msgType string, msg []byte)
 
 	deliveredSlice []message
 }
 
-func NewRrb(id int, nodes []int, send func(int, int, string, []byte)) *Rrb {
+func NewRrb(id int, nodes []int, send func(int, string, []byte)) *Rrb {
 	return &Rrb{
 		id:    id,
 		nodes: nodes,
@@ -50,7 +50,7 @@ func (rrb *Rrb) Broadcast(msg string) {
 	}
 
 	for _, target := range rrb.nodes {
-		rrb.send(rrb.id, target, "Deliver", byteMsg)
+		rrb.send(target, "Deliver", byteMsg)
 	}
 	rrb.sent[message] = true
 }
@@ -67,7 +67,7 @@ func (rrb *Rrb) Deliver(from int, to int, msg []byte) {
 	if !rrb.delivered[message] {
 		rrb.delivered[message] = true
 		for _, target := range rrb.nodes {
-			rrb.send(rrb.id, target, "Deliver", msg)
+			rrb.send(target, "Deliver", msg)
 		}
 	}
 }

@@ -26,7 +26,7 @@ func main() {
 			nodes := map[int]*fifo{}
 			for i := 0; i < numNodes; i++ {
 				nodes[i] = &fifo{
-					send: sender.Send,
+					send: sender.SendFunc(i),
 				}
 			}
 			return nodes

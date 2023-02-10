@@ -75,7 +75,7 @@ func main() {
 				nodes[id] = NewRrb(
 					id,
 					nodeIds,
-					sender.Send,
+					sender.SendFunc(id),
 				)
 			}
 			return nodes

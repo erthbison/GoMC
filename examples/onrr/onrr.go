@@ -47,10 +47,10 @@ type onrr struct {
 	// Used to keep track of all nodes
 	nodes []int
 	// Used to send messages to other types.
-	send func(from, to int, msgType string, msg []byte)
+	send func(to int, msgType string, msg []byte)
 }
 
-func NewOnrr(id int, send func(from, to int, msgType string, msg []byte), nodes []int) *onrr {
+func NewOnrr(id int, send func(to int, msgType string, msg []byte), nodes []int) *onrr {
 	return &onrr{
 		val:      Value{Ts: 0, Val: 0},
 		wts:      0,
@@ -89,7 +89,7 @@ func (onrr *onrr) Write(val int) {
 		Val: value,
 	})
 	for _, target := range onrr.nodes {
-		onrr.send(onrr.id, target, "BroadcastWrite", msg)
+		onrr.send(target, "BroadcastWrite", msg)
 	}
 }
 
@@ -101,7 +101,7 @@ func (onrr *onrr) BroadcastWrite(from int, to int, msg []byte) {
 	ackMsg := encodeMsg(AckMsg{
 		Ts: bwMsg.Val.Ts,
 	})
-	onrr.send(onrr.id, from, "AckWrite", ackMsg)
+	onrr.send(from, "AckWrite", ackMsg)
 }
 
 func (onrr *onrr) AckWrite(from int, to int, msg []byte) {
@@ -127,7 +127,7 @@ func (onrr *onrr) Read() {
 		Rid: onrr.rid,
 	})
 	for _, target := range onrr.nodes {
-		onrr.send(onrr.id, target, "BroadcastRead", msg)
+		onrr.send(target, "BroadcastRead", msg)
 	}
 }
 
@@ -137,7 +137,7 @@ func (onrr *onrr) BroadcastRead(from int, to int, msg []byte) {
 		Rid: readMsg.Rid,
 		Val: onrr.val,
 	})
-	onrr.send(onrr.id, from, "ReadValue", valMsg)
+	onrr.send(from, "ReadValue", valMsg)
 }
 
 func (onrr *onrr) ReadValue(from int, to int, msg []byte) {

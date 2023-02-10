@@ -3,7 +3,7 @@ package main
 type fifo struct {
 	id int
 
-	send func(int, int, string, []byte)
+	send func(int, string, []byte)
 
 	Received []string
 }
@@ -16,7 +16,6 @@ func NewFIFO(id int) *fifo {
 
 func (f fifo) Send(target int, message []byte) {
 	f.send(
-		f.id,
 		target,
 		"Test",
 		message,

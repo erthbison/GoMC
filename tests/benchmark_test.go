@@ -23,7 +23,7 @@ type Node struct {
 	nodes     map[int]*Node
 	Delivered int
 	Acked     int
-	send      func(int, int, string, []byte)
+	send      func(int, string, []byte)
 }
 
 func (n *Node) RegisterNodes(nodes map[int]*Node) {
@@ -35,7 +35,6 @@ func (n *Node) RegisterNodes(nodes map[int]*Node) {
 func (n *Node) Broadcast(message []byte) {
 	for id := range n.nodes {
 		n.send(
-			n.Id,
 			id,
 			"Deliver",
 			message,
@@ -47,7 +46,6 @@ func (n *Node) Deliver(from, to int, message []byte) {
 	n.Delivered++
 	for id := range n.nodes {
 		n.send(
-			n.Id,
 			id,
 			"Ack",
 			message,
@@ -87,7 +85,7 @@ func Benchmark(b *testing.B) {
 				for i := 0; i < numNodes; i++ {
 					nodes[i] = &Node{
 						Id:        i,
-						send:      sender.Send,
+						send:      sender.SendFunc(i),
 						Delivered: 0,
 						Acked:     0,
 						nodes:     map[int]*Node{},

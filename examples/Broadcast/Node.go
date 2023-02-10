@@ -19,7 +19,7 @@ type Node struct {
 	nodes     []int
 	Delivered int
 	Acked     int
-	send      func(int, int, string, []byte)
+	send      func(int, string, []byte)
 	sleep     func(time.Duration)
 }
 
@@ -27,7 +27,6 @@ func (n *Node) Broadcast(message []byte) {
 	n.sleep(time.Second)
 	for _, id := range n.nodes {
 		n.send(
-			n.Id,
 			id,
 			"Deliver",
 			message,
@@ -39,7 +38,6 @@ func (n *Node) Deliver(from, to int, message []byte) {
 	n.Delivered++
 	for _, id := range n.nodes {
 		n.send(
-			n.Id,
 			id,
 			"Ack",
 			message,
