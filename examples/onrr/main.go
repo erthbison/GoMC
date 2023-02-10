@@ -76,7 +76,7 @@ func main() {
 			}
 			nodes := make(map[int]*onrr)
 			for _, id := range nodeIds {
-				nodes[id] = NewOnrr(id, sender.SendInterface, nodeIds)
+				nodes[id] = NewOnrr(id, sender.Send, nodeIds)
 			}
 			return nodes
 		},
