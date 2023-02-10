@@ -10,10 +10,11 @@ func TestSleepManager(t *testing.T) {
 	sch := NewMockScheduler()
 	nextEvent := make(chan error)
 	sm := gomc.NewSleepManager[node](sch, nextEvent)
+	sleepFunc := sm.SleepFunc(0)
 	notBlockedChan := make(chan bool)
 	go func() {
 		// Need to check that sleep actually blocks until the event is executed
-		sm.Sleep(time.Second)
+		sleepFunc(time.Second)
 		notBlockedChan <- true
 	}()
 
