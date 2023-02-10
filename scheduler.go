@@ -2,7 +2,7 @@ package gomc
 
 import (
 	"errors"
-	"experimentation/tree"
+	"gomc/tree"
 )
 
 type Scheduler[T any] interface {
@@ -76,4 +76,32 @@ func (bs *BasicScheduler[T]) EndRun() {
 	// Then change the current event to the root of the event tree
 	bs.currentEvent.AddChild(EndEvent[T]{})
 	bs.currentEvent = bs.EventRoot
+}
+
+type StackScheduler[T any] struct {
+	eventStack         []Event[T]
+	currentSequence    []Event[T]
+	currentlyBranching bool
+}
+
+func (s StackScheduler[T]) GetEvent() (Event[T], error) {
+	// Pop element from stack
+	evt := s.eventStack[len(s.eventStack)-1]
+	s.eventStack = s.eventStack[:len(s.eventStack)-1]
+
+	s.currentSequence = append(s.currentSequence, evt)
+	s.currentlyBranching = false
+	return evt, nil
+}
+
+func (s StackScheduler[T]) AddEvent(evt Event[T]) {
+	if s.currentlyBranching {
+		s.eventStack = append(s.eventStack, s.currentSequence...)
+	}
+	s.currentlyBranching = true
+	s.eventStack = append(s.eventStack, evt)
+}
+
+func (s StackScheduler[T]) EndRun() {
+	panic("not implemented") // TODO: Implement
 }

@@ -1,7 +1,7 @@
 package gomc
 
 import (
-	"experimentation/tree"
+	"gomc/tree"
 )
 
 type StateManager[T any, S any] interface {

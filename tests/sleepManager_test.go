@@ -1,7 +1,7 @@
 package gomc_test
 
 import (
-	"experimentation/gomc"
+	"gomc"
 	"testing"
 	"time"
 )

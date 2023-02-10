@@ -2,7 +2,7 @@ package gomc_test
 
 import (
 	"errors"
-	"experimentation/gomc"
+	"gomc"
 	"testing"
 )
 

@@ -73,7 +73,7 @@ Notes:
 
     - Tedious to manually assign the msgType for a message, i.e. the function that will be called when receiving the message. Unknown how to solve this. The message type that is used could be named after the function that will be called. I.e. If you want to call a method that is named "AckWrite" you send an "AckWrite" message to the node.
 
-    - Output from the checker is not that useful in identifying what happened. We should also create a way to export and import the states tree so that we don't have to run the simulation every time we want to run the checker. Can be done by implementing a NewickRead function
+    - Output from the checker is not that useful in identifying what happened. We should also create a way to export and import the states tree so that we don't have to run the simulation every time we want to run the checker. 
 
     - Could also generate a utility function for broadcasts, but it is not a big issue
 

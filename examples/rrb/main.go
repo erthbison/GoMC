@@ -1,7 +1,7 @@
 package main
 
 import (
-	"experimentation/gomc"
+	"gomc"
 	"fmt"
 	"strings"
 

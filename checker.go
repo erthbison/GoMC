@@ -1,7 +1,7 @@
 package gomc
 
 import (
-	"experimentation/tree"
+	"gomc/tree"
 	"fmt"
 )
 

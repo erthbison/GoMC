@@ -1,4 +1,4 @@
-module experimentation
+module gomc
 
 go 1.19
 
