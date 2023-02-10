@@ -14,7 +14,7 @@ type BasicScheduler[T any] struct {
 }
 
 func NewBasicScheduler[T any]() *BasicScheduler[T] {
-	eventTree := tree.New[event.Event[T]](event.StartEvent[T]{}, event.EventsEquals[T])
+	eventTree := tree.New(nil, event.EventsEquals[T])
 	return &BasicScheduler[T]{
 		EventRoot:     &eventTree,
 		currentEvent:  &eventTree,
@@ -37,7 +37,7 @@ func (bs *BasicScheduler[T]) GetEvent() (event.Event[T], error) {
 	for _, child := range bs.currentEvent.Children() {
 		// iteratively check if each child can be the next event
 		// a child can be the next event if it has some descendent leaf node that is not an "End" event
-		if child.SearchLeafNodes(func(e event.Event[T]) bool { _, ok := e.(event.EndEvent[T]); return !ok }) {
+		if child.SearchLeafNodes(func(e event.Event[T]) bool { return e != nil }) {
 			bs.removeEvent(child.Payload())
 			bs.currentEvent = child
 			return child.Payload(), nil
@@ -48,8 +48,8 @@ func (bs *BasicScheduler[T]) GetEvent() (event.Event[T], error) {
 
 func (bs *BasicScheduler[T]) removeEvent(evt event.Event[T]) {
 	// Remove the message from the message queue
-	for i, pedningEvt := range bs.pendingEvents {
-		if event.EventsEquals(evt, pedningEvt) {
+	for i, pendingEvt := range bs.pendingEvents {
+		if event.EventsEquals(evt, pendingEvt) {
 			bs.pendingEvents = append(bs.pendingEvents[0:i], bs.pendingEvents[i+1:]...)
 			break
 		}
@@ -63,7 +63,7 @@ func (bs *BasicScheduler[T]) AddEvent(evt event.Event[T]) {
 func (bs *BasicScheduler[T]) EndRun() {
 	// Add an "End" event to the end of the chain
 	// Then change the current event to the root of the event tree
-	bs.currentEvent.AddChild(event.EndEvent[T]{})
+	bs.currentEvent.AddChild(nil)
 	bs.currentEvent = bs.EventRoot
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	bs.pendingEvents = make([]event.Event[T], 0)

@@ -12,36 +12,12 @@ type Event[T any] interface {
 	// I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 	// Panics raised while executing the event is recovered by the simulator and returned as errors
 	Execute(map[int]*T, chan error)
+
+	// The id of the target node, i.e. the node whose state will be changed by the event executing.
+	// Is used to identify if an event is still enabled, or if it has been disabled, e.g. because the node crashed.
+	// Target() int
 }
 
 func EventsEquals[T any](a, b Event[T]) bool {
 	return a.Id() == b.Id()
 }
-
-// An event representing the start of the simulation.
-// The execution of a start event performs no change to the state
-type StartEvent[T any] struct{}
-
-func (se StartEvent[T]) Id() string {
-	return "Start"
-}
-
-func (se StartEvent[T]) String() string {
-	return "{Start}"
-}
-
-func (se StartEvent[T]) Execute(_ map[int]*T, _ chan error) {}
-
-// An event representing the end of a run
-// The execution of a start event performs no change to the state
-type EndEvent[T any] struct{}
-
-func (ee EndEvent[T]) Id() string {
-	return "End"
-}
-
-func (ee EndEvent[T]) String() string {
-	return "{End}"
-}
-
-func (ee EndEvent[T]) Execute(_ map[int]*T, _ chan error) {}
