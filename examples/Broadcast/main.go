@@ -41,7 +41,7 @@ func main() {
 				Delivered: 0,
 				Acked:     0,
 				nodes:     nodes,
-				sleep:     sleep.Sleep,
+				sleep:     sleep.SleepFunc(id),
 			}
 		}
 		return nodeMap

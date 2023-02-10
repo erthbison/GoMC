@@ -9,15 +9,16 @@ type SleepEvent[T any] struct {
 	// An event representing a timeout.
 	// It is analogous to time.Sleep and can be used to represent timeouts for example for a failure detector
 	caller      string
+	target      int // The id of the target node
 	timeoutChan map[string]chan time.Time
 }
 
 func (se SleepEvent[T]) Id() string {
-	return fmt.Sprintf("Sleep Caller: %v", se.caller)
+	return fmt.Sprintf("Sleep Target: %v Caller: %v", se.target, se.caller)
 }
 
 func (se SleepEvent[T]) String() string {
-	return fmt.Sprintf("{Sleep Caller: %v}", se.caller)
+	return fmt.Sprintf("{Sleep Target: %v Caller: %v}", se.target, se.caller)
 }
 
 func (se SleepEvent[T]) Execute(node map[int]*T, _ chan error) {
@@ -27,10 +28,11 @@ func (se SleepEvent[T]) Execute(node map[int]*T, _ chan error) {
 	se.timeoutChan[se.Id()] <- time.Time{}
 }
 
-func NewSleepEvent[T any](caller string, timeoutChan map[string]chan time.Time) SleepEvent[T] {
+func NewSleepEvent[T any](caller string, target int, timeoutChan map[string]chan time.Time) SleepEvent[T] {
 	waitChan := make(chan time.Time)
 	evt := SleepEvent[T]{
 		caller:      caller,
+		target:      target,
 		timeoutChan: timeoutChan,
 	}
 	if _, ok := timeoutChan[evt.Id()]; !ok {

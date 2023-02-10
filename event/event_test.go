@@ -14,7 +14,7 @@ func (n *node) Bar(from, to int, msg []byte) {}
 func TestSleepEvent(t *testing.T) {
 	tmp := map[int]*node{}
 	chanMap := make(map[string]chan time.Time)
-	foo := NewSleepEvent[node]("Foo", chanMap)
+	foo := NewSleepEvent[node]("Foo", 0, chanMap)
 	go func() {
 		<-chanMap[foo.Id()]
 	}()
@@ -26,8 +26,8 @@ func TestSleepEventOnSameLocation(t *testing.T) {
 	// Test that two Sleep events with the same id are interchangeable
 	tmp := map[int]*node{}
 	chanMap := make(map[string]chan time.Time)
-	foo1 := NewSleepEvent[node]("Foo", chanMap)
-	foo2 := NewSleepEvent[node]("Foo", chanMap)
+	foo1 := NewSleepEvent[node]("Foo", 0, chanMap)
+	foo2 := NewSleepEvent[node]("Foo", 0, chanMap)
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 	go func() {
