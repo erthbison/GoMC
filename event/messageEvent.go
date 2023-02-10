@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+// An event representing the arrival of a message on a node.
+// Calls the function specified with the Type parameter when executed
 type MessageEvent[T any] struct {
 	From  int
 	To    int

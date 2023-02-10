@@ -2,6 +2,8 @@ package event
 
 import "fmt"
 
+// An function provided by the users.
+// Is used to start the execution of the algorithm
 type FunctionEvent[T any] struct {
 	// Unique id that is used to identify the event.
 	// Since the functions are provided in sequential order at the start of the run this will be consistent between runs
