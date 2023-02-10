@@ -65,4 +65,6 @@ func (bs *BasicScheduler[T]) EndRun() {
 	// Then change the current event to the root of the event tree
 	bs.currentEvent.AddChild(event.EndEvent[T]{})
 	bs.currentEvent = bs.EventRoot
+	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
+	bs.pendingEvents = make([]event.Event[T], 0)
 }
