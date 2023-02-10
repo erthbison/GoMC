@@ -5,9 +5,6 @@ import (
 	"fmt"
 )
 
-type Checker[S any] interface {
-	Check(*tree.Tree[map[int]S]) CheckerResponse
-}
 type CheckerResponse interface {
 	Response() (bool, string)
 }
