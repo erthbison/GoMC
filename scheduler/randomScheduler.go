@@ -5,7 +5,11 @@ import (
 	"math/rand"
 )
 
+// A scheduler that randomly picks the next event from the available events.
+// It is useful for testing a random selection of the state space when the state space is to large to perform an exhaustive search
+// It provides no guarantee that all errors have been found, but since it is random it generally contains a larger spread in the states that are checked compared to the exhaustive search.
 type RandomScheduler[T any] struct {
+	// a slice of all events that can be chosen
 	pendingEvents []event.Event[T]
 	numRuns       int
 	maxRuns       int
@@ -23,7 +27,7 @@ func (rs *RandomScheduler[T]) GetEvent() (event.Event[T], error) {
 	if len(rs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
-	if rs.numRuns > rs.maxRuns {
+	if rs.numRuns >= rs.maxRuns {
 		return nil, NoEventError
 	}
 
