@@ -79,6 +79,9 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map
 	return nil
 }
 
+// Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
+// If there is an error during the execution it returns the error, otherwise it returns nil
+// Uses the state manager to get the global state of the system after the execution of each event
 func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 	for {
 		// Select an event
