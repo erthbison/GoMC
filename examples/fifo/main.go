@@ -1,15 +1,16 @@
 package main
 
 import (
-	"gomc"
 	"fmt"
+	"gomc"
+	"gomc/scheduler"
 )
 
 type State string
 
 func main() {
 	numNodes := 2
-	sch := gomc.NewBasicScheduler[fifo]()
+	sch := scheduler.NewBasicScheduler[fifo]()
 	sm := gomc.NewStateManager(
 		func(node *fifo) State {
 			return State(fmt.Sprintf("%v", len(node.Received)))

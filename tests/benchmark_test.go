@@ -2,6 +2,7 @@ package gomc_test
 
 import (
 	"gomc"
+	"gomc/scheduler"
 	"testing"
 )
 
@@ -66,7 +67,7 @@ type State struct {
 func Benchmark(b *testing.B) {
 	numNodes := 2
 	for i := 0; i < b.N; i++ {
-		sch := gomc.NewBasicScheduler[Node]()
+		sch := scheduler.NewBasicScheduler[Node]()
 		sm := gomc.NewStateManager(
 			func(node *Node) State {
 				return State{

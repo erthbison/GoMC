@@ -112,7 +112,7 @@ func (onrr *onrr) AckWrite(from int, to int, msg []byte) {
 	onrr.acks++
 	if onrr.acks > len(onrr.nodes)/2 {
 		onrr.ongoingWrite = false
-		onrr.possibleReads = []int{onrr.val.Val}
+		onrr.possibleReads = onrr.possibleReads[1:]
 		onrr.acks = 0
 		onrr.WriteIndicator <- true
 	}

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"gomc"
 	"fmt"
+	"gomc"
+	"gomc/scheduler"
 )
 
 type State struct {
@@ -12,7 +13,7 @@ type State struct {
 
 func main() {
 	numNodes := 2
-	sch := gomc.NewBasicScheduler[Node]()
+	sch := scheduler.NewBasicScheduler[Node]()
 	sm := gomc.NewStateManager(
 		func(node *Node) State {
 			return State{

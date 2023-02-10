@@ -1,7 +1,7 @@
 package gomc_test
 
 import (
-	"gomc"
+	"gomc/event"
 	"strconv"
 )
 
@@ -14,24 +14,24 @@ func (n *node) Bar(from, to int, msg []byte) {}
 type state struct{}
 
 type MockScheduler struct {
-	inEvent  chan gomc.Event[node]
-	outEvent chan gomc.Event[node]
+	inEvent  chan event.Event[node]
+	outEvent chan event.Event[node]
 	endRun   chan interface{}
 }
 
 func NewMockScheduler() *MockScheduler {
 	return &MockScheduler{
-		make(chan gomc.Event[node]),
-		make(chan gomc.Event[node]),
+		make(chan event.Event[node]),
+		make(chan event.Event[node]),
 		make(chan interface{}),
 	}
 }
 
-func (ms *MockScheduler) AddEvent(evt gomc.Event[node]) {
+func (ms *MockScheduler) AddEvent(evt event.Event[node]) {
 	ms.inEvent <- evt
 }
 
-func (ms *MockScheduler) GetEvent() (gomc.Event[node], error) {
+func (ms *MockScheduler) GetEvent() (event.Event[node], error) {
 	return <-ms.outEvent, nil
 }
 

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"gomc"
 	"fmt"
+	"gomc"
+	"gomc/scheduler"
 	"strings"
 
 	"golang.org/x/exp/maps"
@@ -32,7 +33,7 @@ func (s State) String() string {
 
 func main() {
 	numNodes := 2
-	sch := gomc.NewBasicScheduler[Rrb]()
+	sch := scheduler.NewBasicScheduler[Rrb]()
 	sm := gomc.NewStateManager(
 		func(node *Rrb) State {
 			newDelivered := map[message]bool{}

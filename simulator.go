@@ -3,6 +3,8 @@ package gomc
 import (
 	"errors"
 	"fmt"
+	"gomc/event"
+	"gomc/scheduler"
 )
 
 var (
@@ -23,7 +25,7 @@ type Simulator[T any, S any] struct {
 
 	// The event tree should be a tree of events that has been discovered during the traversal of the state space
 	// It includes both paths that have been fully explored, and potential paths that we know need further interleaving of the messages to fully explore
-	Scheduler Scheduler[T]
+	Scheduler scheduler.Scheduler[T]
 
 	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
 	NextEvt chan error
@@ -32,7 +34,7 @@ type Simulator[T any, S any] struct {
 	numRuns int
 }
 
-func NewSimulator[T any, S any](sch Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		sm:        sm,
@@ -51,15 +53,15 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs ...func(map
 		// Add all the function events to the scheduler
 		for i, f := range funcs {
 			s.Scheduler.AddEvent(
-				FunctionEvent[T]{
-					index: i,
+				event.FunctionEvent[T]{
+					Index: i,
 					F:     f,
 				},
 			)
 		}
 
 		err := s.executeRun(nodes)
-		if errors.Is(err, NoEventError) {
+		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
 		} else if err != nil {
@@ -81,7 +83,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 	for {
 		// Select an event
 		evt, err := s.Scheduler.GetEvent()
-		if errors.Is(err, RunEndedError) {
+		if errors.Is(err, scheduler.RunEndedError) {
 			return nil
 		} else if err != nil {
 			return err

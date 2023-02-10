@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"gomc"
+	"gomc/scheduler"
 
 	"golang.org/x/exp/slices"
 )
@@ -21,7 +21,8 @@ type State struct {
 
 func main() {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
-	sch := gomc.NewBasicScheduler[onrr]()
+	// sch := gomc.NewBasicScheduler[onrr]()
+	sch := scheduler.NewRandomScheduler[onrr](10000)
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
 	sm := gomc.NewStateManager(
@@ -68,7 +69,7 @@ func main() {
 	sender := gomc.NewSender[onrr](sch)
 	err := simulator.Simulate(
 		func() map[int]*onrr {
-			numNodes := 2
+			numNodes := 5
 
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
@@ -92,17 +93,29 @@ func main() {
 			nodes[1].Read()
 			return nil
 		},
+		func(nodes map[int]*onrr) error {
+			nodes[2].Read()
+			return nil
+		},
+		func(nodes map[int]*onrr) error {
+			nodes[3].Read()
+			return nil
+		},
+		func(nodes map[int]*onrr) error {
+			nodes[4].Read()
+			return nil
+		},
 	)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(sch.EventRoot)
+	// fmt.Println(sch.EventRoot)
 	// fmt.Println(sm.StateRoot)
 
 	// fmt.Println(sm.StateRoot.Newick())
-	fmt.Println(sch.EventRoot.Newick())
+	// fmt.Println(sch.EventRoot.Newick())
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
@@ -115,50 +128,48 @@ func main() {
 				return true
 			},
 		),
-		gomc.PredEventually(
-			func(state map[int]State, _ bool, seq []map[int]State) bool {
-				writer := 0
-				possibleReadSlice := make([][]int, len(seq))
+		func(state map[int]State, _ bool, seq []map[int]State) bool {
+			writer := 0
+			possibleReadSlice := make([][]int, len(seq))
+			for i, elem := range seq {
+				possibleReadSlice[i] = elem[writer].possibleReads
+			}
+
+			// Create a set of the set of possible values for an event at the provided range
+			// Possible values include the union of all locally stored possible value for all states in the range
+			possibleVals := func(start, end int) map[int]bool {
+				possibleReads := map[int]bool{}
+				for i := start; i <= end; i++ {
+					for _, val := range possibleReadSlice[i] {
+						possibleReads[val] = true
+					}
+				}
+				return possibleReads
+			}
+
+			// For each node in. Go trough the sequence and find ReadEvents.
+			// Find possible values for the read event and check that it matches the returned value
+			for id := range state {
+				readStart := MaxInt
 				for i, elem := range seq {
-					possibleReadSlice[i] = elem[writer].possibleReads
-				}
 
-				// Create a set of the set of possible values for an event at the provided range
-				// Possible values include the union of all locally stored possible value for all states in the range
-				possibleVals := func(start, end int) map[int]bool {
-					possibleReads := map[int]bool{}
-					for i := start; i <= end; i++ {
-						for _, val := range possibleReadSlice[i] {
-							possibleReads[val] = true
-						}
+					node := elem[id]
+					if node.ongoingRead && i < readStart {
+						// A read operation starts
+						readStart = i
 					}
-					return possibleReads
-				}
-
-				// For each node in. Go trough the sequence and find ReadEvents.
-				// Find possible values for the read event and check that it matches the returned value
-				for id := range state {
-					readStart := MaxInt
-					for i, elem := range seq {
-
-						node := elem[id]
-						if node.ongoingRead && i < readStart {
-							// A read operation starts
-							readStart = i
+					if node.currentRead {
+						// A read operation ends
+						valSet := possibleVals(readStart, i)
+						if !valSet[node.read] {
+							return false
 						}
-						if node.currentRead {
-							// A read operation ends
-							valSet := possibleVals(readStart, i)
-							if !valSet[node.read] {
-								return false
-							}
-							readStart = MaxInt
-						}
+						readStart = MaxInt
 					}
 				}
-				return true
-			},
-		),
+			}
+			return true
+		},
 	)
 
 	resp := checker.Check(sm.StateRoot)
