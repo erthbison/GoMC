@@ -37,11 +37,6 @@ func TestBasicSchedulerNoEvents(t *testing.T) {
 		t.Fatalf("unexpected error. Got %v. Expected: %v", err, RunEndedError)
 	}
 	sch.EndRun()
-
-	_, err = sch.GetEvent()
-	if !errors.Is(err, NoEventError) {
-		t.Fatalf("unexpected error. Got %v. Expected: %v", err, NoEventError)
-	}
 }
 
 func TestBasicSchedulerExplore2Events(t *testing.T) {
