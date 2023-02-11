@@ -172,31 +172,7 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 
 func TestBasicSchedulerNodeCrash(t *testing.T) {
 	sch := NewBasicScheduler[node]()
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 1, false})
-	sch.AddEvent(MockEvent{2, 2, false})
-
-	_, err := sch.GetEvent()
-	if err != nil {
-		t.Errorf("Expected no error. Got: %v", err)
-	}
-
-	sch.NodeCrash(1)
-
-	evt, err := sch.GetEvent()
-	if err != nil {
-		t.Errorf("Expected no error. Got: %v", err)
-	}
-	if evt.Id() == "1" {
-		t.Errorf("Event 1 should have been removed, but received it ")
-	}
-
-	_, err = sch.GetEvent()
-	if !errors.Is(err, RunEndedError) {
-		t.Errorf("Expected %v, got: %v", RunEndedError, err)
-	}
-	sch.EndRun()
-	sch.AddEvent(MockEvent{0, 0, false})
+	testSchedulerCrash(sch, t)
 }
 
 func TestRandomScheduler(t *testing.T) {
@@ -238,7 +214,11 @@ func TestRandomScheduler(t *testing.T) {
 }
 
 func TestRandomSchedulerNodeCrash(t *testing.T) {
-	sch := NewRandomScheduler[node](1)
+	sch := NewRandomScheduler[node](2)
+	testSchedulerCrash(sch, t)
+}
+
+func testSchedulerCrash(sch Scheduler[node], t *testing.T) {
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 1, false})
 	sch.AddEvent(MockEvent{2, 2, false})
@@ -258,10 +238,27 @@ func TestRandomSchedulerNodeCrash(t *testing.T) {
 		t.Errorf("Event 1 should have been removed, but received it ")
 	}
 
-	_, err = sch.GetEvent()
+	sch.AddEvent(MockEvent{3, 1, false})
+
+	evt, err = sch.GetEvent()
+	if evt != nil {
+		if evt.Id() == "3" {
+			t.Errorf("Event 3 is targeting a disabled node so we should not receive it.")
+		} else {
+			t.Errorf("Expected to receive no event")
+		}
+	}
 	if !errors.Is(err, RunEndedError) {
 		t.Errorf("Expected %v, got: %v", RunEndedError, err)
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, 0, false})
+
+	sch.AddEvent(MockEvent{1, 1, false})
+	_, err = sch.GetEvent()
+	if err != nil {
+		t.Errorf("Expected no error. Got: %v", err)
+	}
+	if err != nil {
+		t.Errorf("Added an event to a node that had crashed in a previous run. Expected to receive the event but got an error.")
+	}
 }

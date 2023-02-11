@@ -11,6 +11,8 @@ type BasicScheduler[T any] struct {
 
 	// Must be a slice to allow for duplicate entries of messages. If the same message has been sent twice we want it to arrive twice
 	pendingEvents []event.Event[T]
+
+	failed map[int]bool
 }
 
 func NewBasicScheduler[T any]() *BasicScheduler[T] {
@@ -19,6 +21,8 @@ func NewBasicScheduler[T any]() *BasicScheduler[T] {
 		EventRoot:     &eventTree,
 		currentEvent:  &eventTree,
 		pendingEvents: make([]event.Event[T], 0),
+
+		failed: make(map[int]bool),
 	}
 }
 
@@ -57,6 +61,9 @@ func (bs *BasicScheduler[T]) removeEvent(evt event.Event[T]) {
 }
 
 func (bs *BasicScheduler[T]) AddEvent(evt event.Event[T]) {
+	if bs.failed[evt.Target()] {
+		return
+	}
 	bs.pendingEvents = append(bs.pendingEvents, evt)
 }
 
@@ -67,6 +74,9 @@ func (bs *BasicScheduler[T]) EndRun() {
 	bs.currentEvent = bs.EventRoot
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	bs.pendingEvents = make([]event.Event[T], 0)
+
+	// Reset the map of failed nodes
+	bs.failed = make(map[int]bool)
 }
 
 func (bs *BasicScheduler[T]) NodeCrash(id int) {
@@ -80,4 +90,6 @@ func (bs *BasicScheduler[T]) NodeCrash(id int) {
 		}
 	}
 	bs.pendingEvents = bs.pendingEvents[:i]
+
+	bs.failed[id] = true
 }
