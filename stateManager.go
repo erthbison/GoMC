@@ -2,6 +2,8 @@ package gomc
 
 import (
 	"gomc/tree"
+
+	"golang.org/x/exp/maps"
 )
 
 type StateManager[T any, S any] interface {
@@ -19,18 +21,7 @@ type stateManager[T any, S any] struct {
 
 func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S) bool) *stateManager[T, S] {
 	stateRoot := tree.New(map[int]S{}, func(a, b map[int]S) bool {
-		if len(a) != len(b) {
-			return false
-		}
-		for id := range a {
-			if _, ok := b[id]; !ok {
-				return false
-			}
-			if !stateCmp(a[id], b[id]) {
-				return false
-			}
-		}
-		return true
+		return maps.EqualFunc(a, b, stateCmp)
 	})
 
 	return &stateManager[T, S]{
