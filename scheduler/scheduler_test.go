@@ -168,7 +168,35 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 			t.Errorf("Unexpected result from the two runs. Expected run 2 to be reverse of run 1. Got: Run1: %v, Run2: %v", run1, run2)
 		}
 	}
+}
 
+func TestBasicSchedulerNodeCrash(t *testing.T) {
+	sch := NewBasicScheduler[node]()
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 1, false})
+	sch.AddEvent(MockEvent{2, 2, false})
+
+	_, err := sch.GetEvent()
+	if err != nil {
+		t.Errorf("Expected no error. Got: %v", err)
+	}
+
+	sch.NodeCrash(1)
+
+	evt, err := sch.GetEvent()
+	if err != nil {
+		t.Errorf("Expected no error. Got: %v", err)
+	}
+	if evt.Id() == "1" {
+		t.Errorf("Event 1 should have been removed, but received it ")
+	}
+
+	_, err = sch.GetEvent()
+	if !errors.Is(err, RunEndedError) {
+		t.Errorf("Expected %v, got: %v", RunEndedError, err)
+	}
+	sch.EndRun()
+	sch.AddEvent(MockEvent{0, 0, false})
 }
 
 func TestRandomScheduler(t *testing.T) {
@@ -207,4 +235,33 @@ func TestRandomScheduler(t *testing.T) {
 	if !errors.Is(err, NoEventError) {
 		t.Errorf("Expected to get a NoEventError. Got: %v", err)
 	}
+}
+
+func TestRandomSchedulerNodeCrash(t *testing.T) {
+	sch := NewRandomScheduler[node](1)
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 1, false})
+	sch.AddEvent(MockEvent{2, 2, false})
+
+	_, err := sch.GetEvent()
+	if err != nil {
+		t.Errorf("Expected no error. Got: %v", err)
+	}
+
+	sch.NodeCrash(1)
+
+	evt, err := sch.GetEvent()
+	if err != nil {
+		t.Errorf("Expected no error. Got: %v", err)
+	}
+	if evt.Id() == "1" {
+		t.Errorf("Event 1 should have been removed, but received it ")
+	}
+
+	_, err = sch.GetEvent()
+	if !errors.Is(err, RunEndedError) {
+		t.Errorf("Expected %v, got: %v", RunEndedError, err)
+	}
+	sch.EndRun()
+	sch.AddEvent(MockEvent{0, 0, false})
 }

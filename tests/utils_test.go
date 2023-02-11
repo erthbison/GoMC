@@ -39,6 +39,8 @@ func (ms *MockScheduler) EndRun() {
 	ms.endRun <- nil
 }
 
+func (ms *MockScheduler) NodeCrash(i int) {}
+
 type MockStateManager struct {
 }
 

@@ -68,3 +68,16 @@ func (bs *BasicScheduler[T]) EndRun() {
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	bs.pendingEvents = make([]event.Event[T], 0)
 }
+
+func (bs *BasicScheduler[T]) NodeCrash(id int) {
+	// Remove all events that target the node from pending events
+
+	i := 0
+	for _, evt := range bs.pendingEvents {
+		if evt.Target() != id {
+			bs.pendingEvents[i] = evt
+			i++
+		}
+	}
+	bs.pendingEvents = bs.pendingEvents[:i]
+}

@@ -51,3 +51,16 @@ func (rs *RandomScheduler[T]) EndRun() {
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	rs.pendingEvents = make([]event.Event[T], 0)
 }
+
+func (rs *RandomScheduler[T]) NodeCrash(id int) {
+	// Remove all events that target the node from pending events
+
+	i := 0
+	for _, evt := range rs.pendingEvents {
+		if evt.Target() != id {
+			rs.pendingEvents[i] = evt
+			i++
+		}
+	}
+	rs.pendingEvents = rs.pendingEvents[:i]
+}
