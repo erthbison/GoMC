@@ -46,9 +46,13 @@ func main() {
 		}
 		return nodeMap
 	},
-		func(nodes map[int]*Node) error {
-			nodes[0].Broadcast([]byte("1"))
-			return nil
+		map[int][]func(*Node) error{
+			0: {
+				func(node *Node) error {
+					node.Broadcast([]byte("1"))
+					return nil
+				},
+			},
 		},
 	)
 	if err != nil {

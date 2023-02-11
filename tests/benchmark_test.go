@@ -96,9 +96,13 @@ func Benchmark(b *testing.B) {
 				}
 				return nodes
 			},
-			func(nodes map[int]*Node) error {
-				nodes[0].Broadcast([]byte("Test Message"))
-				return nil
+			map[int][]func(*Node) error{
+				0: {
+					func(node *Node) error {
+						node.Broadcast([]byte("Test Message"))
+						return nil
+					},
+				},
 			},
 		)
 		if err != nil {

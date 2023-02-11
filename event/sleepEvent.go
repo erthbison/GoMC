@@ -13,6 +13,19 @@ type SleepEvent[T any] struct {
 	timeoutChan map[string]chan time.Time
 }
 
+func NewSleepEvent[T any](caller string, target int, timeoutChan map[string]chan time.Time) SleepEvent[T] {
+	waitChan := make(chan time.Time)
+	evt := SleepEvent[T]{
+		caller:      caller,
+		target:      target,
+		timeoutChan: timeoutChan,
+	}
+	if _, ok := timeoutChan[evt.Id()]; !ok {
+		timeoutChan[evt.Id()] = waitChan
+	}
+	return evt
+}
+
 func (se SleepEvent[T]) Id() string {
 	return fmt.Sprintf("Sleep Target: %v Caller: %v", se.target, se.caller)
 }
@@ -28,15 +41,6 @@ func (se SleepEvent[T]) Execute(node map[int]*T, _ chan error) {
 	se.timeoutChan[se.Id()] <- time.Time{}
 }
 
-func NewSleepEvent[T any](caller string, target int, timeoutChan map[string]chan time.Time) SleepEvent[T] {
-	waitChan := make(chan time.Time)
-	evt := SleepEvent[T]{
-		caller:      caller,
-		target:      target,
-		timeoutChan: timeoutChan,
-	}
-	if _, ok := timeoutChan[evt.Id()]; !ok {
-		timeoutChan[evt.Id()] = waitChan
-	}
-	return evt
+func (se SleepEvent[T]) Target() int {
+	return se.target
 }

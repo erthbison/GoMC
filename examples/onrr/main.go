@@ -81,29 +81,41 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*onrr) error {
-			go func() {
-				// ignore the write indication
-				<-nodes[0].WriteIndicator
-			}()
-			nodes[0].Write(2)
-			return nil
-		},
-		func(nodes map[int]*onrr) error {
-			nodes[1].Read()
-			return nil
-		},
-		func(nodes map[int]*onrr) error {
-			nodes[2].Read()
-			return nil
-		},
-		func(nodes map[int]*onrr) error {
-			nodes[3].Read()
-			return nil
-		},
-		func(nodes map[int]*onrr) error {
-			nodes[4].Read()
-			return nil
+		map[int][]func(*onrr) error{
+			0: {
+				func(node *onrr) error {
+					go func() {
+						// ignore the write indication
+						<-node.WriteIndicator
+					}()
+					node.Write(2)
+					return nil
+				},
+			},
+			1: {
+				func(node *onrr) error {
+					node.Read()
+					return nil
+				},
+			},
+			2: {
+				func(node *onrr) error {
+					node.Read()
+					return nil
+				},
+			},
+			3: {
+				func(node *onrr) error {
+					node.Read()
+					return nil
+				},
+			},
+			4: {
+				func(node *onrr) error {
+					node.Read()
+					return nil
+				},
+			},
 		},
 	)
 

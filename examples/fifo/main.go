@@ -31,11 +31,15 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*fifo) error {
-			for i := 0; i < 3; i++ {
-				nodes[0].Send(1, []byte(fmt.Sprintf("Test Message - %v", i)))
-			}
-			return nil
+		map[int][]func(*fifo) error{
+			0: {
+				func(node *fifo) error {
+					for i := 0; i < 3; i++ {
+						node.Send(1, []byte(fmt.Sprintf("Test Message - %v", i)))
+					}
+					return nil
+				},
+			},
 		},
 	)
 

@@ -80,9 +80,13 @@ func main() {
 			}
 			return nodes
 		},
-		func(nodes map[int]*Rrb) error {
-			nodes[0].Broadcast("Test Message")
-			return nil
+		map[int][]func(*Rrb) error{
+			0: {
+				func(node *Rrb) error {
+					node.Broadcast("Test Message")
+					return nil
+				},
+			},
 		},
 	)
 	if err != nil {

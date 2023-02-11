@@ -51,3 +51,7 @@ func (me MessageEvent[T]) Execute(nodes map[int]*T, nextEvt chan error) {
 	})
 	nextEvt <- nil
 }
+
+func (me MessageEvent[T]) Target() int {
+	return me.To
+}
