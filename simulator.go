@@ -101,16 +101,20 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		} else if err != nil {
 			return err
 		}
-		// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
-		go func() {
-			// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
-			defer func() {
-				if p := recover(); p != nil {
-					s.NextEvt <- fmt.Errorf("Error while executing Event: %v", p)
-				}
+		if node, ok := nodes[evt.Target()]; !ok {
+			return fmt.Errorf("Event not targeting an existing node")
+		} else {
+			// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
+			go func() {
+				// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
+				defer func() {
+					if p := recover(); p != nil {
+						s.NextEvt <- fmt.Errorf("Error while executing Event: %v", p)
+					}
+				}()
+				evt.Execute(node, s.NextEvt)
 			}()
-			evt.Execute(nodes, s.NextEvt)
-		}()
+		}
 		err = <-s.NextEvt
 		if err != nil {
 			return err

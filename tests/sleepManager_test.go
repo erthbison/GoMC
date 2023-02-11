@@ -24,7 +24,7 @@ func TestSleepManager(t *testing.T) {
 	// Like the simulator would
 	select {
 	case <-nextEvent:
-		evt.Execute(map[int]*node{}, nextEvent)
+		evt.Execute(&node{}, nextEvent)
 	case <-notBlockedChan:
 		t.Fatalf("Sleep returned before the event was executed")
 	}

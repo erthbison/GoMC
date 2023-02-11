@@ -12,19 +12,17 @@ func (n *node) Foo(from, to int, msg []byte) {}
 func (n *node) Bar(from, to int, msg []byte) {}
 
 func TestSleepEvent(t *testing.T) {
-	tmp := map[int]*node{}
 	chanMap := make(map[string]chan time.Time)
 	foo := NewSleepEvent[node]("Foo", 0, chanMap)
 	go func() {
 		<-chanMap[foo.Id()]
 	}()
 	errChan := make(chan error)
-	foo.Execute(tmp, errChan)
+	foo.Execute(&node{}, errChan)
 }
 
 func TestSleepEventOnSameLocation(t *testing.T) {
 	// Test that two Sleep events with the same id are interchangeable
-	tmp := map[int]*node{}
 	chanMap := make(map[string]chan time.Time)
 	foo1 := NewSleepEvent[node]("Foo", 0, chanMap)
 	foo2 := NewSleepEvent[node]("Foo", 0, chanMap)
@@ -39,7 +37,7 @@ func TestSleepEventOnSameLocation(t *testing.T) {
 		wg.Done()
 	}()
 	errChan := make(chan error)
-	foo1.Execute(tmp, errChan)
-	foo2.Execute(tmp, errChan)
+	foo1.Execute(&node{}, errChan)
+	foo2.Execute(&node{}, errChan)
 	wg.Wait()
 }

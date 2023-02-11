@@ -22,7 +22,7 @@ func (me MockEvent) Id() string {
 	return strconv.Itoa(me.id)
 }
 
-func (me MockEvent) Execute(_ map[int]*node, chn chan error) {
+func (me MockEvent) Execute(_ *node, chn chan error) {
 	me.executed = true
 	chn <- nil
 }

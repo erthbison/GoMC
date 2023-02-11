@@ -34,7 +34,7 @@ func (se SleepEvent[T]) String() string {
 	return fmt.Sprintf("{Sleep Target: %v Caller: %v}", se.target, se.caller)
 }
 
-func (se SleepEvent[T]) Execute(node map[int]*T, _ chan error) {
+func (se SleepEvent[T]) Execute(node *T, _ chan error) {
 	// Send a signal on the timeout channel
 	// Don't signal on the error channel since the event that was paused by the sleep event will continue running and the simulator can therefore not begin collecting state yet.
 	// The event that continues after the sleep event will signal to the simulator when it has completed.

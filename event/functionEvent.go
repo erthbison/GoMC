@@ -28,8 +28,8 @@ func (fe FunctionEvent[T]) String() string {
 	return fmt.Sprintf("{Function %v}", fe.index)
 }
 
-func (fe FunctionEvent[T]) Execute(node map[int]*T, nextEvt chan error) {
-	nextEvt <- fe.f(node[fe.target])
+func (fe FunctionEvent[T]) Execute(node *T, nextEvt chan error) {
+	nextEvt <- fe.f(node)
 }
 
 func (fe FunctionEvent[T]) Target() int {

@@ -34,7 +34,7 @@ func (me MessageEvent[T]) String() string {
 	return fmt.Sprintf("{From: %v, To: %v, Type: %s}", me.From, me.To, me.Type)
 }
 
-func (me MessageEvent[T]) Execute(nodes map[int]*T, nextEvt chan error) {
+func (me MessageEvent[T]) Execute(node *T, nextEvt chan error) {
 	// Use reflection to call the specified method on the node
 	defer func() {
 		// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
@@ -42,7 +42,6 @@ func (me MessageEvent[T]) Execute(nodes map[int]*T, nextEvt chan error) {
 			nextEvt <- fmt.Errorf("Unexpected error while executing message: %v", p)
 		}
 	}()
-	node := nodes[me.To]
 	method := reflect.ValueOf(node).MethodByName(me.Type)
 	method.Call([]reflect.Value{
 		reflect.ValueOf(me.From),
