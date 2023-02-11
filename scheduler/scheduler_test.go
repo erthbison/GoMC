@@ -14,6 +14,7 @@ func (n *node) Bar(from, to int, msg []byte) {}
 
 type MockEvent struct {
 	id       int
+	target   int
 	executed bool
 }
 
@@ -24,6 +25,10 @@ func (me MockEvent) Id() string {
 func (me MockEvent) Execute(_ map[int]*node, chn chan error) {
 	me.executed = true
 	chn <- nil
+}
+
+func (me MockEvent) Target() int {
+	return me.target
 }
 
 func TestBasicSchedulerNoEvents(t *testing.T) {
@@ -41,8 +46,8 @@ func TestBasicSchedulerNoEvents(t *testing.T) {
 
 func TestBasicSchedulerExplore2Events(t *testing.T) {
 	sch := NewBasicScheduler[node]()
-	sch.AddEvent(MockEvent{0, false})
-	sch.AddEvent(MockEvent{1, false})
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 0, false})
 
 	// This should cause two possible interleavings. Either event 1 first and Event 2 afterwards or Event 2 then Event 1.
 	run1 := []event.Event[node]{}
@@ -58,8 +63,8 @@ func TestBasicSchedulerExplore2Events(t *testing.T) {
 		t.Errorf("Expected to get a RunEndedError. Got: %v", err)
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, false})
-	sch.AddEvent(MockEvent{1, false})
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 0, false})
 
 	run2 := []event.Event[node]{}
 	for i := 0; i < 2; i++ {
@@ -80,8 +85,8 @@ func TestBasicSchedulerExplore2Events(t *testing.T) {
 	}
 	sch.EndRun()
 
-	sch.AddEvent(MockEvent{0, false})
-	sch.AddEvent(MockEvent{1, false})
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 0, false})
 	_, err = sch.GetEvent()
 	if !errors.Is(err, NoEventError) {
 		t.Errorf("Expected to get a NoEventError. Got: %v", err)
@@ -96,7 +101,7 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 	// 4. Get the two events
 	// Expects two chains. Both should contain all 3 events and start with event 0
 	sch := NewBasicScheduler[node]()
-	sch.AddEvent(MockEvent{0, false})
+	sch.AddEvent(MockEvent{0, 0, false})
 
 	run1 := []event.Event[node]{}
 	evt, err := sch.GetEvent()
@@ -108,8 +113,8 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
 
-	sch.AddEvent(MockEvent{1, false})
-	sch.AddEvent(MockEvent{2, false})
+	sch.AddEvent(MockEvent{1, 0, false})
+	sch.AddEvent(MockEvent{2, 0, false})
 
 	for i := 0; i < 2; i++ {
 		evt, err = sch.GetEvent()
@@ -123,7 +128,7 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 		t.Errorf("Expected %v, got: %v", RunEndedError, err)
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, false})
+	sch.AddEvent(MockEvent{0, 0, false})
 
 	run2 := []event.Event[node]{}
 	evt, err = sch.GetEvent()
@@ -134,8 +139,8 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 	if evt.Id() != "0" {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
-	sch.AddEvent(MockEvent{1, false})
-	sch.AddEvent(MockEvent{2, false})
+	sch.AddEvent(MockEvent{1, 0, false})
+	sch.AddEvent(MockEvent{2, 0, false})
 
 	for i := 0; i < 2; i++ {
 		evt, err = sch.GetEvent()
@@ -149,7 +154,7 @@ func TestBasicSchedulerExploreBranchingEvents(t *testing.T) {
 		t.Errorf("Expected %v, got: %v", RunEndedError, err)
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, false})
+	sch.AddEvent(MockEvent{0, 0, false})
 	_, err = sch.GetEvent()
 	if !errors.Is(err, NoEventError) {
 		t.Errorf("Expected %v, got: %v", NoEventError, err)
@@ -170,8 +175,8 @@ func TestRandomScheduler(t *testing.T) {
 	// Perform one random run
 	sch := NewRandomScheduler[node](1)
 
-	sch.AddEvent(MockEvent{0, false})
-	sch.AddEvent(MockEvent{1, false})
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 0, false})
 
 	// This should cause two possible interleavings. Either event 1 first and Event 2 afterwards or Event 2 then Event 1.
 	run := []event.Event[node]{}
@@ -195,8 +200,8 @@ func TestRandomScheduler(t *testing.T) {
 		}
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, false})
-	sch.AddEvent(MockEvent{1, false})
+	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{1, 0, false})
 
 	_, err = sch.GetEvent()
 	if !errors.Is(err, NoEventError) {
