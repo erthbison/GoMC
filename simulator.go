@@ -31,6 +31,9 @@ type Simulator[T any, S any] struct {
 	NextEvt chan error
 
 	fm *failureManager
+
+	maxRuns  uint
+	maxDepth uint
 }
 
 func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
@@ -42,6 +45,9 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S
 		sm:        sm,
 		fm:        fm,
 		NextEvt:   make(chan error),
+
+		maxRuns:  50000,
+		maxDepth: 100,
 	}
 }
 
@@ -51,11 +57,11 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
 func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]func(*T) error, failingNodes []int) error {
-	numRuns := 0
+	var numRuns uint
 	if len(funcs) < 1 {
 		return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
 	}
-	for numRuns < 50000 {
+	for numRuns < s.maxRuns {
 		// Perform initialization of the run
 		nodes := initNodes()
 		s.sm.UpdateGlobalState(nodes, s.fm.CorrectNodes())
@@ -100,7 +106,8 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 // If there is an error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
 func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) error {
-	for {
+	var depth uint
+	for depth < s.maxDepth {
 		// Select an event
 		evt, err := s.Scheduler.GetEvent()
 		if errors.Is(err, scheduler.RunEndedError) {
@@ -127,7 +134,9 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 			return err
 		}
 		s.sm.UpdateGlobalState(nodes, correct)
+		depth++
 	}
+	return nil
 }
 
 func (s *Simulator[T, S]) scheduleFuncs(funcs map[int][]func(*T) error) error {
