@@ -88,6 +88,7 @@ func main() {
 				},
 			},
 		},
+		[]int{},
 	)
 	if err != nil {
 		panic(err)

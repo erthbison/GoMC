@@ -117,6 +117,7 @@ func main() {
 				},
 			},
 		},
+		[]int{3, 4},
 	)
 
 	if err != nil {

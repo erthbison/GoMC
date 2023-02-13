@@ -41,6 +41,7 @@ func main() {
 				},
 			},
 		},
+		[]int{},
 	)
 
 	if err != nil {

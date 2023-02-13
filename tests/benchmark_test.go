@@ -104,6 +104,7 @@ func Benchmark(b *testing.B) {
 					},
 				},
 			},
+			[]int{},
 		)
 		if err != nil {
 			b.Fatalf("Error while running simulation: %v", err)

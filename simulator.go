@@ -44,7 +44,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]func(*T) error) error {
+func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]func(*T) error, failingNodes []int) error {
 	numRuns := 0
 	if len(funcs) < 1 {
 		return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
@@ -68,6 +68,13 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 		}
 		if num == 0 {
 			return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
+		}
+
+		// Add crash events to simulation. 
+		for _, id := range failingNodes {
+			s.Scheduler.AddEvent(
+				event.NewCrashEvent[T](id, s.Scheduler.NodeCrash),
+			)
 		}
 
 		err := s.executeRun(nodes)
