@@ -29,12 +29,15 @@ type Simulator[T any, S any] struct {
 
 	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
 	NextEvt chan error
+
+	fm *failureManager[T]
 }
 
 func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		sm:        sm,
+		fm:        NewFailureManager(sch),
 		NextEvt:   make(chan error),
 	}
 }
@@ -52,14 +55,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 	for numRuns < 50000 {
 		// Perform initialization of the run
 		nodes := initNodes()
-		correct := map[int]bool{}
-		for id := range nodes {
-			correct[id] = true
-		}
-		for _, id := range failingNodes {
-			correct[id] = false
-		}
-		s.sm.UpdateGlobalState(nodes, correct)
+		s.sm.UpdateGlobalState(nodes, s.fm.CorrectNodes())
 
 		// Add all the function events to the scheduler
 		num := 0
@@ -80,11 +76,11 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 		// Add crash events to simulation.
 		for _, id := range failingNodes {
 			s.Scheduler.AddEvent(
-				event.NewCrashEvent[T](id, s.Scheduler.NodeCrash),
+				event.NewCrashEvent[T](id, s.fm.NodeCrash),
 			)
 		}
 
-		err := s.executeRun(nodes, correct)
+		err := s.executeRun(nodes, s.fm.CorrectNodes())
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
