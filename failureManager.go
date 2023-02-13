@@ -1,34 +1,34 @@
 package gomc
 
-import "gomc/scheduler"
-
-type failureManager[T any] struct {
-	sch scheduler.Scheduler[T]
-
+type failureManager struct {
 	correct         map[int]bool
 	failureCallback []func(int)
 }
 
-func NewFailureManager[T any](sch scheduler.Scheduler[T]) *failureManager[T] {
-	return &failureManager[T]{
+func NewFailureManager() *failureManager {
+	return &failureManager{
 		correct:         make(map[int]bool),
-		sch:             sch,
 		failureCallback: make([]func(int), 0),
 	}
 }
 
-func (fm *failureManager[T]) CorrectNodes() map[int]bool {
+func (fm *failureManager) InitNodes(nodes []int) {
+	for id := range nodes {
+		fm.correct[id] = true
+	}
+}
+
+func (fm *failureManager) CorrectNodes() map[int]bool {
 	return fm.correct
 }
 
-func (fm *failureManager[T]) NodeCrash(nodeId int) {
-	fm.sch.NodeCrash(nodeId)
+func (fm *failureManager) NodeCrash(nodeId int) {
 	fm.correct[nodeId] = false
 	for _, f := range fm.failureCallback {
 		f(nodeId)
 	}
 }
 
-func (fm *failureManager[T]) Subscribe(callback func(int)) {
+func (fm *failureManager) Subscribe(callback func(int)) {
 	fm.failureCallback = append(fm.failureCallback, callback)
 }

@@ -30,14 +30,17 @@ type Simulator[T any, S any] struct {
 	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
 	NextEvt chan error
 
-	fm *failureManager[T]
+	fm *failureManager
 }
 
 func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S]) *Simulator[T, S] {
+	// Create a crash manager and make the scheduler subscribe to node crash messages
+	fm := NewFailureManager()
+	fm.Subscribe(sch.NodeCrash)
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		sm:        sm,
-		fm:        NewFailureManager(sch),
+		fm:        fm,
 		NextEvt:   make(chan error),
 	}
 }
@@ -56,6 +59,11 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 		// Perform initialization of the run
 		nodes := initNodes()
 		s.sm.UpdateGlobalState(nodes, s.fm.CorrectNodes())
+		nodeSlice := []int{}
+		for id := range nodes {
+			nodeSlice = append(nodeSlice, id)
+		}
+		s.fm.InitNodes(nodeSlice)
 
 		// Add all the function events to the scheduler
 		num := 0
