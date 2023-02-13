@@ -101,9 +101,9 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states map[int]State, terminal bool, _ []map[int]State) bool {
+			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB1: Validity
-				for _, node := range states {
+				for _, node := range states.LocalStates {
 					for sentMsg := range node.sent {
 						if !node.delivered[sentMsg] {
 							return false
@@ -112,9 +112,9 @@ func main() {
 				}
 				return true
 			}),
-		func(states map[int]State, terminal bool, _ []map[int]State) bool {
+		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 			// RB2: No duplication
-			for _, node := range states {
+			for _, node := range states.LocalStates {
 				delivered := make(map[message]bool)
 				for _, msg := range node.deliveredSlice {
 					if delivered[msg] {
@@ -125,15 +125,15 @@ func main() {
 			}
 			return true
 		},
-		func(states map[int]State, terminal bool, _ []map[int]State) bool {
+		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
-			for _, node := range states {
+			for _, node := range states.LocalStates {
 				for sent := range node.sent {
 					sentMessages[sent] = true
 				}
 			}
-			for _, state := range states {
+			for _, state := range states.LocalStates {
 				for delivered := range state.delivered {
 					if !sentMessages[delivered] {
 						return false
@@ -143,19 +143,19 @@ func main() {
 			return true
 		},
 		gomc.PredEventually(
-			func(states map[int]State, terminal bool, _ []map[int]State) bool {
+			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties
 				// Can not say that the predicate has been broken for non-leaf nodes
 				delivered := map[message]bool{}
-				for _, node := range states {
+				for _, node := range states.LocalStates {
 					for msg := range node.delivered {
 						delivered[msg] = true
 					}
 				}
 				for msg := range delivered {
-					for _, node := range states {
+					for _, node := range states.LocalStates {
 						if !node.delivered[msg] {
 							return false
 						}

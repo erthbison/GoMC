@@ -52,7 +52,14 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 	for numRuns < 50000 {
 		// Perform initialization of the run
 		nodes := initNodes()
-		s.sm.UpdateGlobalState(nodes)
+		correct := map[int]bool{}
+		for id := range nodes {
+			correct[id] = true
+		}
+		for _, id := range failingNodes {
+			correct[id] = false
+		}
+		s.sm.UpdateGlobalState(nodes, correct)
 
 		// Add all the function events to the scheduler
 		num := 0
@@ -70,14 +77,14 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 			return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
 		}
 
-		// Add crash events to simulation. 
+		// Add crash events to simulation.
 		for _, id := range failingNodes {
 			s.Scheduler.AddEvent(
 				event.NewCrashEvent[T](id, s.Scheduler.NodeCrash),
 			)
 		}
 
-		err := s.executeRun(nodes)
+		err := s.executeRun(nodes, correct)
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -99,7 +106,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
 // If there is an error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
-func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
+func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) error {
 	for {
 		// Select an event
 		evt, err := s.Scheduler.GetEvent()
@@ -126,6 +133,6 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		if err != nil {
 			return err
 		}
-		s.sm.UpdateGlobalState(nodes)
+		s.sm.UpdateGlobalState(nodes, correct)
 	}
 }

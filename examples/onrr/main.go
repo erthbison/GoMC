@@ -132,8 +132,12 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states map[int]State, _ bool, _ []map[int]State) bool {
-				for _, state := range states {
+			func(states gomc.GlobalState[State], _ bool, _ []gomc.GlobalState[State]) bool {
+				for id, state := range states.LocalStates {
+					// only consider correct states
+					if !states.Correct[id] {
+						continue
+					}
 					if state.ongoingRead || state.ongoingWrite {
 						return false
 					}
@@ -141,11 +145,11 @@ func main() {
 				return true
 			},
 		),
-		func(state map[int]State, _ bool, seq []map[int]State) bool {
+		func(state gomc.GlobalState[State], _ bool, seq []gomc.GlobalState[State]) bool {
 			writer := 0
 			possibleReadSlice := make([][]int, len(seq))
 			for i, elem := range seq {
-				possibleReadSlice[i] = elem[writer].possibleReads
+				possibleReadSlice[i] = elem.LocalStates[writer].possibleReads
 			}
 
 			// Create a set of the set of possible values for an event at the provided range
@@ -162,11 +166,11 @@ func main() {
 
 			// For each node in. Go trough the sequence and find ReadEvents.
 			// Find possible values for the read event and check that it matches the returned value
-			for id := range state {
+			for id := range state.LocalStates {
 				readStart := MaxInt
 				for i, elem := range seq {
 
-					node := elem[id]
+					node := elem.LocalStates[id]
 					if node.ongoingRead && i < readStart {
 						// A read operation starts
 						readStart = i
