@@ -55,7 +55,7 @@ func (rrb *Rrb) Broadcast(msg string) {
 	rrb.sent[message] = true
 }
 
-func (rrb *Rrb) Deliver(from int, to int, msg []byte) {
+func (rrb *Rrb) Deliver(from int, msg []byte) {
 	var message message
 	err := json.Unmarshal(msg, &message)
 	if err != nil {

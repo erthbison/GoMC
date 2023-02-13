@@ -42,7 +42,7 @@ func (n *Node) Broadcast(message []byte) {
 	}
 }
 
-func (n *Node) Deliver(from, to int, message []byte) {
+func (n *Node) Deliver(from int, message []byte) {
 	n.Delivered++
 	for id := range n.nodes {
 		n.send(
@@ -53,7 +53,7 @@ func (n *Node) Deliver(from, to int, message []byte) {
 	}
 }
 
-func (n *Node) Ack(from, to int, message []byte) {
+func (n *Node) Ack(from int, message []byte) {
 	n.Acked++
 }
 

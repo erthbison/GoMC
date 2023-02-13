@@ -22,6 +22,6 @@ func (f fifo) Send(target int, message []byte) {
 	)
 }
 
-func (f fifo) Test(from, to int, message []byte) {
+func (f fifo) Test(from int, message []byte) {
 	f.Received = append(f.Received, string(message))
 }

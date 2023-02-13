@@ -36,16 +36,9 @@ func (me MessageEvent[T]) String() string {
 
 func (me MessageEvent[T]) Execute(node *T, nextEvt chan error) {
 	// Use reflection to call the specified method on the node
-	defer func() {
-		// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
-		if p := recover(); p != nil {
-			nextEvt <- fmt.Errorf("Unexpected error while executing message: %v", p)
-		}
-	}()
 	method := reflect.ValueOf(node).MethodByName(me.Type)
 	method.Call([]reflect.Value{
 		reflect.ValueOf(me.From),
-		reflect.ValueOf(me.To),
 		reflect.ValueOf(me.Value),
 	})
 	nextEvt <- nil
