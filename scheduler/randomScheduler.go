@@ -11,13 +11,13 @@ import (
 type RandomScheduler[T any] struct {
 	// a slice of all events that can be chosen
 	pendingEvents []event.Event[T]
-	numRuns       int
-	maxRuns       int
+	numRuns       uint
+	maxRuns       uint
 
 	failed map[int]bool
 }
 
-func NewRandomScheduler[T any](maxRuns int) *RandomScheduler[T] {
+func NewRandomScheduler[T any](maxRuns uint) *RandomScheduler[T] {
 	return &RandomScheduler[T]{
 		pendingEvents: make([]event.Event[T], 0),
 		numRuns:       0,
