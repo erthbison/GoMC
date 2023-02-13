@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc/scheduler"
 	"log"
+	"time"
 )
 
 // A struct used to quickly configure the simulation
@@ -15,16 +16,9 @@ type Config[T, S any] struct {
 
 	GetLocalState func(*T) S
 	StatesEqual   func(S, S) bool
-
-	InitNodes func() map[int]*T
-
-	StartFuncs     map[int][]func(*T) error
-	IncorrectNodes []int
-
-	Preds []func(GlobalState[S], bool, []GlobalState[S]) bool
 }
 
-func RunSimulation[T, S any](cfg Config[T, S]) {
+func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
 	var sch scheduler.Scheduler[T]
 	if cfg.Scheduler == "random" {
 		if cfg.NumRuns == 0 {
@@ -35,26 +29,54 @@ func RunSimulation[T, S any](cfg Config[T, S]) {
 	} else {
 		sch = scheduler.NewBasicScheduler[T]()
 	}
-
 	sm := NewStateManager(
 		cfg.GetLocalState,
 		cfg.StatesEqual,
 	)
+	sim := NewSimulator[T, S](sch, sm)
+	sender := NewSender(sch)
+	sleep := NewSleepManager(sch, sim.NextEvt)
+	return SimulationRunner[T, S]{
+		sch:          sch,
+		sm:           sm,
+		sim:          sim,
+		SendFactory:  sender.SendFunc,
+		SleepFactory: sleep.SleepFunc,
+	}
+}
 
+type SimulationRunner[T, S any] struct {
+	MaxDepth     uint
+	SendFactory  func(int) func(int, string, []byte)
+	SleepFactory func(int) func(time.Duration)
+
+	InitNodes func() map[int]*T
+
+	StartFuncs     map[int][]func(*T) error
+	IncorrectNodes []int
+
+	Preds []func(GlobalState[S], bool, []GlobalState[S]) bool
+
+	sch scheduler.Scheduler[T]
+	sm  *stateManager[T, S]
+	sim *Simulator[T, S]
+}
+
+func (sr SimulationRunner[T, S]) RunSimulation() {
 	// If incorrectNodes is not provided use an empty slice
-	if cfg.IncorrectNodes == nil {
-		cfg.IncorrectNodes = make([]int, 0)
+	if sr.IncorrectNodes == nil {
+		sr.IncorrectNodes = make([]int, 0)
 	}
 
-	sim := NewSimulator[T, S](sch, sm)
-	err := sim.Simulate(cfg.InitNodes, cfg.StartFuncs, cfg.IncorrectNodes)
+	err := sr.sim.Simulate(sr.InitNodes, sr.StartFuncs, sr.IncorrectNodes)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
 
-	checker := NewPredicateChecker(cfg.Preds...)
-	resp := checker.Check(sm.StateRoot)
+	checker := NewPredicateChecker(sr.Preds...)
+	resp := checker.Check(sr.sm.StateRoot)
 	_, text := resp.Response()
 	fmt.Println(text)
 
+	fmt.Println(sr.sm.StateRoot.Newick())
 }
