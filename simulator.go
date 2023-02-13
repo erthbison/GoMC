@@ -65,20 +65,9 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 		}
 		s.fm.InitNodes(nodeSlice)
 
-		// Add all the function events to the scheduler
-		num := 0
-		for target, funcSlice := range funcs {
-			for _, f := range funcSlice {
-				s.Scheduler.AddEvent(
-					event.NewFunctionEvent(
-						num, target, f,
-					),
-				)
-				num++
-			}
-		}
-		if num == 0 {
-			return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
+		err := s.scheduleFuncs(funcs)
+		if err != nil {
+			return err
 		}
 
 		// Add crash events to simulation.
@@ -88,7 +77,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 			)
 		}
 
-		err := s.executeRun(nodes, s.fm.CorrectNodes())
+		err = s.executeRun(nodes, s.fm.CorrectNodes())
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -139,4 +128,25 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 		}
 		s.sm.UpdateGlobalState(nodes, correct)
 	}
+}
+
+func (s *Simulator[T, S]) scheduleFuncs(funcs map[int][]func(*T) error) error {
+	// add all the functions to the scheduler
+	num := 0
+	for target, funcSlice := range funcs {
+		for _, f := range funcSlice {
+			s.Scheduler.AddEvent(
+				event.NewFunctionEvent(
+					num, target, f,
+				),
+			)
+			num++
+		}
+	}
+	// If no functions was added. Return an error.
+	// At least one function must be added for the simulation to be able to start
+	if num == 0 {
+		return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
+	}
+	return nil
 }
