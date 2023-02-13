@@ -109,7 +109,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 			return err
 		}
 		if node, ok := nodes[evt.Target()]; !ok {
-			return fmt.Errorf("Event not targeting an existing node")
+			return fmt.Errorf("Event not targeting an existing node. Targeting %v", evt.Target())
 		} else {
 			// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
 			go func() {
