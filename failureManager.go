@@ -12,7 +12,7 @@ func NewFailureManager() *failureManager {
 	}
 }
 
-func (fm *failureManager) InitNodes(nodes []int) {
+func (fm *failureManager) Init(nodes []int) {
 	for id := range nodes {
 		fm.correct[id] = true
 	}

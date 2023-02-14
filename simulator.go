@@ -68,7 +68,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		for id := range nodes {
 			nodeSlice = append(nodeSlice, id)
 		}
-		s.Fm.InitNodes(nodeSlice)
+		s.Fm.Init(nodeSlice)
 
 		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
 

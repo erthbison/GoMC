@@ -8,7 +8,7 @@ import (
 func TestFailureManager(t *testing.T) {
 	fm := gomc.NewFailureManager()
 	nodes := []int{0, 1, 2, 3, 4}
-	fm.InitNodes(nodes)
+	fm.Init(nodes)
 	for _, node := range nodes {
 		if !fm.CorrectNodes()[node] {
 			t.Errorf("Expected all nodes to be correct. %v is not", node)
@@ -28,7 +28,7 @@ func TestFailureManager(t *testing.T) {
 		t.Errorf("Expected the provided callback function to be called")
 	}
 
-	fm.InitNodes(nodes)
+	fm.Init(nodes)
 	for _, node := range nodes {
 		if !fm.CorrectNodes()[node] {
 			t.Errorf("Expected all nodes to be correct. %v is not", node)
