@@ -31,7 +31,7 @@ func (se SleepEvent[T]) Id() string {
 }
 
 func (se SleepEvent[T]) String() string {
-	return fmt.Sprintf("{Sleep Target: %v Caller: %v}", se.target, se.caller)
+	return fmt.Sprintf("{Sleep Target: %v}", se.target)
 }
 
 func (se SleepEvent[T]) Execute(node *T, _ chan error) {
