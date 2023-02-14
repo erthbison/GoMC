@@ -9,13 +9,13 @@ type CheckerResponse interface {
 	Response() (bool, string)
 }
 
-type predicateCheckerResponse[S, T any] struct {
-	Result   bool                // True if all tests holds. False otherwise
-	Sequence []GlobalState[S, T] // A sequence of states leading to the false test. nil if Result is true
-	Test     int                 // The index of the failing test. -1 if Result is true
+type predicateCheckerResponse[S any] struct {
+	Result   bool             // True if all tests holds. False otherwise
+	Sequence []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
+	Test     int              // The index of the failing test. -1 if Result is true
 }
 
-func (pcr predicateCheckerResponse[S, T]) Response() (bool, string) {
+func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	if pcr.Result {
 		return pcr.Result, "All predicates holds"
 	}
@@ -30,37 +30,37 @@ func (pcr predicateCheckerResponse[S, T]) Response() (bool, string) {
 
 // TODO: Consider generalizing this so that it does not depend on the tree structure, but instead can work on some arbitrary data structure
 
-type PredicateChecker[S, T any] struct {
+type PredicateChecker[S any] struct {
 	// A slice of predicates that returns true if the predicate holds.
 	// If the predicate is broken it returns false and a counterexample
 	// The functions take the state and a boolean value indicating wether the node is a leaf node or not
-	predicates []func(GlobalState[S, T], bool, []GlobalState[S, T]) bool
+	predicates []func(GlobalState[S], bool, []GlobalState[S]) bool
 }
 
-func NewPredicateChecker[S, T any](predicates ...func(GlobalState[S, T], bool, []GlobalState[S, T]) bool) *PredicateChecker[S, T] {
-	return &PredicateChecker[S, T]{
+func NewPredicateChecker[S any](predicates ...func(GlobalState[S], bool, []GlobalState[S]) bool) *PredicateChecker[S] {
+	return &PredicateChecker[S]{
 		predicates: predicates,
 	}
 }
 
-func (pc *PredicateChecker[S, T]) Check(root *tree.Tree[GlobalState[S, T]]) *predicateCheckerResponse[S, T] {
+func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicateCheckerResponse[S] {
 	// Checks that all predicates holds for all nodes. Nodes are searched depth first and the search is interrupted if some state that breaks the predicates are provided
-	if resp := pc.checkNode(root, []GlobalState[S, T]{}); resp != nil {
+	if resp := pc.checkNode(root, []GlobalState[S]{}); resp != nil {
 		return resp
 	}
-	return &predicateCheckerResponse[S, T]{
+	return &predicateCheckerResponse[S]{
 		Result:   true,
 		Sequence: nil,
 		Test:     -1,
 	}
 }
 
-func (pc *PredicateChecker[S, T]) checkNode(node *tree.Tree[GlobalState[S, T]], sequence []GlobalState[S, T]) *predicateCheckerResponse[S, T] {
+func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[GlobalState[S]], sequence []GlobalState[S]) *predicateCheckerResponse[S] {
 	// Use a depth first search to search trough all nodes and check with predicates
 	// Immediately stops when finding a state that breaches the predicates
 	sequence = append(sequence, node.Payload())
 	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
-		return &predicateCheckerResponse[S, T]{
+		return &predicateCheckerResponse[S]{
 			Result:   false,
 			Sequence: sequence,
 			Test:     index,
@@ -75,7 +75,7 @@ func (pc *PredicateChecker[S, T]) checkNode(node *tree.Tree[GlobalState[S, T]], 
 	return nil
 }
 
-func (pc *PredicateChecker[S, T]) checkState(state GlobalState[S, T], terminalState bool, sequence []GlobalState[S, T]) (bool, int) {
+func (pc *PredicateChecker[S]) checkState(state GlobalState[S], terminalState bool, sequence []GlobalState[S]) (bool, int) {
 	// Check the state of a node on all predicates. The leafNode variable is true if this is a leaf node
 	for index, pred := range pc.predicates {
 		if !pred(state, terminalState, sequence) {

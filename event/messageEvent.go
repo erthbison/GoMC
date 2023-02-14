@@ -7,7 +7,7 @@ import (
 
 // An event representing the arrival of a message on a node.
 // Calls the function specified with the Type parameter when executed
-type MessageEvent[T any] struct {
+type MessageEvent struct {
 	From  int
 	To    int
 	Type  string
@@ -16,8 +16,8 @@ type MessageEvent[T any] struct {
 	id string
 }
 
-func NewMessageEvent[T any](from, to int, msgType string, val []byte) MessageEvent[T] {
-	return MessageEvent[T]{
+func NewMessageEvent(from, to int, msgType string, val []byte) MessageEvent {
+	return MessageEvent{
 		From:  from,
 		To:    to,
 		Type:  msgType,
@@ -26,15 +26,15 @@ func NewMessageEvent[T any](from, to int, msgType string, val []byte) MessageEve
 	}
 }
 
-func (me MessageEvent[T]) Id() string {
+func (me MessageEvent) Id() string {
 	return me.id
 }
 
-func (me MessageEvent[T]) String() string {
+func (me MessageEvent) String() string {
 	return fmt.Sprintf("{From: %v, To: %v, Type: %s}", me.From, me.To, me.Type)
 }
 
-func (me MessageEvent[T]) Execute(node *T, nextEvt chan error) {
+func (me MessageEvent) Execute(node any, nextEvt chan error) {
 	// Use reflection to call the specified method on the node
 	method := reflect.ValueOf(node).MethodByName(me.Type)
 	method.Call([]reflect.Value{
@@ -44,6 +44,6 @@ func (me MessageEvent[T]) Execute(node *T, nextEvt chan error) {
 	nextEvt <- nil
 }
 
-func (me MessageEvent[T]) Target() int {
+func (me MessageEvent) Target() int {
 	return me.To
 }

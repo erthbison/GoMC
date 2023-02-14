@@ -9,7 +9,7 @@ import (
 func TestSleepManager(t *testing.T) {
 	sch := NewMockScheduler()
 	nextEvent := make(chan error)
-	sm := gomc.NewSleepManager[node](sch, nextEvent)
+	sm := gomc.NewSleepManager(sch, nextEvent)
 	sleepFunc := sm.SleepFunc(0)
 	notBlockedChan := make(chan bool)
 	go func() {

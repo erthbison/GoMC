@@ -14,9 +14,6 @@ func TestSimulatorNoEvents(t *testing.T) {
 		func() map[int]*node {
 			return map[int]*node{0: {}}
 		},
-		map[int][]func(*node) error{
-			0: {},
-		},
 		[]int{},
 	)
 	if err == nil {
@@ -27,7 +24,6 @@ func TestSimulatorNoEvents(t *testing.T) {
 		func() map[int]*node {
 			return map[int]*node{0: {}}
 		},
-		map[int][]func(*node) error{},
 		[]int{},
 	)
 	if err == nil {

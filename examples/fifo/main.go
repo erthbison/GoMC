@@ -10,7 +10,7 @@ type State string
 
 func main() {
 	numNodes := 2
-	sch := scheduler.NewBasicScheduler[fifo]()
+	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
 		func(node *fifo) State {
 			return State(fmt.Sprintf("%v", len(node.Received)))
@@ -20,7 +20,7 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[fifo, State](sch, sm)
-	sender := gomc.NewSender[fifo](sch)
+	sender := gomc.NewSender(sch)
 	err := tester.Simulate(
 		func() map[int]*fifo {
 			nodes := map[int]*fifo{}
@@ -31,17 +31,10 @@ func main() {
 			}
 			return nodes
 		},
-		map[int][]func(*fifo) error{
-			0: {
-				func(node *fifo) error {
-					for i := 0; i < 3; i++ {
-						node.Send(1, []byte(fmt.Sprintf("Test Message - %v", i)))
-					}
-					return nil
-				},
-			},
-		},
 		[]int{},
+		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 1")),
+		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 2")),
+		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 3")),
 	)
 
 	if err != nil {

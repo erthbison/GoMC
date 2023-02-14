@@ -5,15 +5,15 @@ import (
 	"gomc/event"
 )
 
-type Scheduler[T any] interface {
+type Scheduler interface {
 	// Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
-	GetEvent() (event.Event[T], error)
+	GetEvent() (event.Event, error)
 	// Add an event to the list of possible events
-	AddEvent(event.Event[T])
+	AddEvent(event.Event)
 	// Finish the current run and prepare for the next one
 	EndRun()
-	
-	// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled 
+
+	// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
 	NodeCrash(int)
 }
 

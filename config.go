@@ -19,15 +19,15 @@ type Config[T, S any] struct {
 }
 
 func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
-	var sch scheduler.Scheduler[T]
+	var sch scheduler.Scheduler
 	if cfg.Scheduler == "random" {
 		if cfg.NumRuns == 0 {
 			// If numRuns is 0 set to default value 10 000
 			cfg.NumRuns = 10000
 		}
-		sch = scheduler.NewRandomScheduler[T](cfg.NumRuns)
+		sch = scheduler.NewRandomScheduler(cfg.NumRuns)
 	} else {
-		sch = scheduler.NewBasicScheduler[T]()
+		sch = scheduler.NewBasicScheduler()
 	}
 	sm := NewStateManager(
 		cfg.GetLocalState,
@@ -52,12 +52,12 @@ type SimulationRunner[T, S any] struct {
 
 	InitNodes func() map[int]*T
 
-	StartFuncs     map[int][]func(*T) error
+	StartFuncs     []Func
 	IncorrectNodes []int
 
-	Preds []func(GlobalState[S, T], bool, []GlobalState[S, T]) bool
+	Preds []func(GlobalState[S], bool, []GlobalState[S]) bool
 
-	sch scheduler.Scheduler[T]
+	sch scheduler.Scheduler
 	sm  *stateManager[T, S]
 	sim *Simulator[T, S]
 }
@@ -68,7 +68,7 @@ func (sr SimulationRunner[T, S]) RunSimulation() {
 		sr.IncorrectNodes = make([]int, 0)
 	}
 
-	err := sr.sim.Simulate(sr.InitNodes, sr.StartFuncs, sr.IncorrectNodes)
+	err := sr.sim.Simulate(sr.InitNodes, sr.IncorrectNodes, sr.StartFuncs...)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
 	}

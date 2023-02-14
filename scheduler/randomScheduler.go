@@ -8,18 +8,18 @@ import (
 // A scheduler that randomly picks the next event from the available events.
 // It is useful for testing a random selection of the state space when the state space is to large to perform an exhaustive search
 // It provides no guarantee that all errors have been found, but since it is random it generally contains a larger spread in the states that are checked compared to the exhaustive search.
-type RandomScheduler[T any] struct {
+type RandomScheduler struct {
 	// a slice of all events that can be chosen
-	pendingEvents []event.Event[T]
+	pendingEvents []event.Event
 	numRuns       uint
 	maxRuns       uint
 
 	failed map[int]bool
 }
 
-func NewRandomScheduler[T any](maxRuns uint) *RandomScheduler[T] {
-	return &RandomScheduler[T]{
-		pendingEvents: make([]event.Event[T], 0),
+func NewRandomScheduler(maxRuns uint) *RandomScheduler {
+	return &RandomScheduler{
+		pendingEvents: make([]event.Event, 0),
 		numRuns:       0,
 		maxRuns:       maxRuns,
 
@@ -27,7 +27,7 @@ func NewRandomScheduler[T any](maxRuns uint) *RandomScheduler[T] {
 	}
 }
 
-func (rs *RandomScheduler[T]) GetEvent() (event.Event[T], error) {
+func (rs *RandomScheduler) GetEvent() (event.Event, error) {
 	if len(rs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
@@ -46,23 +46,23 @@ func (rs *RandomScheduler[T]) GetEvent() (event.Event[T], error) {
 	return evt, nil
 }
 
-func (rs *RandomScheduler[T]) AddEvent(evt event.Event[T]) {
+func (rs *RandomScheduler) AddEvent(evt event.Event) {
 	if rs.failed[evt.Target()] {
 		return
 	}
 	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
-func (rs *RandomScheduler[T]) EndRun() {
+func (rs *RandomScheduler) EndRun() {
 	rs.numRuns++
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
-	rs.pendingEvents = make([]event.Event[T], 0)
+	rs.pendingEvents = make([]event.Event, 0)
 
 	// Reset the map of failed nodes
 	rs.failed = make(map[int]bool)
 }
 
-func (rs *RandomScheduler[T]) NodeCrash(id int) {
+func (rs *RandomScheduler) NodeCrash(id int) {
 	// Remove all events that target the node from pending events
 
 	i := 0

@@ -65,7 +65,7 @@ type State struct {
 func Benchmark(b *testing.B) {
 	numNodes := 2
 	for i := 0; i < b.N; i++ {
-		sch := scheduler.NewBasicScheduler[Node]()
+		sch := scheduler.NewBasicScheduler()
 		sm := gomc.NewStateManager(
 			func(node *Node) State {
 				return State{
@@ -78,7 +78,7 @@ func Benchmark(b *testing.B) {
 			},
 		)
 		tester := gomc.NewSimulator[Node, State](sch, sm)
-		sender := gomc.NewSender[Node](sch)
+		sender := gomc.NewSender(sch)
 		err := tester.Simulate(
 			func() map[int]*Node {
 				nodes := map[int]*Node{}
@@ -96,15 +96,8 @@ func Benchmark(b *testing.B) {
 				}
 				return nodes
 			},
-			map[int][]func(*Node) error{
-				0: {
-					func(node *Node) error {
-						node.Broadcast([]byte("Test Message"))
-						return nil
-					},
-				},
-			},
 			[]int{},
+			gomc.NewFunc(0, "Broadcast", []byte("Test Message")),
 		)
 		if err != nil {
 			b.Fatalf("Error while running simulation: %v", err)

@@ -15,7 +15,7 @@ type State struct {
 
 func main() {
 	numNodes := 3
-	sch := scheduler.NewRandomScheduler[fd](500)
+	sch := scheduler.NewRandomScheduler(500)
 	sm := gomc.NewStateManager(
 		func(t *fd) State {
 			crashed := make([]int, len(t.crashed))
@@ -31,8 +31,8 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[fd, State](sch, sm)
-	sender := gomc.NewSender[fd](sch)
-	sleep := gomc.NewSleepManager[fd](sch, tester.NextEvt)
+	sender := gomc.NewSender(sch)
+	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
 	err := tester.Simulate(
 		func() map[int]*fd {
 			ids := []int{}
@@ -47,15 +47,8 @@ func main() {
 			}
 			return nodes
 		},
-		map[int][]func(*fd) error{
-			0: {
-				func(f *fd) error {
-					f.Start()
-					return nil
-				},
-			},
-		},
 		[]int{2},
+		gomc.NewFunc(0, "Start"),
 	)
 
 	if err != nil {

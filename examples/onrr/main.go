@@ -21,8 +21,8 @@ type State struct {
 
 func main() {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
-	// sch := gomc.NewBasicScheduler[onrr]()
-	sch := scheduler.NewRandomScheduler[onrr](10000)
+	// sch := gomc.NewBasicScheduler()
+	sch := scheduler.NewRandomScheduler(10000)
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
 	sm := gomc.NewStateManager(
@@ -66,7 +66,7 @@ func main() {
 
 	// Create a simulator. providing a function specifying how to instantiate the nodes and a function specifying how to start the test
 	simulator := gomc.NewSimulator[onrr, State](sch, sm)
-	sender := gomc.NewSender[onrr](sch)
+	sender := gomc.NewSender(sch)
 	err := simulator.Simulate(
 		func() map[int]*onrr {
 			numNodes := 5
@@ -79,45 +79,19 @@ func main() {
 			for _, id := range nodeIds {
 				nodes[id] = NewOnrr(id, sender.SendFunc(id), nodeIds)
 			}
+			go func() {
+				for {
+					<-nodes[0].WriteIndicator
+				}
+			}()
 			return nodes
 		},
-		map[int][]func(*onrr) error{
-			0: {
-				func(node *onrr) error {
-					go func() {
-						// ignore the write indication
-						<-node.WriteIndicator
-					}()
-					node.Write(2)
-					return nil
-				},
-			},
-			1: {
-				func(node *onrr) error {
-					node.Read()
-					return nil
-				},
-			},
-			2: {
-				func(node *onrr) error {
-					node.Read()
-					return nil
-				},
-			},
-			3: {
-				func(node *onrr) error {
-					node.Read()
-					return nil
-				},
-			},
-			4: {
-				func(node *onrr) error {
-					node.Read()
-					return nil
-				},
-			},
-		},
 		[]int{3, 4},
+		gomc.NewFunc(0, "Write", 2),
+		gomc.NewFunc(1, "Read"),
+		gomc.NewFunc(2, "Read"),
+		gomc.NewFunc(3, "Read"),
+		gomc.NewFunc(4, "Read"),
 	)
 
 	if err != nil {
@@ -132,7 +106,7 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State, onrr], _ bool, _ []gomc.GlobalState[State, onrr]) bool {
+			func(states gomc.GlobalState[State], _ bool, _ []gomc.GlobalState[State]) bool {
 				for id, state := range states.LocalStates {
 					// only consider correct states
 					if !states.Correct[id] {
@@ -145,7 +119,7 @@ func main() {
 				return true
 			},
 		),
-		func(state gomc.GlobalState[State, onrr], _ bool, seq []gomc.GlobalState[State, onrr]) bool {
+		func(state gomc.GlobalState[State], _ bool, seq []gomc.GlobalState[State]) bool {
 			writer := 0
 			possibleReadSlice := make([][]int, len(seq))
 			for i, elem := range seq {

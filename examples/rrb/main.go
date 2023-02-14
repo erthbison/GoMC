@@ -33,7 +33,7 @@ func (s State) String() string {
 
 func main() {
 	numNodes := 2
-	sch := scheduler.NewBasicScheduler[Rrb]()
+	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
 		func(node *Rrb) State {
 			newDelivered := map[message]bool{}
@@ -62,7 +62,7 @@ func main() {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	sender := gomc.NewSender[Rrb](sch)
+	sender := gomc.NewSender(sch)
 	sim := gomc.NewSimulator[Rrb, State](sch, sm)
 	err := sim.Simulate(
 		func() map[int]*Rrb {
@@ -80,15 +80,8 @@ func main() {
 			}
 			return nodes
 		},
-		map[int][]func(*Rrb) error{
-			0: {
-				func(node *Rrb) error {
-					node.Broadcast("Test Message")
-					return nil
-				},
-			},
-		},
 		[]int{},
+		gomc.NewFunc(0, "Broadcast", "Test Message"),
 	)
 	if err != nil {
 		panic(err)
@@ -101,7 +94,7 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
+			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB1: Validity
 				for _, node := range states.LocalStates {
 					for sentMsg := range node.sent {
@@ -112,7 +105,7 @@ func main() {
 				}
 				return true
 			}),
-		func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
+		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 			// RB2: No duplication
 			for _, node := range states.LocalStates {
 				delivered := make(map[message]bool)
@@ -125,7 +118,7 @@ func main() {
 			}
 			return true
 		},
-		func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
+		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
 			for _, node := range states.LocalStates {
@@ -143,7 +136,7 @@ func main() {
 			return true
 		},
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
+			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties

@@ -14,24 +14,24 @@ func (n *node) Bar(from, to int, msg []byte) {}
 type state struct{}
 
 type MockScheduler struct {
-	inEvent  chan event.Event[node]
-	outEvent chan event.Event[node]
+	inEvent  chan event.Event
+	outEvent chan event.Event
 	endRun   chan interface{}
 }
 
 func NewMockScheduler() *MockScheduler {
 	return &MockScheduler{
-		make(chan event.Event[node]),
-		make(chan event.Event[node]),
+		make(chan event.Event),
+		make(chan event.Event),
 		make(chan interface{}),
 	}
 }
 
-func (ms *MockScheduler) AddEvent(evt event.Event[node]) {
+func (ms *MockScheduler) AddEvent(evt event.Event) {
 	ms.inEvent <- evt
 }
 
-func (ms *MockScheduler) GetEvent() (event.Event[node], error) {
+func (ms *MockScheduler) GetEvent() (event.Event, error) {
 	return <-ms.outEvent, nil
 }
 
@@ -48,7 +48,7 @@ func NewMockStateManager() *MockStateManager {
 	return &MockStateManager{}
 }
 
-func (msm *MockStateManager) UpdateGlobalState(map[int]*node, map[int]bool, event.Event[node]) {}
+func (msm *MockStateManager) UpdateGlobalState(map[int]*node, map[int]bool, event.Event) {}
 
 func (msm *MockStateManager) EndRun() {}
 

@@ -1,37 +1,44 @@
 package event
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // An function provided by the users.
 // Is used to start the execution of the algorithm
-type FunctionEvent[T any] struct {
+type FunctionEvent struct {
 	// Unique id that is used to identify the event.
 	// Since the functions are provided in sequential order at the start of the run this will be consistent between runs
 	index  int
 	target int
-	f      func(*T) error
+	method string
+	params []reflect.Value
 }
 
-func NewFunctionEvent[T any](i int, target int, f func(*T) error) FunctionEvent[T] {
-	return FunctionEvent[T]{
+func NewFunctionEvent(i int, target int, method string, params ...reflect.Value) FunctionEvent {
+	return FunctionEvent{
 		index:  i,
 		target: target,
-		f:      f,
+		method: method,
+		params: params,
 	}
 }
 
-func (fe FunctionEvent[T]) Id() string {
+func (fe FunctionEvent) Id() string {
 	return fmt.Sprintf("Function %v", fe.index)
 }
 
-func (fe FunctionEvent[T]) String() string {
+func (fe FunctionEvent) String() string {
 	return fmt.Sprintf("{Function %v}", fe.index)
 }
 
-func (fe FunctionEvent[T]) Execute(node *T, nextEvt chan error) {
-	nextEvt <- fe.f(node)
+func (fe FunctionEvent) Execute(node any, nextEvt chan error) {
+	method := reflect.ValueOf(node).MethodByName(fe.method)
+	method.Call(fe.params)
+	nextEvt <- nil
 }
 
-func (fe FunctionEvent[T]) Target() int {
+func (fe FunctionEvent) Target() int {
 	return fe.target
 }

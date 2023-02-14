@@ -8,24 +8,24 @@ import (
 	"time"
 )
 
-type SleepManager[T any] struct {
-	sch        scheduler.Scheduler[T]
+type SleepManager struct {
+	sch        scheduler.Scheduler
 	nextEvt    chan error
 	sleepChans map[string]chan time.Time
 }
 
-func NewSleepManager[T any](sch scheduler.Scheduler[T], nextEvent chan error) *SleepManager[T] {
-	return &SleepManager[T]{
+func NewSleepManager(sch scheduler.Scheduler, nextEvent chan error) *SleepManager {
+	return &SleepManager{
 		sch:        sch,
 		nextEvt:    nextEvent,
 		sleepChans: make(map[string]chan time.Time),
 	}
 }
 
-func (sm *SleepManager[T]) SleepFunc(id int) func(time.Duration) {
+func (sm *SleepManager) SleepFunc(id int) func(time.Duration) {
 	return func(_ time.Duration) {
 		_, file, line, _ := runtime.Caller(1)
-		evt := event.NewSleepEvent[T](fmt.Sprintf("File: %v, Line: %v", file, line), id, sm.sleepChans)
+		evt := event.NewSleepEvent(fmt.Sprintf("File: %v, Line: %v", file, line), id, sm.sleepChans)
 		sm.sch.AddEvent(evt)
 		// Inform the simulator that the process is currently waiting for a scheduled timeout
 		// The simulator can now proceed with scheduling events

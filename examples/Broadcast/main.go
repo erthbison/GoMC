@@ -13,7 +13,7 @@ type State struct {
 
 func main() {
 	numNodes := 2
-	sch := scheduler.NewBasicScheduler[Node]()
+	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
 		func(node *Node) State {
 			return State{
@@ -26,35 +26,29 @@ func main() {
 		},
 	)
 	tester := gomc.NewSimulator[Node, State](sch, sm)
-	sleep := gomc.NewSleepManager[Node](sch, tester.NextEvt)
-	sender := gomc.NewSender[Node](sch)
-	err := tester.Simulate(func() map[int]*Node {
-		nodeMap := map[int]*Node{}
-		nodes := []int{}
-		for i := 0; i < numNodes; i++ {
-			nodes = append(nodes, i)
-		}
-		for _, id := range nodes {
-			nodeMap[id] = &Node{
-				Id:        id,
-				send:      sender.SendFunc(id),
-				Delivered: 0,
-				Acked:     0,
-				nodes:     nodes,
-				sleep:     sleep.SleepFunc(id),
+	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
+	sender := gomc.NewSender(sch)
+	err := tester.Simulate(
+		func() map[int]*Node {
+			nodeMap := map[int]*Node{}
+			nodes := []int{}
+			for i := 0; i < numNodes; i++ {
+				nodes = append(nodes, i)
 			}
-		}
-		return nodeMap
-	},
-		map[int][]func(*Node) error{
-			0: {
-				func(node *Node) error {
-					node.Broadcast([]byte("1"))
-					return nil
-				},
-			},
+			for _, id := range nodes {
+				nodeMap[id] = &Node{
+					Id:        id,
+					send:      sender.SendFunc(id),
+					Delivered: 0,
+					Acked:     0,
+					nodes:     nodes,
+					sleep:     sleep.SleepFunc(id),
+				}
+			}
+			return nodeMap
 		},
 		[]int{},
+		gomc.NewFunc(0, "Broadcast", []byte("0")),
 	)
 	if err != nil {
 		panic(err)

@@ -5,16 +5,16 @@ import (
 	"gomc/scheduler"
 )
 
-type Sender[T any] struct {
-	sch scheduler.Scheduler[T]
+type Sender struct {
+	sch scheduler.Scheduler
 }
 
-func NewSender[T any](sch scheduler.Scheduler[T]) *Sender[T] {
-	return &Sender[T]{sch: sch}
+func NewSender(sch scheduler.Scheduler) *Sender {
+	return &Sender{sch: sch}
 }
 
-func (s *Sender[T]) SendFunc(id int) func(int, string, []byte) {
+func (s *Sender) SendFunc(id int) func(int, string, []byte) {
 	return func(to int, msgType string, msg []byte) {
-		s.sch.AddEvent(event.NewMessageEvent[T](id, to, msgType, msg))
+		s.sch.AddEvent(event.NewMessageEvent(id, to, msgType, msg))
 	}
 }
