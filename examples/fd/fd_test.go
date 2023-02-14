@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc"
 	"gomc/scheduler"
+	"testing"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -13,7 +14,7 @@ type State struct {
 	crashed []int
 }
 
-func main() {
+func TestFd(t *testing.T) {
 	numNodes := 3
 	sch := scheduler.NewRandomScheduler(500)
 	sm := gomc.NewStateManager(
@@ -52,7 +53,7 @@ func main() {
 	)
 
 	if err != nil {
-		panic(err)
+		t.Errorf("Expected no error")
 	}
 	// fmt.Println(sch.EventRoot.Newick())
 	fmt.Println(sm.StateRoot.Newick())

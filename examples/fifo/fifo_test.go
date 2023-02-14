@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"gomc"
 	"gomc/scheduler"
+	"testing"
 )
 
 type State string
 
-func main() {
+func TestFifo(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
@@ -38,7 +39,7 @@ func main() {
 	)
 
 	if err != nil {
-		panic(err)
+		t.Errorf("Expected no error")
 	}
 	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)

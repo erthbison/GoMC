@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc"
 	"gomc/scheduler"
+	"testing"
 )
 
 type State struct {
@@ -11,7 +12,7 @@ type State struct {
 	acked     int
 }
 
-func main() {
+func TestBroadcast(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
@@ -51,7 +52,7 @@ func main() {
 		gomc.NewRequest(0, "Broadcast", []byte("0")),
 	)
 	if err != nil {
-		panic(err)
+		t.Errorf("Expected no error")
 	}
 	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)

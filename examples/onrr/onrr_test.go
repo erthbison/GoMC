@@ -3,6 +3,7 @@ package main
 import (
 	"gomc"
 	"gomc/scheduler"
+	"testing"
 
 	"golang.org/x/exp/slices"
 )
@@ -19,7 +20,7 @@ type State struct {
 	currentRead bool
 }
 
-func main() {
+func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
 	sch := scheduler.NewRandomScheduler(10000)
@@ -96,14 +97,8 @@ func main() {
 	)
 
 	if err != nil {
-		panic(err)
+		t.Errorf("Expected no error")
 	}
-
-	// fmt.Println(sch.EventRoot)
-	// fmt.Println(sm.StateRoot)
-
-	// fmt.Println(sm.StateRoot.Newick())
-	// fmt.Println(sch.EventRoot.Newick())
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
@@ -165,6 +160,9 @@ func main() {
 	)
 
 	resp := checker.Check(sm.StateRoot)
-	_, desc := resp.Response()
+	ok, desc := resp.Response()
+	if !ok {
+		t.Errorf("Expected not to find an error in the implementation")
+	}
 	print(desc)
 }

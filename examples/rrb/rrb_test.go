@@ -5,6 +5,7 @@ import (
 	"gomc"
 	"gomc/scheduler"
 	"strings"
+	"testing"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -31,7 +32,7 @@ func (s State) String() string {
 	return bldr.String()
 }
 
-func main() {
+func TestRrb(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewBasicScheduler()
 	sm := gomc.NewStateManager(
@@ -84,13 +85,8 @@ func main() {
 		gomc.NewRequest(0, "Broadcast", "Test Message"),
 	)
 	if err != nil {
-		panic(err)
+		t.Errorf("Expected no error")
 	}
-	fmt.Println(sch.EventRoot)
-	fmt.Println(sm.StateRoot)
-
-	fmt.Println(sm.StateRoot.Newick())
-	fmt.Println(sch.EventRoot.Newick())
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
@@ -159,6 +155,9 @@ func main() {
 	)
 
 	resp := checker.Check(sm.StateRoot)
-	_, desc := resp.Response()
+	ok, desc := resp.Response()
+	if ok {
+		t.Errorf("Expected to find an error in the implementation")
+	}
 	print(desc)
 }
