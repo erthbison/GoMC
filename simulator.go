@@ -72,10 +72,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 
 		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
 
-		err := s.scheduleFuncs(requests)
-		if err != nil {
-			return err
-		}
+		s.scheduleRequests(requests)
 
 		// Add crash events to simulation.
 		for _, id := range failingNodes {
@@ -84,7 +81,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 			)
 		}
 
-		err = s.executeRun(nodes, s.Fm.CorrectNodes())
+		err := s.executeRun(nodes, s.Fm.CorrectNodes())
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -140,7 +137,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 	return nil
 }
 
-func (s *Simulator[T, S]) scheduleFuncs(requests []Request) error {
+func (s *Simulator[T, S]) scheduleRequests(requests []Request) {
 	// add all the functions to the scheduler
 	for i, f := range requests {
 		s.Scheduler.AddEvent(
@@ -149,5 +146,4 @@ func (s *Simulator[T, S]) scheduleFuncs(requests []Request) error {
 			),
 		)
 	}
-	return nil
 }
