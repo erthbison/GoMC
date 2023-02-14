@@ -1,24 +1,67 @@
 package event
 
 import (
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 )
 
-type node struct{}
+type node struct {
+	foo bool
+	bar bool
+}
 
-func (n *node) Foo(from, to int, msg []byte) {}
-func (n *node) Bar(from, to int, msg []byte) {}
+func (n *node) Foo(from int, msg []byte) {
+	n.foo = true
+}
+func (n *node) Bar(from int, msg []byte) {
+	n.bar = true
+}
+
+func TestFunctionEvent(t *testing.T) {
+	// Call a function event of a valid node with valid input
+	// Check tht we receive a message on the error channel and that the foo flag on the node is true
+	evt := NewFunctionEvent(0, 0, "Foo",
+		reflect.ValueOf(0),
+		reflect.ValueOf([]byte("Foo")),
+	)
+	n := &node{}
+	errChan := make(chan error)
+	go func() {
+		evt.Execute(n, errChan)
+	}()
+	select {
+	case val := <-errChan:
+		if val != nil {
+			t.Errorf("Expected to receive no error when executing event. Got: %v", val)
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("Expected to receive a message on the errChan")
+	}
+	if !n.foo {
+		t.Errorf("Expected the Foo function to have been called and the foo flag to be true")
+	}
+}
 
 func TestSleepEvent(t *testing.T) {
+	// Execute a sleep event. Test that a message is sent on the timeChan ensuring that the sleep ends.
+	// Also check that we do not receive a message on the errorChan
 	chanMap := make(map[string]chan time.Time)
 	foo := NewSleepEvent("Foo", 0, chanMap)
-	go func() {
-		<-chanMap[foo.Id()]
-	}()
 	errChan := make(chan error)
-	foo.Execute(&node{}, errChan)
+	go foo.Execute(&node{}, errChan)
+	select {
+	case <-chanMap[foo.Id()]:
+	case <-time.After(5 * time.Second):
+		t.Errorf("Expected the event to execute and end the sleep")
+	}
+
+	select {
+	case <-errChan:
+		t.Errorf("Did not expect to receive a message on the errorChan")
+	default:
+	}
 }
 
 func TestSleepEventOnSameLocation(t *testing.T) {
@@ -26,6 +69,9 @@ func TestSleepEventOnSameLocation(t *testing.T) {
 	chanMap := make(map[string]chan time.Time)
 	foo1 := NewSleepEvent("Foo", 0, chanMap)
 	foo2 := NewSleepEvent("Foo", 0, chanMap)
+	if foo1.Id() != foo2.Id() {
+		t.Errorf("Expected the Ids to be the same")
+	}
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 	go func() {
