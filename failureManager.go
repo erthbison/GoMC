@@ -1,7 +1,7 @@
 package gomc
 
 // The failureManager keeps track of which nodes has crashed and which has not.
-// It also provides a Subscribe() function which can be used to emulate the properties of a perfect failure detector
+// It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
 type failureManager struct {
 	correct         map[int]bool
 	failureCallback []func(int)
