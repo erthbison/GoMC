@@ -6,16 +6,17 @@ type fd struct {
 	alive    map[int]bool
 	detected map[int]bool
 
+	id    int
 	nodes []int
 
 	duration time.Duration
 	sleep    func(time.Duration)
-	send     func(int, string, []byte)
+	send     func(int, string, ...any)
 
 	crashed []int
 }
 
-func NewFd(nodes []int, duration time.Duration, send func(int, string, []byte), sleep func(time.Duration)) *fd {
+func NewFd(id int, nodes []int, duration time.Duration, send func(int, string, ...any), sleep func(time.Duration)) *fd {
 	alive := make(map[int]bool)
 	for _, id := range nodes {
 		alive[id] = true
@@ -24,6 +25,7 @@ func NewFd(nodes []int, duration time.Duration, send func(int, string, []byte), 
 		alive:    alive,
 		detected: make(map[int]bool),
 
+		id:    id,
 		nodes: nodes,
 
 		duration: duration,
@@ -44,7 +46,7 @@ func (fd *fd) Start() {
 				// Send crash signal
 				fd.crashed = append(fd.crashed, id)
 			}
-			fd.send(id, "HeartBeatRequest", []byte{})
+			fd.send(id, "HeartBeatRequest", fd.id)
 		}
 		fd.alive = make(map[int]bool)
 		if len(fd.crashed) == 3 {
@@ -54,10 +56,10 @@ func (fd *fd) Start() {
 	}
 }
 
-func (fd *fd) HeartBeatRequest(from int, _ []byte) {
-	fd.send(from, "HeartBeatReply", []byte{})
+func (fd *fd) HeartBeatRequest(from int) {
+	fd.send(from, "HeartBeatReply", fd.id)
 }
 
-func (fd *fd) HeartBeatReply(from int, _ []byte) {
+func (fd *fd) HeartBeatReply(from int) {
 	fd.alive[from] = true
 }

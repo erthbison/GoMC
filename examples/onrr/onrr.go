@@ -47,10 +47,10 @@ type onrr struct {
 	// Used to keep track of all nodes
 	nodes []int
 	// Used to send messages to other types.
-	send func(to int, msgType string, msg []byte)
+	send func(to int, msgType string, params ...any)
 }
 
-func NewOnrr(id int, send func(to int, msgType string, msg []byte), nodes []int) *onrr {
+func NewOnrr(id int, send func(to int, msgType string, params ...any), nodes []int) *onrr {
 	return &onrr{
 		val:      Value{Ts: 0, Val: 0},
 		wts:      0,
@@ -85,27 +85,30 @@ func (onrr *onrr) Write(val int) {
 
 	onrr.ongoingWrite = true
 
-	msg := encodeMsg(BroadcastWriteMsg{
-		Val: value,
-	})
+	// msg := encodeMsg(BroadcastWriteMsg{
+	// 	Val: value,
+	// })
+	msg := BroadcastWriteMsg{Val: value}
 	for _, target := range onrr.nodes {
-		onrr.send(target, "BroadcastWrite", msg)
+		onrr.send(target, "BroadcastWrite", onrr.id, msg)
 	}
 }
 
-func (onrr *onrr) BroadcastWrite(from int, msg []byte) {
-	bwMsg := decodeMsg[BroadcastWriteMsg](msg)
+func (onrr *onrr) BroadcastWrite(from int, msg BroadcastWriteMsg) {
+	// bwMsg := decodeMsg[BroadcastWriteMsg](msg)
+	bwMsg := msg
 	if bwMsg.Val.Ts > onrr.val.Ts {
 		onrr.val = bwMsg.Val
 	}
-	ackMsg := encodeMsg(AckMsg{
+	ackMsg := AckMsg{
 		Ts: bwMsg.Val.Ts,
-	})
+	}
 	onrr.send(from, "AckWrite", ackMsg)
 }
 
-func (onrr *onrr) AckWrite(from int, msg []byte) {
-	ackMsg := decodeMsg[AckMsg](msg)
+func (onrr *onrr) AckWrite(msg AckMsg) {
+	// ackMsg := decodeMsg[AckMsg](msg)
+	ackMsg := msg
 	if ackMsg.Ts != onrr.wts {
 		return
 	}
@@ -123,25 +126,27 @@ func (onrr *onrr) Read() {
 
 	onrr.rid++
 	onrr.readList = make(map[int]Value)
-	msg := encodeMsg(BroadcastReadMsg{
+	msg := BroadcastReadMsg{
 		Rid: onrr.rid,
-	})
+	}
 	for _, target := range onrr.nodes {
-		onrr.send(target, "BroadcastRead", msg)
+		onrr.send(target, "BroadcastRead", onrr.id, msg)
 	}
 }
 
-func (onrr *onrr) BroadcastRead(from int, msg []byte) {
-	readMsg := decodeMsg[BroadcastReadMsg](msg)
-	valMsg := encodeMsg(ReadValueMsg{
+func (onrr *onrr) BroadcastRead(from int, msg BroadcastReadMsg) {
+	// readMsg := decodeMsg[BroadcastReadMsg](msg)
+	readMsg := msg
+	valMsg := ReadValueMsg{
 		Rid: readMsg.Rid,
 		Val: onrr.val,
-	})
-	onrr.send(from, "ReadValue", valMsg)
+	}
+	onrr.send(from, "ReadValue", onrr.id, valMsg)
 }
 
-func (onrr *onrr) ReadValue(from int, msg []byte) {
-	valMsg := decodeMsg[ReadValueMsg](msg)
+func (onrr *onrr) ReadValue(from int, msg ReadValueMsg) {
+	// valMsg := decodeMsg[ReadValueMsg](msg)
+	valMsg := msg
 	if valMsg.Rid != onrr.rid {
 		return
 	}

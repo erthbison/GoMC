@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -21,12 +20,12 @@ type Rrb struct {
 
 	delivered map[message]bool
 	sent      map[message]bool
-	send      func(to int, msgType string, msg []byte)
+	send      func(to int, msgType string, msg ...any)
 
 	deliveredSlice []message
 }
 
-func NewRrb(id int, nodes []int, send func(int, string, []byte)) *Rrb {
+func NewRrb(id int, nodes []int, send func(int, string, ...any)) *Rrb {
 	return &Rrb{
 		id:    id,
 		nodes: nodes,
@@ -44,30 +43,30 @@ func (rrb *Rrb) Broadcast(msg string) {
 		Payload: msg,
 	}
 
-	byteMsg, err := json.Marshal(message)
-	if err != nil {
-		panic(err)
-	}
+	// byteMsg, err := json.Marshal(message)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	for _, target := range rrb.nodes {
-		rrb.send(target, "Deliver", byteMsg)
+		rrb.send(target, "Deliver", message)
 	}
 	rrb.sent[message] = true
 }
 
-func (rrb *Rrb) Deliver(from int, msg []byte) {
-	var message message
-	err := json.Unmarshal(msg, &message)
-	if err != nil {
-		panic(err)
-	}
+func (rrb *Rrb) Deliver(message message) {
+	// var message message
+	// err := json.Unmarshal(msg, &message)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	// violation of RB2:No Duplication
 	rrb.deliveredSlice = append(rrb.deliveredSlice, message)
 	if !rrb.delivered[message] {
 		rrb.delivered[message] = true
 		for _, target := range rrb.nodes {
-			rrb.send(target, "Deliver", msg)
+			rrb.send(target, "Deliver", message)
 		}
 	}
 }

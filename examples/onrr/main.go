@@ -86,7 +86,8 @@ func main() {
 			}()
 			return nodes
 		},
-		[]int{3, 4},
+		// []int{3, 4},
+		[]int{},
 		gomc.NewRequest(0, "Write", 2),
 		gomc.NewRequest(1, "Read"),
 		gomc.NewRequest(2, "Read"),

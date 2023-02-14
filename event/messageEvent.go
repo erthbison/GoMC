@@ -5,24 +5,30 @@ import (
 	"reflect"
 )
 
+
 // An event representing the arrival of a message on a node.
 // Calls the function specified with the Type parameter when executed
 type MessageEvent struct {
-	From  int
-	To    int
-	Type  string
-	Value []byte
+	From   int
+	To     int
+	Type   string
+	Params []reflect.Value
 
 	id string
 }
 
-func NewMessageEvent(from, to int, msgType string, val []byte) MessageEvent {
+func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
+	valueParams := make([]reflect.Value, len(params))
+	for i, val := range params {
+		valueParams[i] = reflect.ValueOf(val)
+	}
 	return MessageEvent{
-		From:  from,
-		To:    to,
-		Type:  msgType,
-		Value: val,
-		id:    fmt.Sprintf("Message From: %v, To: %v, Type: %v, Value: %v", from, to, msgType, val),
+		From:   from,
+		To:     to,
+		Type:   msgType,
+		Params: valueParams,
+
+		id: fmt.Sprintf("Message From: %v, To: %v, Type: %v, Params: %v", from, to, msgType, params),
 	}
 }
 
@@ -37,10 +43,7 @@ func (me MessageEvent) String() string {
 func (me MessageEvent) Execute(node any, nextEvt chan error) {
 	// Use reflection to call the specified method on the node
 	method := reflect.ValueOf(node).MethodByName(me.Type)
-	method.Call([]reflect.Value{
-		reflect.ValueOf(me.From),
-		reflect.ValueOf(me.Value),
-	})
+	method.Call(me.Params)
 	nextEvt <- nil
 }
 

@@ -42,7 +42,7 @@ func main() {
 			nodes := map[int]*fd{}
 			for _, id := range ids {
 				nodes[id] = NewFd(
-					ids, 5*time.Second, sender.SendFunc(id), sleep.SleepFunc(id),
+					id, ids, 5*time.Second, sender.SendFunc(id), sleep.SleepFunc(id),
 				)
 			}
 			return nodes

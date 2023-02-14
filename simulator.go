@@ -47,7 +47,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S]) 
 		NextEvt:   make(chan error),
 
 		maxRuns:  10000,
-		maxDepth: 50,
+		maxDepth: 1000,
 	}
 }
 

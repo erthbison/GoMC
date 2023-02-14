@@ -3,7 +3,7 @@ package main
 type fifo struct {
 	id int
 
-	send func(int, string, []byte)
+	send func(int, string, ...any)
 
 	Received []string
 }
@@ -22,6 +22,6 @@ func (f fifo) Send(target int, message []byte) {
 	)
 }
 
-func (f fifo) Test(from int, message []byte) {
+func (f fifo) Test(message []byte) {
 	f.Received = append(f.Received, string(message))
 }

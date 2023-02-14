@@ -47,7 +47,7 @@ func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
 
 type SimulationRunner[T, S any] struct {
 	MaxDepth     uint
-	SendFactory  func(int) func(int, string, []byte)
+	SendFactory  func(int) func(int, string, ...any)
 	SleepFactory func(int) func(time.Duration)
 
 	InitNodes func() map[int]*T
