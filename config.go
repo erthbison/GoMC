@@ -52,7 +52,7 @@ type SimulationRunner[T, S any] struct {
 
 	InitNodes func() map[int]*T
 
-	StartFuncs     []Func
+	StartFuncs     []Request
 	IncorrectNodes []int
 
 	Preds []func(GlobalState[S], bool, []GlobalState[S]) bool

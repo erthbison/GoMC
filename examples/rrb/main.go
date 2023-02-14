@@ -81,7 +81,7 @@ func main() {
 			return nodes
 		},
 		[]int{},
-		gomc.NewFunc(0, "Broadcast", "Test Message"),
+		gomc.NewRequest(0, "Broadcast", "Test Message"),
 	)
 	if err != nil {
 		panic(err)

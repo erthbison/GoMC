@@ -32,9 +32,9 @@ func main() {
 			return nodes
 		},
 		[]int{},
-		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 1")),
-		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 2")),
-		gomc.NewFunc(0, "Send", 1, []byte("Test Message - 3")),
+		gomc.NewRequest(0, "Send", 1, []byte("Test Message - 1")),
+		gomc.NewRequest(0, "Send", 1, []byte("Test Message - 2")),
+		gomc.NewRequest(0, "Send", 1, []byte("Test Message - 3")),
 	)
 
 	if err != nil {

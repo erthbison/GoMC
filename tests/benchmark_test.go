@@ -97,7 +97,7 @@ func Benchmark(b *testing.B) {
 				return nodes
 			},
 			[]int{},
-			gomc.NewFunc(0, "Broadcast", []byte("Test Message")),
+			gomc.NewRequest(0, "Broadcast", []byte("Test Message")),
 		)
 		if err != nil {
 			b.Fatalf("Error while running simulation: %v", err)

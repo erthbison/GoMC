@@ -87,11 +87,11 @@ func main() {
 			return nodes
 		},
 		[]int{3, 4},
-		gomc.NewFunc(0, "Write", 2),
-		gomc.NewFunc(1, "Read"),
-		gomc.NewFunc(2, "Read"),
-		gomc.NewFunc(3, "Read"),
-		gomc.NewFunc(4, "Read"),
+		gomc.NewRequest(0, "Write", 2),
+		gomc.NewRequest(1, "Read"),
+		gomc.NewRequest(2, "Read"),
+		gomc.NewRequest(3, "Read"),
+		gomc.NewRequest(4, "Read"),
 	)
 
 	if err != nil {

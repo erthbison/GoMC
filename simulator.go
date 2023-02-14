@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/scheduler"
-	"reflect"
 )
 
 var (
@@ -19,24 +18,6 @@ var (
 		- The message type in the Send function must correspond to a method of the node that takes the input (int, int, []byte)
 		- All functions must run to completion without waiting for a response from the tester
 */
-
-type Func struct {
-	Id     int
-	Method string
-	Params []reflect.Value
-}
-
-func NewFunc(id int, method string, params ...any) Func {
-	test := make([]reflect.Value, len(params))
-	for i, val := range params {
-		test[i] = reflect.ValueOf(val)
-	}
-	return Func{
-		Id:     id,
-		Method: method,
-		Params: test,
-	}
-}
 
 type Simulator[T any, S any] struct {
 	// Responsibility for maintaining the state space.
@@ -75,9 +56,9 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S]) 
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []int, funcs ...Func) error {
+func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []int, requests ...Request) error {
 	var numRuns uint
-	if len(funcs) < 1 {
+	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
 	}
 	for numRuns < s.maxRuns {
@@ -91,7 +72,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 
 		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
 
-		err := s.scheduleFuncs(funcs)
+		err := s.scheduleFuncs(requests)
 		if err != nil {
 			return err
 		}
@@ -159,9 +140,9 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 	return nil
 }
 
-func (s *Simulator[T, S]) scheduleFuncs(funcs []Func) error {
+func (s *Simulator[T, S]) scheduleFuncs(requests []Request) error {
 	// add all the functions to the scheduler
-	for i, f := range funcs {
+	for i, f := range requests {
 		s.Scheduler.AddEvent(
 			event.NewFunctionEvent(
 				i, f.Id, f.Method, f.Params...,

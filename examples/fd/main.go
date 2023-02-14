@@ -48,7 +48,7 @@ func main() {
 			return nodes
 		},
 		[]int{2},
-		gomc.NewFunc(0, "Start"),
+		gomc.NewRequest(0, "Start"),
 	)
 
 	if err != nil {

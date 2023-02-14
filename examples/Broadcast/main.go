@@ -48,7 +48,7 @@ func main() {
 			return nodeMap
 		},
 		[]int{},
-		gomc.NewFunc(0, "Broadcast", []byte("0")),
+		gomc.NewRequest(0, "Broadcast", []byte("0")),
 	)
 	if err != nil {
 		panic(err)
