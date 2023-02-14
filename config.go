@@ -55,7 +55,7 @@ type SimulationRunner[T, S any] struct {
 	StartFuncs     map[int][]func(*T) error
 	IncorrectNodes []int
 
-	Preds []func(GlobalState[S], bool, []GlobalState[S]) bool
+	Preds []func(GlobalState[S, T], bool, []GlobalState[S, T]) bool
 
 	sch scheduler.Scheduler[T]
 	sm  *stateManager[T, S]

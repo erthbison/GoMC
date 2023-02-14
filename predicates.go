@@ -1,7 +1,7 @@
 package gomc
 
-func PredEventually[S any](pred func(GlobalState[S], bool, []GlobalState[S]) bool) func(GlobalState[S], bool, []GlobalState[S]) bool {
-	return func(states GlobalState[S], terminalState bool, sequence []GlobalState[S]) bool {
+func PredEventually[S, T any](pred func(GlobalState[S, T], bool, []GlobalState[S, T]) bool) func(GlobalState[S, T], bool, []GlobalState[S, T]) bool {
+	return func(states GlobalState[S, T], terminalState bool, sequence []GlobalState[S, T]) bool {
 		if !terminalState {
 			return true
 		}

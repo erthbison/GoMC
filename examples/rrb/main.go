@@ -101,7 +101,7 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
 				// RB1: Validity
 				for _, node := range states.LocalStates {
 					for sentMsg := range node.sent {
@@ -112,7 +112,7 @@ func main() {
 				}
 				return true
 			}),
-		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+		func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
 			// RB2: No duplication
 			for _, node := range states.LocalStates {
 				delivered := make(map[message]bool)
@@ -125,7 +125,7 @@ func main() {
 			}
 			return true
 		},
-		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+		func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
 			// RB3: No creation
 			sentMessages := map[message]bool{}
 			for _, node := range states.LocalStates {
@@ -143,7 +143,7 @@ func main() {
 			return true
 		},
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(states gomc.GlobalState[State, Rrb], terminal bool, _ []gomc.GlobalState[State, Rrb]) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties

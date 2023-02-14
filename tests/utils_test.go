@@ -48,7 +48,7 @@ func NewMockStateManager() *MockStateManager {
 	return &MockStateManager{}
 }
 
-func (msm *MockStateManager) UpdateGlobalState(map[int]*node, map[int]bool) {}
+func (msm *MockStateManager) UpdateGlobalState(map[int]*node, map[int]bool, event.Event[node]) {}
 
 func (msm *MockStateManager) EndRun() {}
 

@@ -132,7 +132,7 @@ func main() {
 
 	checker := gomc.NewPredicateChecker(
 		gomc.PredEventually(
-			func(states gomc.GlobalState[State], _ bool, _ []gomc.GlobalState[State]) bool {
+			func(states gomc.GlobalState[State, onrr], _ bool, _ []gomc.GlobalState[State, onrr]) bool {
 				for id, state := range states.LocalStates {
 					// only consider correct states
 					if !states.Correct[id] {
@@ -145,7 +145,7 @@ func main() {
 				return true
 			},
 		),
-		func(state gomc.GlobalState[State], _ bool, seq []gomc.GlobalState[State]) bool {
+		func(state gomc.GlobalState[State, onrr], _ bool, seq []gomc.GlobalState[State, onrr]) bool {
 			writer := 0
 			possibleReadSlice := make([][]int, len(seq))
 			for i, elem := range seq {

@@ -47,7 +47,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler[T], sm StateManager[T, S
 		NextEvt:   make(chan error),
 
 		maxRuns:  10000,
-		maxDepth: 10,
+		maxDepth: 50,
 	}
 }
 
@@ -64,12 +64,13 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, funcs map[int][]f
 	for numRuns < s.maxRuns {
 		// Perform initialization of the run
 		nodes := initNodes()
-		s.sm.UpdateGlobalState(nodes, s.fm.CorrectNodes())
 		nodeSlice := []int{}
 		for id := range nodes {
 			nodeSlice = append(nodeSlice, id)
 		}
 		s.fm.InitNodes(nodeSlice)
+
+		s.sm.UpdateGlobalState(nodes, s.fm.CorrectNodes(), nil)
 
 		err := s.scheduleFuncs(funcs)
 		if err != nil {
@@ -133,7 +134,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 		if err != nil {
 			return err
 		}
-		s.sm.UpdateGlobalState(nodes, correct)
+		s.sm.UpdateGlobalState(nodes, correct, evt)
 		depth++
 	}
 	return nil

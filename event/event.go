@@ -19,5 +19,8 @@ type Event[T any] interface {
 }
 
 func EventsEquals[T any](a, b Event[T]) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
 	return a.Id() == b.Id()
 }
