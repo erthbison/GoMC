@@ -69,7 +69,7 @@ Notes:
 
     - SOLVED can not specify multiple start functions and ensure that all orders of them are tried. Requires that the user think more about how the start functions work. Could be solved by creating an event for function calls.
 
-    - Tedious to convert messages into `[]byte` before sending it. Could do it automatically using glob. Could be harder to do the decoding, but we might be able to use reflection to find the expected type and use that. 
+    - SOLVED Tedious to convert messages into `[]byte` before sending it. Could do it automatically using glob. Could be harder to do the decoding, but we might be able to use reflection to find the expected type and use that. 
 
     - Tedious to manually assign the msgType for a message, i.e. the function that will be called when receiving the message. Unknown how to solve this. The message type that is used could be named after the function that will be called. I.e. If you want to call a method that is named "AckWrite" you send an "AckWrite" message to the node.
 
