@@ -44,6 +44,47 @@ func TestFunctionEvent(t *testing.T) {
 	}
 }
 
+func TestMessageEvent(t *testing.T) {
+	evt := NewMessageEvent(0, 1, "Bar", 0, []byte("Bar"))
+	n := &node{}
+	errChan := make(chan error)
+	go func() {
+		evt.Execute(n, errChan)
+	}()
+	select {
+	case val := <-errChan:
+		if val != nil {
+			t.Errorf("Expected to receive no error when executing event. Got: %v", val)
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("Expected to receive a message on the errChan")
+	}
+	if !n.bar {
+		t.Errorf("Expected the Bar function to have been called and the Bar flag to be true")
+	}
+}
+
+func TestCrashEvent(t *testing.T) {
+	crashedNode := 0
+	evt := NewCrashEvent(5, func(i int) { crashedNode = i })
+	n := &node{}
+	errChan := make(chan error)
+	go func() {
+		evt.Execute(n, errChan)
+	}()
+	select {
+	case val := <-errChan:
+		if val != nil {
+			t.Errorf("Expected to receive no error when executing event. Got: %v", val)
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("Expected to receive a message on the errChan")
+	}
+	if crashedNode != 5 {
+		t.Errorf("Expected the provided function to be executed")
+	}
+}
+
 func TestSleepEvent(t *testing.T) {
 	// Execute a sleep event. Test that a message is sent on the timeChan ensuring that the sleep ends.
 	// Also check that we do not receive a message on the errorChan
