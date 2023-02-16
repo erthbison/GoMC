@@ -14,7 +14,7 @@ type State struct {
 
 func TestBroadcast(t *testing.T) {
 	numNodes := 2
-	sch := scheduler.NewBasicScheduler()
+	sch := scheduler.NewQueueScheduler()
 	sm := gomc.NewStateManager(
 		func(node *Node) State {
 			return State{
@@ -54,10 +54,8 @@ func TestBroadcast(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error")
 	}
-	fmt.Println(sch.EventRoot)
 	fmt.Println(sm.StateRoot)
 
-	fmt.Println(sch.EventRoot.Newick())
 	fmt.Println(sm.StateRoot.Newick())
 
 }
