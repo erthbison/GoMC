@@ -26,7 +26,7 @@ func (gs GlobalState[S]) String() string {
 			crashed = append(crashed, id)
 		}
 	}
-	return fmt.Sprintf("Evt: %v {States: %v - Crashed: %v}", gs.Evt, gs.LocalStates, crashed)
+	return fmt.Sprintf("Evt: %v|States: %v|Crashed: %v", gs.Evt, gs.LocalStates, crashed)
 }
 
 type stateManager[T any, S any] struct {
