@@ -114,8 +114,10 @@ func (onrr *onrr) AckWrite(msg AckMsg) {
 	}
 	onrr.acks++
 	if onrr.acks > len(onrr.nodes)/2 {
+		if onrr.ongoingWrite {
+			onrr.possibleReads = onrr.possibleReads[1:]
+		}
 		onrr.ongoingWrite = false
-		onrr.possibleReads = onrr.possibleReads[1:]
 		onrr.acks = 0
 		onrr.WriteIndicator <- true
 	}
