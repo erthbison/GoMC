@@ -30,7 +30,7 @@ func (fe FunctionEvent) Id() string {
 }
 
 func (fe FunctionEvent) String() string {
-	return fmt.Sprintf("{Function %v}", fe.index)
+	return fmt.Sprintf("{Function %v. Target: %v}", fe.index, fe.target)
 }
 
 func (fe FunctionEvent) Execute(node any, nextEvt chan error) {
