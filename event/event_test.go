@@ -66,7 +66,7 @@ func TestMessageEvent(t *testing.T) {
 
 func TestCrashEvent(t *testing.T) {
 	crashedNode := 0
-	evt := NewCrashEvent(5, func(i int) { crashedNode = i })
+	evt := NewCrashEvent(5, func(i int) error { crashedNode = i; return nil })
 	n := &node{}
 	errChan := make(chan error)
 	go func() {

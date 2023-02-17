@@ -1,5 +1,7 @@
 package gomc
 
+import "errors"
+
 // The failureManager keeps track of which nodes has crashed and which has not.
 // It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
 type failureManager struct {
@@ -17,7 +19,7 @@ func NewFailureManager() *failureManager {
 // Init the failure manager with the provided nodes.
 // Set all the provided nodes to correct
 func (fm *failureManager) Init(nodes []int) {
-	for id := range nodes {
+	for _, id := range nodes {
 		fm.correct[id] = true
 	}
 }
@@ -28,11 +30,15 @@ func (fm *failureManager) CorrectNodes() map[int]bool {
 }
 
 // register that the node with the provided id has crashed
-func (fm *failureManager) NodeCrash(nodeId int) {
+func (fm *failureManager) NodeCrash(nodeId int) error {
+	if _, ok := fm.correct[nodeId]; !ok {
+		return errors.New("FailureManager: Received NodeCrash for node that is nor added to the system")
+	}
 	fm.correct[nodeId] = false
 	for _, f := range fm.failureCallback {
 		f(nodeId)
 	}
+	return nil
 }
 
 // Register a callback function to be called when a node crashes.

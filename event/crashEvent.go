@@ -6,10 +6,10 @@ import (
 
 type CrashEvent struct {
 	target int
-	crash  func(int)
+	crash  func(int) error
 }
 
-func NewCrashEvent(target int, crash func(int)) CrashEvent {
+func NewCrashEvent(target int, crash func(int) error) CrashEvent {
 	return CrashEvent{
 		target: target,
 		crash:  crash,
@@ -27,8 +27,7 @@ func (ce CrashEvent) Id() string {
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
 func (ce CrashEvent) Execute(_ any, evtChan chan error) {
-	ce.crash(ce.target)
-	evtChan <- nil
+	evtChan <- ce.crash(ce.target)
 }
 
 // The id of the target node, i.e. the node whose state will be changed by the event executing.
