@@ -18,17 +18,16 @@ type State struct {
 }
 
 func (s State) String() string {
-	bldr := strings.Builder{}
-	bldr.WriteString("Delivered: {")
+	bldr := &strings.Builder{}
+	bldr.WriteString("D:{")
 	for _, key := range s.deliveredSlice {
-		bldr.WriteString(fmt.Sprintf(" %v ", key))
+		fmt.Fprintf(bldr, "%v,", key)
 	}
-	bldr.WriteString("} Sent: {")
+	bldr.WriteString("}S:{")
 	for key := range s.sent {
-		bldr.WriteString(fmt.Sprintf(" %v ", key))
+		fmt.Fprintf(bldr, "%v,", key)
 	}
 	bldr.WriteString("}")
-
 	return bldr.String()
 }
 

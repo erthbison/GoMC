@@ -11,7 +11,7 @@ type message struct {
 }
 
 func (m message) String() string {
-	return fmt.Sprintf("Msg{ From: %v, index: %v }", m.From, m.Index)
+	return fmt.Sprintf("{F:%v, i:%v}", m.From, m.Index)
 }
 
 type Rrb struct {
@@ -43,11 +43,6 @@ func (rrb *Rrb) Broadcast(msg string) {
 		Payload: msg,
 	}
 
-	// byteMsg, err := json.Marshal(message)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	for _, target := range rrb.nodes {
 		rrb.send(target, "Deliver", message)
 	}
@@ -55,12 +50,6 @@ func (rrb *Rrb) Broadcast(msg string) {
 }
 
 func (rrb *Rrb) Deliver(message message) {
-	// var message message
-	// err := json.Unmarshal(msg, &message)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	// violation of RB2:No Duplication
 	rrb.deliveredSlice = append(rrb.deliveredSlice, message)
 	if !rrb.delivered[message] {
