@@ -1,4 +1,4 @@
-package gomc
+package eventManager
 
 import (
 	"gomc/event"

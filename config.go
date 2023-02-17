@@ -2,6 +2,7 @@ package gomc
 
 import (
 	"fmt"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"log"
 	"time"
@@ -40,8 +41,8 @@ func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
 		cfg.StatesEqual,
 	)
 	sim := NewSimulator[T, S](sch, sm, cfg.NumRuns, cfg.MaxDepth)
-	sender := NewSender(sch)
-	sleep := NewSleepManager(sch, sim.NextEvt)
+	sender := eventManager.NewSender(sch)
+	sleep := eventManager.NewSleepManager(sch, sim.NextEvt)
 	return SimulationRunner[T, S]{
 		sch:          sch,
 		sm:           sm,

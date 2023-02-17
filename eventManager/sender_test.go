@@ -1,7 +1,6 @@
-package gomc_test
+package eventManager
 
 import (
-	"gomc"
 	"gomc/event"
 	"testing"
 )
@@ -9,7 +8,7 @@ import (
 func TestSender(t *testing.T) {
 	// Basic test testing that it the sender can send a message.
 	sch := NewMockScheduler()
-	sender := gomc.NewSender(sch)
+	sender := NewSender(sch)
 	send := sender.SendFunc(0)
 	go send(0, "Foo", []byte("Foo"))
 	out := <-sch.inEvent

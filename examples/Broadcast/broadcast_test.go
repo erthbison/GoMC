@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"testing"
 )
@@ -27,8 +28,8 @@ func TestBroadcast(t *testing.T) {
 		},
 	)
 	tester := gomc.NewSimulator[Node, State](sch, sm, 10000, 1000)
-	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
-	sender := gomc.NewSender(sch)
+	sleep := eventManager.NewSleepManager(sch, tester.NextEvt)
+	sender := eventManager.NewSender(sch)
 	err := tester.Simulate(
 		func() map[int]*Node {
 			nodeMap := map[int]*Node{}

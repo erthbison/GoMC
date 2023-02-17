@@ -6,12 +6,12 @@ import (
 )
 
 // Create some dummy types and states for use when testing
-type node struct{}
+type Node struct{}
 
-func (n *node) Foo(from, to int, msg []byte) {}
-func (n *node) Bar(from, to int, msg []byte) {}
+func (n *Node) Foo(from, to int, msg []byte) {}
+func (n *Node) Bar(from, to int, msg []byte) {}
 
-type state struct{}
+type State struct{}
 
 type MockScheduler struct {
 	inEvent  chan event.Event
@@ -48,7 +48,7 @@ func NewMockStateManager() *MockStateManager {
 	return &MockStateManager{}
 }
 
-func (msm *MockStateManager) UpdateGlobalState(map[int]*node, map[int]bool, event.Event) {}
+func (msm *MockStateManager) UpdateGlobalState(map[int]*Node, map[int]bool, event.Event) {}
 
 func (msm *MockStateManager) EndRun() {}
 
@@ -61,7 +61,7 @@ func (me MockEvent) Id() string {
 	return strconv.Itoa(me.id)
 }
 
-func (me MockEvent) Execute(_ map[int]*node, chn chan error) {
+func (me MockEvent) Execute(_ map[int]*Node, chn chan error) {
 	me.executed = true
 	chn <- nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"testing"
 	"time"
@@ -32,8 +33,8 @@ func TestFd(t *testing.T) {
 		},
 	)
 	tester := gomc.NewSimulator[fd, State](sch, sm, 10000, 1000)
-	sender := gomc.NewSender(sch)
-	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
+	sender := eventManager.NewSender(sch)
+	sleep := eventManager.NewSleepManager(sch, tester.NextEvt)
 	err := tester.Simulate(
 		func() map[int]*fd {
 			ids := []int{}

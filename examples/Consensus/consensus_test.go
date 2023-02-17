@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"os"
 	"testing"
@@ -41,7 +42,7 @@ func TestConsensus(t *testing.T) {
 			return a.decided.val == b.decided.val
 		},
 	)
-	sender := gomc.NewSender(sch)
+	sender := eventManager.NewSender(sch)
 	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 10000, 1000)
 	err := sim.Simulate(
 		func() map[int]*HierarchicalConsensus[int] {
@@ -159,7 +160,7 @@ func TestConsensusReplay(t *testing.T) {
 			return a.decided.val == b.decided.val
 		},
 	)
-	sender := gomc.NewSender(sch)
+	sender := eventManager.NewSender(sch)
 	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 10000, 1000)
 	err = sim.Simulate(
 		func() map[int]*HierarchicalConsensus[int] {

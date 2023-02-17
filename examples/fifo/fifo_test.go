@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"testing"
 )
@@ -21,7 +22,7 @@ func TestFifo(t *testing.T) {
 		},
 	)
 	tester := gomc.NewSimulator[fifo, State](sch, sm, 10000, 1000)
-	sender := gomc.NewSender(sch)
+	sender := eventManager.NewSender(sch)
 	err := tester.Simulate(
 		func() map[int]*fifo {
 			nodes := map[int]*fifo{}

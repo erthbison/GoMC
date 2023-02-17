@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"strings"
 	"testing"
@@ -62,7 +63,7 @@ func TestRrb(t *testing.T) {
 			return maps.Equal(s1.sent, s2.sent)
 		},
 	)
-	sender := gomc.NewSender(sch)
+	sender := eventManager.NewSender(sch)
 	sim := gomc.NewSimulator[Rrb, State](sch, sm, 10000, 1000)
 	err := sim.Simulate(
 		func() map[int]*Rrb {

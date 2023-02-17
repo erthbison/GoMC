@@ -2,6 +2,7 @@ package main
 
 import (
 	"gomc"
+	"gomc/eventManager"
 	"gomc/scheduler"
 	"testing"
 
@@ -67,7 +68,7 @@ func TestOnrr(t *testing.T) {
 
 	// Create a simulator. providing a function specifying how to instantiate the nodes and a function specifying how to start the test
 	simulator := gomc.NewSimulator[onrr, State](sch, sm, 10000, 1000)
-	sender := gomc.NewSender(sch)
+	sender := eventManager.NewSender(sch)
 	err := simulator.Simulate(
 		func() map[int]*onrr {
 			numNodes := 5

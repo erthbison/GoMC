@@ -1,4 +1,4 @@
-package gomc
+package eventManager
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 )
+
 
 type SleepManager struct {
 	sch        scheduler.Scheduler
