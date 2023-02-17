@@ -1,29 +1,41 @@
 package gomc
 
 import (
+	"bytes"
 	"fmt"
 	"gomc/tree"
+	"text/tabwriter"
 )
 
 type CheckerResponse interface {
 	Response() (bool, string)
+	Export() []string
 }
 
 type predicateCheckerResponse[S any] struct {
-	Result   bool             // True if all tests holds. False otherwise
-	Sequence []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
-	Test     int              // The index of the failing test. -1 if Result is true
+	Result      bool             // True if all tests holds. False otherwise
+	Sequence    []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
+	Test        int              // The index of the failing test. -1 if Result is true
+	EvtSequence []string
 }
 
 func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	if pcr.Result {
 		return pcr.Result, "All predicates holds"
 	}
+	var buffer bytes.Buffer
+	wrt := tabwriter.NewWriter(&buffer, 4, 4, 0, ' ', 0)
 	out := fmt.Sprintf("Predicate broken. Predicate: %v. Sequence: \n", pcr.Test)
 	for _, element := range pcr.Sequence {
-		out += fmt.Sprintln("->", element)
+		fmt.Fprintf(wrt, "-> %v \n", element)
 	}
+	wrt.Flush()
+	out += buffer.String()
 	return pcr.Result, out
+}
+
+func (pcr predicateCheckerResponse[S]) Export() []string {
+	return pcr.EvtSequence
 }
 
 // TODO: Consider if we can define the predicates as tests and automatically discover them
@@ -49,9 +61,10 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicate
 		return resp
 	}
 	return &predicateCheckerResponse[S]{
-		Result:   true,
-		Sequence: nil,
-		Test:     -1,
+		Result:      true,
+		Sequence:    nil,
+		Test:        -1,
+		EvtSequence: nil,
 	}
 }
 
@@ -60,10 +73,17 @@ func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[GlobalState[S]], sequen
 	// Immediately stops when finding a state that breaches the predicates
 	sequence = append(sequence, node.Payload())
 	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
+		evtSequence := []string{}
+		for _, state := range sequence {
+			if state.Evt != nil {
+				evtSequence = append(evtSequence, state.Evt.Id())
+			}
+		}
 		return &predicateCheckerResponse[S]{
-			Result:   false,
-			Sequence: sequence,
-			Test:     index,
+			Result:      false,
+			Sequence:    sequence,
+			Test:        index,
+			EvtSequence: evtSequence,
 		}
 	}
 
