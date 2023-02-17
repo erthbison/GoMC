@@ -26,7 +26,7 @@ func TestBroadcast(t *testing.T) {
 			return s1 == s2
 		},
 	)
-	tester := gomc.NewSimulator[Node, State](sch, sm)
+	tester := gomc.NewSimulator[Node, State](sch, sm, 10000, 1000)
 	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
 	sender := gomc.NewSender(sch)
 	err := tester.Simulate(

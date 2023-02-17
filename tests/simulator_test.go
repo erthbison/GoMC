@@ -9,7 +9,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 	// Test
 	sch := NewMockScheduler()
 	sm := NewMockStateManager()
-	simulator := gomc.NewSimulator[node, state](sch, sm)
+	simulator := gomc.NewSimulator[node, state](sch, sm, 10000, 1000)
 	err := simulator.Simulate(
 		func() map[int]*node {
 			return map[int]*node{0: {}}

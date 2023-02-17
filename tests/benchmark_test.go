@@ -77,7 +77,7 @@ func Benchmark(b *testing.B) {
 				return s1 == s2
 			},
 		)
-		tester := gomc.NewSimulator[Node, State](sch, sm)
+		tester := gomc.NewSimulator[Node, State](sch, sm, 10000, 1000)
 		sender := gomc.NewSender(sch)
 		err := tester.Simulate(
 			func() map[int]*Node {

@@ -13,27 +13,33 @@ type Config[T, S any] struct {
 	Scheduler string
 	// Number of runs to be used with a RandomScheduler. Default value is 10000. If value is 0 default value is used.
 	NumRuns uint
+	// Maximum depth of a run. Default value is 1000
+	MaxDepth uint
 
 	GetLocalState func(*T) S
 	StatesEqual   func(S, S) bool
 }
 
 func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
+	if cfg.NumRuns == 0 {
+		// If numRuns is 0 set to default value 10 000
+		cfg.NumRuns = 10000
+	}
+	if cfg.MaxDepth == 0 {
+		cfg.MaxDepth = 1000
+	}
 	var sch scheduler.Scheduler
 	if cfg.Scheduler == "random" {
-		if cfg.NumRuns == 0 {
-			// If numRuns is 0 set to default value 10 000
-			cfg.NumRuns = 10000
-		}
 		sch = scheduler.NewRandomScheduler(cfg.NumRuns)
 	} else {
 		sch = scheduler.NewBasicScheduler()
 	}
+
 	sm := NewStateManager(
 		cfg.GetLocalState,
 		cfg.StatesEqual,
 	)
-	sim := NewSimulator[T, S](sch, sm)
+	sim := NewSimulator[T, S](sch, sm, cfg.NumRuns, cfg.MaxDepth)
 	sender := NewSender(sch)
 	sleep := NewSleepManager(sch, sim.NextEvt)
 	return SimulationRunner[T, S]{

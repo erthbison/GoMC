@@ -64,7 +64,7 @@ func TestRrb(t *testing.T) {
 		},
 	)
 	sender := gomc.NewSender(sch)
-	sim := gomc.NewSimulator[Rrb, State](sch, sm)
+	sim := gomc.NewSimulator[Rrb, State](sch, sm, 10000, 1000)
 	err := sim.Simulate(
 		func() map[int]*Rrb {
 			nodeIds := []int{}

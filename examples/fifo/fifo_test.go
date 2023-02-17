@@ -20,7 +20,7 @@ func TestFifo(t *testing.T) {
 			return s1 == s2
 		},
 	)
-	tester := gomc.NewSimulator[fifo, State](sch, sm)
+	tester := gomc.NewSimulator[fifo, State](sch, sm, 10000, 1000)
 	sender := gomc.NewSender(sch)
 	err := tester.Simulate(
 		func() map[int]*fifo {

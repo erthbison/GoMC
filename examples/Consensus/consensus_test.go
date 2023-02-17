@@ -10,9 +10,9 @@ import (
 )
 
 type state struct {
-	round     uint
-	proposed  Value[int]
-	decided   Value[int]
+	round    uint
+	proposed Value[int]
+	decided  Value[int]
 }
 
 func TestConsensus(t *testing.T) {
@@ -26,9 +26,9 @@ func TestConsensus(t *testing.T) {
 			default:
 			}
 			return state{
-				proposed:  node.proposal,
-				decided:   val,
-				round:     node.round,
+				proposed: node.proposal,
+				decided:  val,
+				round:    node.round,
 			}
 		},
 		func(a, b state) bool {
@@ -42,7 +42,7 @@ func TestConsensus(t *testing.T) {
 		},
 	)
 	sender := gomc.NewSender(sch)
-	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm)
+	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 10000, 1000)
 	err := sim.Simulate(
 		func() map[int]*HierarchicalConsensus[int] {
 			nodeIds := []uint{}
@@ -160,7 +160,7 @@ func TestConsensusReplay(t *testing.T) {
 		},
 	)
 	sender := gomc.NewSender(sch)
-	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm)
+	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 10000, 1000)
 	err = sim.Simulate(
 		func() map[int]*HierarchicalConsensus[int] {
 			nodeIds := []uint{}

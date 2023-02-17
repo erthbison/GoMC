@@ -31,7 +31,7 @@ func TestFd(t *testing.T) {
 			return slices.Equal(s1.crashed, s2.crashed)
 		},
 	)
-	tester := gomc.NewSimulator[fd, State](sch, sm)
+	tester := gomc.NewSimulator[fd, State](sch, sm, 10000, 1000)
 	sender := gomc.NewSender(sch)
 	sleep := gomc.NewSleepManager(sch, tester.NextEvt)
 	err := tester.Simulate(

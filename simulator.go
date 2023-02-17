@@ -36,7 +36,7 @@ type Simulator[T any, S any] struct {
 	maxDepth uint
 }
 
-func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S]) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S], maxRuns uint, maxDepth uint) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 	fm := NewFailureManager()
 	fm.Subscribe(sch.NodeCrash)
@@ -46,8 +46,8 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S]) 
 		Fm:        fm,
 		NextEvt:   make(chan error),
 
-		maxRuns:  10000,
-		maxDepth: 1000,
+		maxRuns:  maxRuns,
+		maxDepth: maxDepth,
 	}
 }
 
