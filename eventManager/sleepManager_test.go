@@ -7,30 +7,26 @@ import (
 )
 
 type MockScheduler struct {
-	inEvent  chan event.Event
-	outEvent chan event.Event
-	endRun   chan interface{}
+	eventStack []event.Event
 }
 
 func NewMockScheduler() *MockScheduler {
 	return &MockScheduler{
-		make(chan event.Event),
-		make(chan event.Event),
-		make(chan interface{}),
+		eventStack: make([]event.Event, 0),
 	}
 }
 
 func (ms *MockScheduler) AddEvent(evt event.Event) {
-	ms.inEvent <- evt
+	ms.eventStack = append(ms.eventStack, evt)
 }
 
 func (ms *MockScheduler) GetEvent() (event.Event, error) {
-	return <-ms.outEvent, nil
+	evt := ms.eventStack[len(ms.eventStack)-1]
+	ms.eventStack = ms.eventStack[:len(ms.eventStack)-1]
+	return evt, nil
 }
 
-func (ms *MockScheduler) EndRun() {
-	ms.endRun <- nil
-}
+func (ms *MockScheduler) EndRun() {}
 
 func (ms *MockScheduler) NodeCrash(i int) {}
 
@@ -43,20 +39,19 @@ func TestSleepManager(t *testing.T) {
 	sch := NewMockScheduler()
 	nextEvent := make(chan error)
 	sm := NewSleepManager(sch, nextEvent)
-	sleepFunc := sm.SleepFunc(0)
+	sleep := sm.SleepFunc(0)
 	notBlockedChan := make(chan bool)
 	go func() {
 		// Need to check that sleep actually blocks until the event is executed
-		sleepFunc(time.Second)
+		sleep(time.Second)
 		notBlockedChan <- true
 	}()
-
-	evt := <-sch.inEvent
 
 	// Wait until the nextEvent signal is received than execute the event.
 	// Like the simulator would
 	select {
 	case <-nextEvent:
+		evt, _ := sch.GetEvent()
 		evt.Execute(&Node{}, nextEvent)
 	case <-notBlockedChan:
 		t.Fatalf("Sleep returned before the event was executed")
@@ -66,5 +61,4 @@ func TestSleepManager(t *testing.T) {
 	case <-time.After(time.Second * 5):
 		t.Fatalf("Sleep is still blocking after executing the event")
 	}
-
 }

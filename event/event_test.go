@@ -88,12 +88,12 @@ func TestCrashEvent(t *testing.T) {
 func TestSleepEvent(t *testing.T) {
 	// Execute a sleep event. Test that a message is sent on the timeChan ensuring that the sleep ends.
 	// Also check that we do not receive a message on the errorChan
-	chanMap := make(map[string]chan time.Time)
-	foo := NewSleepEvent("Foo", 0, chanMap)
+	sleepChan := make(chan time.Time)
+	foo := NewSleepEvent("Foo", 0, sleepChan)
 	errChan := make(chan error)
 	go foo.Execute(&node{}, errChan)
 	select {
-	case <-chanMap[foo.Id()]:
+	case <-sleepChan:
 	case <-time.After(5 * time.Second):
 		t.Errorf("Expected the event to execute and end the sleep")
 	}
@@ -107,20 +107,21 @@ func TestSleepEvent(t *testing.T) {
 
 func TestSleepEventOnSameLocation(t *testing.T) {
 	// Test that two Sleep events with the same id are interchangeable
-	chanMap := make(map[string]chan time.Time)
-	foo1 := NewSleepEvent("Foo", 0, chanMap)
-	foo2 := NewSleepEvent("Foo", 0, chanMap)
+	sleepChan1 := make(chan time.Time)
+	sleepChan2 := make(chan time.Time)
+	foo1 := NewSleepEvent("Foo", 0, sleepChan1)
+	foo2 := NewSleepEvent("Foo", 0, sleepChan2)
 	if foo1.Id() != foo2.Id() {
 		t.Errorf("Expected the Ids to be the same")
 	}
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 	go func() {
-		<-chanMap[foo1.Id()]
+		<-sleepChan1
 		wg.Done()
 	}()
 	go func() {
-		<-chanMap[foo2.Id()]
+		<-sleepChan2
 		wg.Done()
 	}()
 	errChan := make(chan error)

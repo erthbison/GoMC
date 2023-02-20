@@ -10,18 +10,14 @@ type SleepEvent struct {
 	// It is analogous to time.Sleep and can be used to represent timeouts for example for a failure detector
 	caller      string
 	target      int // The id of the target node
-	timeoutChan map[string]chan time.Time
+	timeoutChan chan time.Time
 }
 
-func NewSleepEvent(caller string, target int, timeoutChan map[string]chan time.Time) SleepEvent {
-	waitChan := make(chan time.Time)
+func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepEvent {
 	evt := SleepEvent{
 		caller:      caller,
 		target:      target,
 		timeoutChan: timeoutChan,
-	}
-	if _, ok := timeoutChan[evt.Id()]; !ok {
-		timeoutChan[evt.Id()] = waitChan
 	}
 	return evt
 }
@@ -38,7 +34,7 @@ func (se SleepEvent) Execute(node any, _ chan error) {
 	// Send a signal on the timeout channel
 	// Don't signal on the error channel since the event that was paused by the sleep event will continue running and the simulator can therefore not begin collecting state yet.
 	// The event that continues after the sleep event will signal to the simulator when it has completed.
-	se.timeoutChan[se.Id()] <- time.Time{}
+	se.timeoutChan <- time.Time{}
 }
 
 func (se SleepEvent) Target() int {
