@@ -8,10 +8,8 @@ type Event interface {
 
 	// A method executing the event. The event will be executed on a separate goroutine.
 	// It should signal on the channel if it is clear for the simulator to proceed to processing of the state and the next event.
-	// An event should be able to be executed multiple times and any two events with the same Id should be interchangeable.
-	// I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 	// Panics raised while executing the event is recovered by the simulator and returned as errors
-	Execute(any, chan error)
+	Execute(node any, errorChan chan error)
 
 	// The id of the target node, i.e. the node whose state will be changed by the event executing.
 	// Is used to identify if an event is still enabled, or if it has been disabled, e.g. because the node crashed.
