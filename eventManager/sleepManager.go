@@ -11,14 +11,12 @@ import (
 type SleepManager struct {
 	sch     scheduler.Scheduler
 	nextEvt chan error
-	// sleepChans map[string]chan time.Time
 }
 
 func NewSleepManager(sch scheduler.Scheduler, nextEvent chan error) *SleepManager {
 	return &SleepManager{
 		sch:     sch,
 		nextEvt: nextEvent,
-		// sleepChans: make(map[string]chan time.Time),
 	}
 }
 
