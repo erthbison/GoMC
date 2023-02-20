@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"errors"
 	"gomc/event"
 	"gomc/tree"
 )
@@ -42,22 +43,26 @@ func (bs *BasicScheduler) GetEvent() (event.Event, error) {
 		// iteratively check if each child can be the next event
 		// a child can be the next event if it has some descendent leaf node that is not an "End" event
 		if child.SearchLeafNodes(func(e event.Event) bool { return e != nil }) {
-			bs.removeEvent(child.Payload())
+			evt := bs.popEvent(child.Payload().Id())
+			if evt == nil {
+				return nil, errors.New("Scheduler: Scheduled non-pending event")
+			}
 			bs.currentEvent = child
-			return child.Payload(), nil
+			return evt, nil
 		}
 	}
 	return nil, NoEventError
 }
 
-func (bs *BasicScheduler) removeEvent(evt event.Event) {
+func (bs *BasicScheduler) popEvent(evtId string) event.Event {
 	// Remove the message from the message queue
 	for i, pendingEvt := range bs.pendingEvents {
-		if event.EventsEquals(evt, pendingEvt) {
+		if evtId == pendingEvt.Id() {
 			bs.pendingEvents = append(bs.pendingEvents[0:i], bs.pendingEvents[i+1:]...)
-			break
+			return pendingEvt
 		}
 	}
+	return nil
 }
 
 func (bs *BasicScheduler) AddEvent(evt event.Event) {

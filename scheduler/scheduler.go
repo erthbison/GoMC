@@ -7,6 +7,7 @@ import (
 
 type Scheduler interface {
 	// Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
+	// The event returned must be an event that has been added during the current run.
 	GetEvent() (event.Event, error)
 	// Add an event to the list of possible events
 	AddEvent(event.Event)

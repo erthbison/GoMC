@@ -7,9 +7,9 @@ import (
 
 type QueueScheduler struct {
 	currentIndex int
-	currentRun   []event.Event
+	currentRun   []string
 
-	pendingRuns [][]event.Event
+	pendingRuns [][]string
 
 	pendingEvents []event.Event
 	crashedNodes  map[int]bool
@@ -18,8 +18,8 @@ type QueueScheduler struct {
 func NewQueueScheduler() *QueueScheduler {
 	return &QueueScheduler{
 		currentIndex:  0,
-		currentRun:    make([]event.Event, 0),
-		pendingRuns:   make([][]event.Event, 0),
+		currentRun:    make([]string, 0),
+		pendingRuns:   make([][]string, 0),
 		pendingEvents: make([]event.Event, 0),
 		crashedNodes:  make(map[int]bool),
 	}
@@ -37,10 +37,10 @@ func (qs *QueueScheduler) GetEvent() (event.Event, error) {
 	var evt event.Event
 	if qs.currentIndex < len(qs.currentRun) {
 		// Follow the current run until it has no more events
-		evt = qs.currentRun[qs.currentIndex]
+		evtId := qs.currentRun[qs.currentIndex]
 		// Remove events from the pending events queue as they are selected
-		ok := qs.removeEvent(evt)
-		if !ok {
+		evt = qs.popEvent(evtId)
+		if evt == nil {
 			return nil, errors.New("Scheduler: Scheduled an event that was pending")
 		}
 	} else {
@@ -51,26 +51,26 @@ func (qs *QueueScheduler) GetEvent() (event.Event, error) {
 		// For all other events in the pending events queue we create a new run and add it to the pending runs queue
 		for _, pendingEvt := range qs.pendingEvents {
 			// Add these runs to the pending run slice
-			run := make([]event.Event, len(qs.currentRun))
+			run := make([]string, len(qs.currentRun))
 			copy(run, qs.currentRun)
-			run = append(run, pendingEvt)
+			run = append(run, pendingEvt.Id())
 			qs.pendingRuns = append(qs.pendingRuns, run)
 		}
-		qs.currentRun = append(qs.currentRun, evt)
+		qs.currentRun = append(qs.currentRun, evt.Id())
 	}
 	qs.currentIndex++
 	return evt, nil
 }
 
-func (qs *QueueScheduler) removeEvent(evt event.Event) bool {
+func (qs *QueueScheduler) popEvent(evtId string) event.Event {
 	// Remove the message from the message queue
 	for i, pendingEvt := range qs.pendingEvents {
-		if event.EventsEquals(evt, pendingEvt) {
+		if evtId == pendingEvt.Id() {
 			qs.pendingEvents = append(qs.pendingEvents[:i], qs.pendingEvents[i+1:]...)
-			return true
+			return pendingEvt
 		}
 	}
-	return false
+	return nil
 }
 
 // Add an event to the list of possible events
