@@ -11,14 +11,13 @@ import (
 )
 
 type state struct {
-	round    uint
 	proposed Value[int]
 	decided  Value[int]
 }
 
 func TestConsensus(t *testing.T) {
 	sch := scheduler.NewQueueScheduler()
-	// sch := scheduler.NewRandomScheduler(1000)
+	// sch := scheduler.NewRandomScheduler(10000, 1)
 	sm := gomc.NewStateManager(
 		func(node *HierarchicalConsensus[int]) state {
 			var val Value[int]
@@ -29,13 +28,9 @@ func TestConsensus(t *testing.T) {
 			return state{
 				proposed: node.proposal,
 				decided:  val,
-				round:    node.round,
 			}
 		},
 		func(a, b state) bool {
-			if a.round != b.round {
-				return false
-			}
 			if a.proposed.val != b.proposed.val {
 				return false
 			}
@@ -43,7 +38,7 @@ func TestConsensus(t *testing.T) {
 		},
 	)
 	sender := eventManager.NewSender(sch)
-	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 10000, 1000)
+	sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 1000, 1000)
 	err := sim.Simulate(
 		func() map[int]*HierarchicalConsensus[int] {
 			nodeIds := []uint{}
@@ -147,13 +142,9 @@ func TestConsensusReplay(t *testing.T) {
 			return state{
 				proposed: node.proposal,
 				decided:  val,
-				round:    node.round,
 			}
 		},
 		func(a, b state) bool {
-			if a.round != b.round {
-				return false
-			}
 			if a.proposed.val != b.proposed.val {
 				return false
 			}
