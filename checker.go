@@ -42,14 +42,16 @@ func (pcr predicateCheckerResponse[S]) Export() []string {
 
 // TODO: Consider generalizing this so that it does not depend on the tree structure, but instead can work on some arbitrary data structure
 
+type Predicate[S any] func(GlobalState[S], bool, []GlobalState[S]) bool
+
 type PredicateChecker[S any] struct {
 	// A slice of predicates that returns true if the predicate holds.
 	// If the predicate is broken it returns false and a counterexample
 	// The functions take the state and a boolean value indicating wether the node is a leaf node or not
-	predicates []func(GlobalState[S], bool, []GlobalState[S]) bool
+	predicates []Predicate[S]
 }
 
-func NewPredicateChecker[S any](predicates ...func(GlobalState[S], bool, []GlobalState[S]) bool) *PredicateChecker[S] {
+func NewPredicateChecker[S any](predicates ...Predicate[S]) *PredicateChecker[S] {
 	return &PredicateChecker[S]{
 		predicates: predicates,
 	}

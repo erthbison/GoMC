@@ -3,6 +3,7 @@ package main
 import (
 	"gomc"
 	"gomc/eventManager"
+	"gomc/predicate"
 	"gomc/scheduler"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestOnrr(t *testing.T) {
 	}
 
 	checker := gomc.NewPredicateChecker(
-		gomc.PredEventually(
+		predicate.Eventually(
 			func(states gomc.GlobalState[State], _ bool, _ []gomc.GlobalState[State]) bool {
 				for id, state := range states.LocalStates {
 					// only consider correct states

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"gomc"
 	"gomc/eventManager"
+	"gomc/predicate"
 	"gomc/scheduler"
 	"os"
 	"testing"
@@ -70,7 +71,7 @@ func TestConsensus(t *testing.T) {
 	}
 
 	checker := gomc.NewPredicateChecker(
-		gomc.PredEventually(
+		predicate.Eventually(
 			// C1: termination and C3: Integrity
 			func(globalState gomc.GlobalState[state], isTerminal bool, sequence []gomc.GlobalState[state]) bool {
 				nodeDecided := make(map[int]int)
@@ -184,7 +185,7 @@ func TestConsensusReplay(t *testing.T) {
 	}
 
 	checker := gomc.NewPredicateChecker(
-		gomc.PredEventually(
+		predicate.Eventually(
 			// C1: termination and C3: Integrity
 			func(globalState gomc.GlobalState[state], isTerminal bool, sequence []gomc.GlobalState[state]) bool {
 				nodeDecided := make(map[int]int)

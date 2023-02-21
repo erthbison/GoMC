@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc"
 	"gomc/eventManager"
+	"gomc/predicate"
 	"gomc/scheduler"
 	"strings"
 	"testing"
@@ -89,7 +90,7 @@ func TestRrb(t *testing.T) {
 	}
 
 	checker := gomc.NewPredicateChecker(
-		gomc.PredEventually(
+		predicate.Eventually(
 			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB1: Validity
 				for _, node := range states.LocalStates {
@@ -131,7 +132,7 @@ func TestRrb(t *testing.T) {
 			}
 			return true
 		},
-		gomc.PredEventually(
+		predicate.Eventually(
 			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB4 Agreement
 
