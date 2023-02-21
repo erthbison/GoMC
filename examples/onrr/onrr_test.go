@@ -24,7 +24,7 @@ type State struct {
 func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
-	sch := scheduler.NewRandomScheduler(10000)
+	sch := scheduler.NewRandomScheduler(10000, 1)
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
 	sm := gomc.NewStateManager(

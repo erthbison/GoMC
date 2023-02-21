@@ -15,15 +15,20 @@ type RandomScheduler struct {
 	maxRuns       uint
 
 	failed map[int]bool
+
+	rand *rand.Rand
 }
 
-func NewRandomScheduler(maxRuns uint) *RandomScheduler {
+func NewRandomScheduler(maxRuns uint, seed int64) *RandomScheduler {
+	rand := rand.New(rand.NewSource(1))
 	return &RandomScheduler{
 		pendingEvents: make([]event.Event, 0),
 		numRuns:       0,
 		maxRuns:       maxRuns,
 
 		failed: make(map[int]bool),
+
+		rand: rand,
 	}
 }
 
@@ -35,7 +40,7 @@ func (rs *RandomScheduler) GetEvent() (event.Event, error) {
 		return nil, NoEventError
 	}
 
-	index := rand.Intn(len(rs.pendingEvents))
+	index := rs.rand.Intn(len(rs.pendingEvents))
 	evt := rs.pendingEvents[index]
 
 	// Remove the element from the slice. This changes the order of the element in the slice, but is more efficient as we do not need to move all elements after the removed element.

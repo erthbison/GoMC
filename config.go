@@ -16,6 +16,8 @@ type Config[T, S any] struct {
 	NumRuns uint
 	// Maximum depth of a run. Default value is 1000
 	MaxDepth uint
+	// The seed of the random scheduler
+	Seed int64
 
 	GetLocalState func(*T) S
 	StatesEqual   func(S, S) bool
@@ -31,7 +33,7 @@ func ConfigureSimulation[T, S any](cfg Config[T, S]) SimulationRunner[T, S] {
 	}
 	var sch scheduler.Scheduler
 	if cfg.Scheduler == "random" {
-		sch = scheduler.NewRandomScheduler(cfg.NumRuns)
+		sch = scheduler.NewRandomScheduler(cfg.NumRuns, cfg.Seed)
 	} else {
 		sch = scheduler.NewBasicScheduler()
 	}

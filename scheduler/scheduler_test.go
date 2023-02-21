@@ -37,7 +37,7 @@ func TestBasicSchedulerNodeCrash(t *testing.T) {
 
 func TestRandomScheduler(t *testing.T) {
 	// Perform one random run
-	sch := NewRandomScheduler(1)
+	sch := NewRandomScheduler(1, 1)
 
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 0, false})
@@ -74,7 +74,7 @@ func TestRandomScheduler(t *testing.T) {
 }
 
 func TestRandomSchedulerNodeCrash(t *testing.T) {
-	sch := NewRandomScheduler(2)
+	sch := NewRandomScheduler(2, 1)
 	testSchedulerCrash(sch, t)
 }
 
@@ -92,7 +92,6 @@ func TestQueueExploreBranchingEvents(t *testing.T) {
 	sch := NewQueueScheduler()
 	testDeterministicExploreBranchingEvents(t, sch)
 }
-
 
 func BenchmarkBasicScheduler(b *testing.B) {
 	for i := 0; i < b.N; i++ {
