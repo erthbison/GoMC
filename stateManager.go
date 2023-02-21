@@ -16,7 +16,7 @@ type StateManager[T any, S any] interface {
 type GlobalState[S any] struct {
 	LocalStates map[int]S
 	Correct     map[int]bool
-	Evt         event.Event
+	evt         event.Event
 }
 
 func (gs GlobalState[S]) String() string {
@@ -26,7 +26,7 @@ func (gs GlobalState[S]) String() string {
 			crashed = append(crashed, id)
 		}
 	}
-	return fmt.Sprintf("Evt: %v\t States: %v\t Crashed: %v\t", gs.Evt, gs.LocalStates, crashed)
+	return fmt.Sprintf("Evt: %v\t States: %v\t Crashed: %v\t", gs.evt, gs.LocalStates, crashed)
 }
 
 type stateManager[T any, S any] struct {
@@ -39,7 +39,7 @@ type stateManager[T any, S any] struct {
 
 func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S) bool) *stateManager[T, S] {
 	stateRoot := tree.New(GlobalState[S]{}, func(a, b GlobalState[S]) bool {
-		if !event.EventsEquals(a.Evt, b.Evt) {
+		if !event.EventsEquals(a.evt, b.evt) {
 			return false
 		}
 		if !maps.EqualFunc(a.LocalStates, b.LocalStates, stateCmp) {
@@ -69,7 +69,7 @@ func (sm *stateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[in
 	globalState := GlobalState[S]{
 		LocalStates: states,
 		Correct:     copiedCorrect,
-		Evt:         evt,
+		evt:         evt,
 	}
 
 	// If the state already is a child of the current state, retrieve it and set it as the next state
