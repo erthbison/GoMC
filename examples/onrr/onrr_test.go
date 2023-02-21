@@ -5,12 +5,11 @@ import (
 	"gomc/eventManager"
 	"gomc/predicate"
 	"gomc/scheduler"
+	"math"
 	"testing"
 
 	"golang.org/x/exp/slices"
 )
-
-const MaxInt = int(^uint(0) >> 1)
 
 type State struct {
 	ongoingRead  bool
@@ -139,7 +138,7 @@ func TestOnrr(t *testing.T) {
 			// For each node in. Go trough the sequence and find ReadEvents.
 			// Find possible values for the read event and check that it matches the returned value
 			for id := range state.LocalStates {
-				readStart := MaxInt
+				readStart := math.MaxInt
 				for i, elem := range seq {
 
 					node := elem.LocalStates[id]
@@ -153,7 +152,7 @@ func TestOnrr(t *testing.T) {
 						if !valSet[node.read] {
 							return false
 						}
-						readStart = MaxInt
+						readStart = math.MaxInt
 					}
 				}
 			}
