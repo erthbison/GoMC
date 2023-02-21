@@ -75,8 +75,8 @@ func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[GlobalState[S]], sequen
 	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
 		evtSequence := []string{}
 		for _, state := range sequence {
-			if state.Evt != nil {
-				evtSequence = append(evtSequence, state.Evt.Id())
+			if state.evt != nil {
+				evtSequence = append(evtSequence, state.evt.Id())
 			}
 		}
 		return &predicateCheckerResponse[S]{
