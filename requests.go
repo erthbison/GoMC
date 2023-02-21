@@ -17,13 +17,13 @@ type Request struct {
 // Method: The name of the method to be called on the node
 // Params: The parameters to be passed to the method
 func NewRequest(id int, method string, params ...any) Request {
-	test := make([]reflect.Value, len(params))
+	valueParams := make([]reflect.Value, len(params))
 	for i, val := range params {
-		test[i] = reflect.ValueOf(val)
+		valueParams[i] = reflect.ValueOf(val)
 	}
 	return Request{
 		Id:     id,
 		Method: method,
-		Params: test,
+		Params: valueParams,
 	}
 }
