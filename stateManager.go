@@ -12,7 +12,6 @@ import (
 type StateManager[T any, S any] interface {
 	UpdateGlobalState(map[int]*T, map[int]bool, event.Event) // Update the state stored for this tick
 	EndRun()                                                 // End the current run and prepare for the next
-	Export(io.Writer)                                        // A function to export the state space to a writer
 }
 
 type GlobalState[S any] struct {
