@@ -93,14 +93,14 @@ func TestRrb(t *testing.T) {
 		predicate.Eventually(
 			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 				// RB1: Validity
-				for _, node := range states.LocalStates {
-					for sentMsg := range node.sent {
-						if !node.delivered[sentMsg] {
+				return predicate.ForAllNodes(func(a State) bool {
+					for sentMsg := range a.sent {
+						if !a.delivered[sentMsg] {
 							return false
 						}
 					}
-				}
-				return true
+					return true
+				}, states, true)
 			}),
 		func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
 			// RB2: No duplication

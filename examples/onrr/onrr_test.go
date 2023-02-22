@@ -104,16 +104,8 @@ func TestOnrr(t *testing.T) {
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
 			func(states gomc.GlobalState[State], _ bool, _ []gomc.GlobalState[State]) bool {
-				for id, state := range states.LocalStates {
-					// only consider correct states
-					if !states.Correct[id] {
-						continue
-					}
-					if state.ongoingRead || state.ongoingWrite {
-						return false
-					}
-				}
-				return true
+				// Check that all correct nodes have no ongoing reads or writes
+				return predicate.ForAllNodes(func(a State) bool { return !(a.ongoingRead || a.ongoingWrite) }, states, true)
 			},
 		),
 		func(state gomc.GlobalState[State], _ bool, seq []gomc.GlobalState[State]) bool {
