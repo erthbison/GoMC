@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/tree"
+	"io"
 
 	"golang.org/x/exp/maps"
 )
@@ -11,12 +12,13 @@ import (
 type StateManager[T any, S any] interface {
 	UpdateGlobalState(map[int]*T, map[int]bool, event.Event) // Update the state stored for this tick
 	EndRun()                                                 // End the current run and prepare for the next
+	Export(io.Writer)                                        // A function to export the state space to a writer
 }
 
 type GlobalState[S any] struct {
-	LocalStates map[int]S
-	Correct     map[int]bool
-	evt         event.Event
+	LocalStates map[int]S    // A map storing the local state of the nodes. The map stores (id, state) combination.
+	Correct     map[int]bool // A map storing the status of the node. The map stores (id, status) combination. If status is true, the node with id "id" is correct, otherwise the node is true. All nodes are represented in the map.
+	evt         event.Event  // A copy of the event that caused the transition into this state. It should not be changed.
 }
 
 func (gs GlobalState[S]) String() string {
@@ -29,7 +31,7 @@ func (gs GlobalState[S]) String() string {
 	return fmt.Sprintf("Evt: %v\t States: %v\t Crashed: %v\t", gs.evt, gs.LocalStates, crashed)
 }
 
-type stateManager[T any, S any] struct {
+type treeStateManager[T any, S any] struct {
 	StateRoot     *tree.Tree[GlobalState[S]]
 	currentState  *tree.Tree[GlobalState[S]]
 	getLocalState func(*T) S
@@ -37,7 +39,7 @@ type stateManager[T any, S any] struct {
 	stateCmp func(S, S) bool
 }
 
-func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S) bool) *stateManager[T, S] {
+func NewTreeStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S) bool) *treeStateManager[T, S] {
 	stateRoot := tree.New(GlobalState[S]{}, func(a, b GlobalState[S]) bool {
 		if !event.EventsEquals(a.evt, b.evt) {
 			return false
@@ -48,7 +50,7 @@ func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S)
 		return maps.Equal(a.Correct, b.Correct)
 	})
 
-	return &stateManager[T, S]{
+	return &treeStateManager[T, S]{
 		StateRoot:     &stateRoot,
 		currentState:  &stateRoot,
 		getLocalState: getLocalState,
@@ -56,7 +58,8 @@ func NewStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S)
 	}
 }
 
-func (sm *stateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[int]bool, evt event.Event) {
+// Retrieve the new global state and store it
+func (sm *treeStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[int]bool, evt event.Event) {
 	states := map[int]S{}
 	for id, node := range nodes {
 		states[id] = sm.getLocalState(node)
@@ -81,6 +84,12 @@ func (sm *stateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[in
 	sm.currentState = sm.currentState.AddChild(globalState)
 }
 
-func (sm *stateManager[T, S]) EndRun() {
+// Mark a run as ended and returns to the state root to begin the next run
+func (sm *treeStateManager[T, S]) EndRun() {
 	sm.currentState = sm.StateRoot
+}
+
+// Write the Newick representation of the state tree to the writer
+func (sm *treeStateManager[T, S]) Export(wrt io.Writer) {
+	fmt.Fprint(wrt, sm.StateRoot.Newick())
 }

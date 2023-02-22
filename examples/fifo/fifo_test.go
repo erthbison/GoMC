@@ -13,7 +13,7 @@ type State string
 func TestFifo(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewBasicScheduler()
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *fifo) State {
 			return State(fmt.Sprintf("%v", len(node.Received)))
 		},

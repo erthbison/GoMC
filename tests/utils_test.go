@@ -2,6 +2,7 @@ package gomc_test
 
 import (
 	"gomc/event"
+	"io"
 	"strconv"
 )
 
@@ -51,6 +52,8 @@ func NewMockStateManager() *MockStateManager {
 func (msm *MockStateManager) UpdateGlobalState(map[int]*Node, map[int]bool, event.Event) {}
 
 func (msm *MockStateManager) EndRun() {}
+
+func (msm *MockStateManager) Export(io.Writer) {}
 
 type MockEvent struct {
 	id       int

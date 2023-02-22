@@ -27,7 +27,7 @@ func TestOnrr(t *testing.T) {
 	sch := scheduler.NewRandomScheduler(10000, 1)
 
 	// Configure the state manager. It takes a function returning the local state of a node and a function that checks for equality between two states
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *onrr) State {
 			reads := []int{}
 			reads = append(reads, node.possibleReads...)

@@ -67,7 +67,7 @@ func Benchmark(b *testing.B) {
 	numNodes := 2
 	for i := 0; i < b.N; i++ {
 		sch := scheduler.NewBasicScheduler()
-		sm := gomc.NewStateManager(
+		sm := gomc.NewTreeStateManager(
 			func(node *BroadcastNode) BroadcastState {
 				return BroadcastState{
 					delivered: node.Delivered,

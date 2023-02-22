@@ -36,7 +36,7 @@ func (s State) String() string {
 func TestRrb(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewBasicScheduler()
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *Rrb) State {
 			newDelivered := map[message]bool{}
 			for key, value := range node.delivered {

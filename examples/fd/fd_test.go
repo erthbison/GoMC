@@ -18,7 +18,7 @@ type State struct {
 func TestFd(t *testing.T) {
 	numNodes := 3
 	sch := scheduler.NewRandomScheduler(500, 1)
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(t *fd) State {
 			crashed := make([]int, len(t.crashed))
 			for i, val := range t.crashed {

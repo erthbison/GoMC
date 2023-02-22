@@ -21,7 +21,7 @@ type state struct {
 func TestConsensus(t *testing.T) {
 	sch := scheduler.NewQueueScheduler()
 	// sch := scheduler.NewRandomScheduler(10000, 1)
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *HierarchicalConsensus[int]) state {
 			decided := make([]Value[int], len(node.DecidedVal))
 			copy(decided, node.DecidedVal)
@@ -128,7 +128,7 @@ func TestConsensusReplay(t *testing.T) {
 	json.NewDecoder(buffer).Decode(&run)
 
 	sch := scheduler.NewReplayScheduler(run)
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *HierarchicalConsensus[int]) state {
 			decided := make([]Value[int], len(node.DecidedVal))
 			copy(decided, node.DecidedVal)

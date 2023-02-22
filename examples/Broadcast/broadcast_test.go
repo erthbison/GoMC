@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"gomc"
 	"gomc/eventManager"
 	"gomc/scheduler"
+	"os"
 	"testing"
 )
 
@@ -16,7 +16,7 @@ type State struct {
 func TestBroadcast(t *testing.T) {
 	numNodes := 2
 	sch := scheduler.NewQueueScheduler()
-	sm := gomc.NewStateManager(
+	sm := gomc.NewTreeStateManager(
 		func(node *Node) State {
 			return State{
 				delivered: node.Delivered,
@@ -55,8 +55,5 @@ func TestBroadcast(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error")
 	}
-	fmt.Println(sm.StateRoot)
-
-	fmt.Println(sm.StateRoot.Newick())
-
+	sm.Export(os.Stdout)
 }
