@@ -85,9 +85,9 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicate
 		return resp
 	}
 	return &predicateCheckerResponse[S]{
-		Result:      true,
-		Sequence:    nil,
-		Test:        -1,
+		Result:   true,
+		Sequence: nil,
+		Test:     -1,
 	}
 }
 

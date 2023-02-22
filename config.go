@@ -1,7 +1,6 @@
 package gomc
 
 import (
-	"fmt"
 	"gomc/eventManager"
 	"gomc/scheduler"
 	"io"
@@ -42,7 +41,7 @@ func ConfigureSimulation[T, S any](cfg SimulationConfig[T, S]) SimulationRunner[
 		sch = scheduler.NewQueueScheduler()
 	}
 
-	sm := NewStateManager(
+	sm := NewTreeStateManager(
 		cfg.GetLocalState,
 		cfg.StatesEqual,
 	)
@@ -68,7 +67,7 @@ type SimulationRunner[T, S any] struct {
 	Preds []Predicate[S]
 
 	sch scheduler.Scheduler
-	sm  *stateManager[T, S]
+	sm  *treeStateManager[T, S]
 	sim *Simulator[T, S]
 }
 
@@ -88,5 +87,5 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes func() map[int]*T, Star
 }
 
 func (sr SimulationRunner[T, S]) WriteStateTree(wrt io.Writer) {
-	fmt.Fprintln(wrt, sr.sm.StateRoot.Newick())
+	sr.sm.Export(wrt)
 }
