@@ -219,3 +219,57 @@ func TestConsensusReplay(t *testing.T) {
 		t.Errorf("Expected errors while checking.")
 	}
 }
+
+func BenchmarkConsensus(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sch := scheduler.NewQueueScheduler()
+		// sch := scheduler.NewRandomScheduler(10000, 1)
+		sm := gomc.NewTreeStateManager(
+			func(node *HierarchicalConsensus[int]) state {
+				decided := make([]Value[int], len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed.val != b.proposed.val {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
+		)
+		sender := eventManager.NewSender(sch)
+		sim := gomc.NewSimulator[HierarchicalConsensus[int], state](sch, sm, 5000, 1000)
+		err := sim.Simulate(
+			func() map[int]*HierarchicalConsensus[int] {
+				nodeIds := []uint{}
+				numNodes := 5
+				for i := 1; i <= numNodes; i++ {
+					nodeIds = append(nodeIds, uint(i))
+				}
+				nodes := make(map[int]*HierarchicalConsensus[int])
+				for _, id := range nodeIds {
+					node := NewHierarchicalConsensus[int](
+						id,
+						nodeIds,
+						sender.SendFunc(int(id)),
+					)
+					sim.Fm.Subscribe(node.Crash)
+					nodes[int(id)] = node
+				}
+				return nodes
+			},
+			[]int{1, 3},
+			gomc.NewRequest(1, "Propose", Value[int]{2}),
+			gomc.NewRequest(2, "Propose", Value[int]{3}),
+			gomc.NewRequest(3, "Propose", Value[int]{4}),
+			gomc.NewRequest(4, "Propose", Value[int]{5}),
+			gomc.NewRequest(5, "Propose", Value[int]{6}),
+		)
+		if err != nil {
+			b.Errorf("Expected no error while simulating. Got %v", err)
+		}
+	}
+}
