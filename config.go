@@ -53,14 +53,16 @@ func ConfigureSimulation[T, S any](cfg SimulationConfig[T, S]) SimulationRunner[
 		sm:  sm,
 		sim: sim,
 
-		SendFactory:  sender.SendFunc,
-		SleepFactory: sleep.SleepFunc,
+		SendFactory:   sender.SendFunc,
+		SleepFactory:  sleep.SleepFunc,
+		CrashCallback: sim.Fm.Subscribe,
 	}
 }
 
 type SimulationRunner[T, S any] struct {
-	SendFactory  func(int) func(int, string, ...any)
-	SleepFactory func(int) func(time.Duration)
+	SendFactory   func(int) func(int, string, ...any)
+	SleepFactory  func(int) func(time.Duration)
+	CrashCallback func(func(int))
 
 	IncorrectNodes []int
 
