@@ -13,6 +13,10 @@ type HierarchicalConsensus[T any] struct {
 
 	DecidedSignal chan Value[T]
 
+	// Test values used to verify algorithm
+	DecidedVal  Value[T]
+	ProposedVal Value[T]
+
 	delivered map[uint]bool
 	broadcast bool
 
@@ -48,6 +52,7 @@ func (hc *HierarchicalConsensus[T]) Crash(id int) {
 }
 
 func (hc *HierarchicalConsensus[T]) Propose(val Value[T]) {
+	hc.ProposedVal = val
 	if !hc.proposed {
 		hc.proposed = true
 		hc.proposal = val
@@ -79,5 +84,6 @@ func (hc *HierarchicalConsensus[T]) decide() {
 		}
 		// Decide on value
 		hc.DecidedSignal <- hc.proposal
+		hc.DecidedVal = hc.proposal
 	}
 }

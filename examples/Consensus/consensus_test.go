@@ -12,8 +12,9 @@ import (
 )
 
 type state struct {
-	proposed Value[int]
-	decided  Value[int]
+	proposed    Value[int]
+	decided     Value[int]
+	decidedHere bool
 }
 
 func TestConsensus(t *testing.T) {
@@ -21,14 +22,16 @@ func TestConsensus(t *testing.T) {
 	// sch := scheduler.NewRandomScheduler(10000, 1)
 	sm := gomc.NewStateManager(
 		func(node *HierarchicalConsensus[int]) state {
-			var val Value[int]
+			decidedHere := false
 			select {
-			case val = <-node.DecidedSignal:
+			case <-node.DecidedSignal:
+				decidedHere = true
 			default:
 			}
 			return state{
-				proposed: node.proposal,
-				decided:  val,
+				proposed:    node.ProposedVal,
+				decided:     node.DecidedVal,
+				decidedHere: decidedHere,
 			}
 		},
 		func(a, b state) bool {
@@ -72,55 +75,58 @@ func TestConsensus(t *testing.T) {
 
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
-			// C1: termination and C3: Integrity
-			func(globalState gomc.GlobalState[state], isTerminal bool, sequence []gomc.GlobalState[state]) bool {
-				nodeDecided := make(map[int]int)
-				decidedValues := make(map[int]bool)
-				proposedValues := make(map[int]bool)
-				for _, gs := range sequence {
-					for node, state := range gs.LocalStates {
-						if state.decided.val != 0 {
-							// C3: If some value has previously been decided. And then a new value is decided this breaks integrity
-							if nodeDecided[node] != 0 {
-								return false
-							}
-							nodeDecided[node] = state.decided.val
-							if globalState.Correct[node] {
-								decidedValues[state.decided.val] = true
-							}
-							proposedValues[state.proposed.val] = true
-						}
-					}
-				}
-				// C1: Check that all correct nodes decided on some value
-				for node, correct := range globalState.Correct {
-					if correct {
-						if _, ok := nodeDecided[node]; !ok {
-							return false
-						}
-					}
-				}
-				// Check that at most one value was decided
-				if len(decidedValues) > 1 {
-					return false
-				}
-				// Check that a decided values was at some point proposed
-				for decidedVal := range decidedValues {
-					if !proposedValues[decidedVal] {
-						return false
-					}
-				}
-				return true
+			// C1: Termination
+			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+				return predicate.ForAllNodes(func(s state) bool {
+					return s.decided.val != 0
+				}, gs, true)
 			},
 		),
+		func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+			// C2: Validity
+			proposed := make(map[Value[int]]bool)
+			for _, node := range gs.LocalStates {
+				proposed[node.proposed] = true
+			}
+			return predicate.ForAllNodes(func(s state) bool { return proposed[s.decided] }, gs, false)
+		},
+		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+			// C3: Integrity
+			numDecided := make(map[int]int)
+			for _, state := range seq {
+				for id, node := range state.LocalStates {
+					if node.decidedHere {
+						numDecided[id]++
+					}
+				}
+			}
+			for id := range gs.LocalStates {
+				if numDecided[id] > 1 {
+					return false
+				}
+			}
+			return true
+		},
+		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+			// C4: Agreement
+			decided := make(map[Value[int]]bool)
+			predicate.ForAllNodes(func(s state) bool {
+				if s.decided.val != 0 {
+					decided[s.decided] = true
+				}
+				return true
+			}, gs, true)
+			return len(decided) <= 1
+		},
 	)
 	resp := checker.Check(sm.StateRoot)
 	if ok, out := resp.Response(); !ok {
 		t.Errorf("Expected no errors while checking. Got: %v", out)
+
+		var buffer bytes.Buffer
+		json.NewEncoder(&buffer).Encode(resp.Export())
+		os.WriteFile("FailedRun.txt", buffer.Bytes(), 0755)
 	}
-	var buffer bytes.Buffer
-	json.NewEncoder(&buffer).Encode(resp.Export())
-	os.WriteFile("FailedRun.txt", buffer.Bytes(), 0755)
 }
 
 func TestConsensusReplay(t *testing.T) {
@@ -186,50 +192,52 @@ func TestConsensusReplay(t *testing.T) {
 
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
-			// C1: termination and C3: Integrity
-			func(globalState gomc.GlobalState[state], isTerminal bool, sequence []gomc.GlobalState[state]) bool {
-				nodeDecided := make(map[int]int)
-				decidedValues := make(map[int]bool)
-				proposedValues := make(map[int]bool)
-				for _, gs := range sequence {
-					for node, state := range gs.LocalStates {
-						if state.decided.val != 0 {
-							// C3: If some value has previously been decided. And then a new value is decided this breaks integrity
-							if nodeDecided[node] != 0 {
-								return false
-							}
-							nodeDecided[node] = state.decided.val
-							if globalState.Correct[node] {
-								decidedValues[state.decided.val] = true
-							}
-							proposedValues[state.proposed.val] = true
-						}
-					}
-				}
-				// C1: Check that all correct nodes decided on some value
-				for node, correct := range globalState.Correct {
-					if correct {
-						if _, ok := nodeDecided[node]; !ok {
-							return false
-						}
-					}
-				}
-				// Check that at most one value was decided
-				if len(decidedValues) > 1 {
-					return false
-				}
-				// Check that a decided values was at some point proposed
-				for decidedVal := range decidedValues {
-					if !proposedValues[decidedVal] {
-						return false
-					}
-				}
-				return true
+			// C1: Termination
+			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+				return predicate.ForAllNodes(func(s state) bool {
+					return s.decided.val != 0
+				}, gs, true)
 			},
 		),
+		func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+			// C2: Validity
+			proposed := make(map[Value[int]]bool)
+			for _, node := range gs.LocalStates {
+				proposed[node.proposed] = true
+			}
+			return predicate.ForAllNodes(func(s state) bool { return proposed[s.decided] }, gs, false)
+		},
+		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+			// C3: Integrity
+			numDecided := make(map[int]int)
+			for _, state := range seq {
+				for id, node := range state.LocalStates {
+					if node.decidedHere {
+						numDecided[id]++
+					}
+				}
+			}
+			for id := range gs.LocalStates {
+				if numDecided[id] > 1 {
+					return false
+				}
+			}
+			return true
+		},
+		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+			// C4: Agreement
+			decided := make(map[Value[int]]bool)
+			predicate.ForAllNodes(func(s state) bool {
+				if s.decided.val != 0 {
+					decided[s.decided] = true
+				}
+				return true
+			}, gs, true)
+			return len(decided) <= 1
+		},
 	)
 	resp := checker.Check(sm.StateRoot)
-	if ok, out := resp.Response(); !ok {
-		t.Errorf("Expected no errors while checking. Got: %v", out)
+	if ok, _ := resp.Response(); ok {
+		t.Errorf("Expected errors while checking.")
 	}
 }
