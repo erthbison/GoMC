@@ -5,12 +5,12 @@ import "gomc"
 // Check that the predicate happens eventually.
 // This is done by only running the predicate on the terminalState of all sequences
 // For all non-terminal states the predicate always returns true
-func Eventually[S any](pred gomc.Predicate[S]) gomc.Predicate[S] {
+func Eventually[S any](pred func(gomc.GlobalState[S], []gomc.GlobalState[S]) bool) gomc.Predicate[S] {
 	return func(states gomc.GlobalState[S], terminalState bool, sequence []gomc.GlobalState[S]) bool {
 		if !terminalState {
 			return true
 		}
-		return pred(states, terminalState, sequence)
+		return pred(states, sequence)
 	}
 }
 

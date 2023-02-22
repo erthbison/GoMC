@@ -91,7 +91,7 @@ func TestRrb(t *testing.T) {
 
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(states gomc.GlobalState[State], _ []gomc.GlobalState[State]) bool {
 				// RB1: Validity
 				return predicate.ForAllNodes(func(a State) bool {
 					for sentMsg := range a.sent {
@@ -133,7 +133,7 @@ func TestRrb(t *testing.T) {
 			return true
 		},
 		predicate.Eventually(
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(states gomc.GlobalState[State], _ []gomc.GlobalState[State]) bool {
 				// RB4 Agreement
 
 				// Use leaf nodes to check for liveness properties

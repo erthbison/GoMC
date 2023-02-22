@@ -7,8 +7,8 @@ import (
 
 func TestEventually(t *testing.T) {
 	emptySeq := make([]gomc.GlobalState[bool], 0)
-	eventuallyPred := func(gs1 gomc.GlobalState[bool], b bool, gs2 []gomc.GlobalState[bool]) bool {
-		for _, n := range gs1.LocalStates {
+	eventuallyPred := func(gs gomc.GlobalState[bool], _ []gomc.GlobalState[bool]) bool {
+		for _, n := range gs.LocalStates {
 			if !n {
 				return false
 			}

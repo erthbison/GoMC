@@ -72,7 +72,7 @@ func TestConsensus(t *testing.T) {
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
 			// C1: Termination
-			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+			func(gs gomc.GlobalState[state], _ []gomc.GlobalState[state]) bool {
 				return predicate.ForAllNodes(func(s state) bool {
 					return len(s.decided) > 0
 				}, gs, true)
@@ -179,7 +179,7 @@ func TestConsensusReplay(t *testing.T) {
 	checker := gomc.NewPredicateChecker(
 		predicate.Eventually(
 			// C1: Termination
-			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+			func(gs gomc.GlobalState[state], _ []gomc.GlobalState[state]) bool {
 				return predicate.ForAllNodes(func(s state) bool {
 					return len(s.decided) > 0
 				}, gs, true)
