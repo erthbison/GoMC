@@ -13,12 +13,16 @@ type CheckerResponse interface {
 }
 
 type predicateCheckerResponse[S any] struct {
-	Result      bool             // True if all tests holds. False otherwise
-	Sequence    []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
-	Test        int              // The index of the failing test. -1 if Result is true
-	EvtSequence []string
+	Result   bool             // True if all tests holds. False otherwise
+	Sequence []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
+	Test     int              // The index of the failing test. -1 if Result is true
 }
 
+// Generate a response
+// Returns two parameters, result, and description.
+// Result is true if all predicates hold, false otherwise.
+// Description is a string providing a detailed description of the result.
+// If result is false the description contain a representation of the sequence of states that lead to the failing state
 func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	if pcr.Result {
 		return pcr.Result, "All predicates holds"
@@ -34,15 +38,33 @@ func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	return pcr.Result, out
 }
 
+// Export the failing event sequence to a slice of strings to be replayed by the ReplayScheduler
 func (pcr predicateCheckerResponse[S]) Export() []string {
-	return pcr.EvtSequence
+	evtSequence := []string{}
+	if pcr.Sequence == nil {
+		return evtSequence
+	}
+	for _, state := range pcr.Sequence {
+		if state.evt != nil {
+			evtSequence = append(evtSequence, state.evt.Id())
+		}
+	}
+	return evtSequence
 }
 
 // TODO: Consider if we can define the predicates as tests and automatically discover them
 
 // TODO: Consider generalizing this so that it does not depend on the tree structure, but instead can work on some arbitrary data structure
 
-type Predicate[S any] func(GlobalState[S], bool, []GlobalState[S]) bool
+// A function to be evaluated on the states
+// It returns true if the predicate holds for the state and false otherwise
+//
+// gs: The current state
+//
+// terminal: true if this is the last state in a run. False otherwise
+//
+// seq: the sequence of states that lead to the current state. If terminal is true, this represent the entire run.
+type Predicate[S any] func(gs GlobalState[S], terminal bool, seq []GlobalState[S]) bool
 
 type PredicateChecker[S any] struct {
 	// A slice of predicates that returns true if the predicate holds.
@@ -66,7 +88,6 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicate
 		Result:      true,
 		Sequence:    nil,
 		Test:        -1,
-		EvtSequence: nil,
 	}
 }
 
@@ -75,17 +96,10 @@ func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[GlobalState[S]], sequen
 	// Immediately stops when finding a state that breaches the predicates
 	sequence = append(sequence, node.Payload())
 	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
-		evtSequence := []string{}
-		for _, state := range sequence {
-			if state.evt != nil {
-				evtSequence = append(evtSequence, state.evt.Id())
-			}
-		}
 		return &predicateCheckerResponse[S]{
-			Result:      false,
-			Sequence:    sequence,
-			Test:        index,
-			EvtSequence: evtSequence,
+			Result:   false,
+			Sequence: sequence,
+			Test:     index,
 		}
 	}
 
