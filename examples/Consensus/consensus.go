@@ -14,7 +14,7 @@ type HierarchicalConsensus[T any] struct {
 	DecidedSignal chan Value[T]
 
 	// Test values used to verify algorithm
-	DecidedVal  Value[T]
+	DecidedVal  []Value[T]
 	ProposedVal Value[T]
 
 	delivered map[uint]bool
@@ -36,6 +36,7 @@ func NewHierarchicalConsensus[T any](id uint, nodes []uint, send func(int, strin
 		broadcast:     false,
 
 		DecidedSignal: make(chan Value[T], 1),
+		DecidedVal:    make([]Value[T], 0),
 
 		id:    id,
 		nodes: nodes,
@@ -84,6 +85,6 @@ func (hc *HierarchicalConsensus[T]) decide() {
 		}
 		// Decide on value
 		hc.DecidedSignal <- hc.proposal
-		hc.DecidedVal = hc.proposal
+		hc.DecidedVal = append(hc.DecidedVal, hc.proposal)
 	}
 }

@@ -9,12 +9,13 @@ import (
 	"gomc/scheduler"
 	"os"
 	"testing"
+
+	"golang.org/x/exp/slices"
 )
 
 type state struct {
-	proposed    Value[int]
-	decided     Value[int]
-	decidedHere bool
+	proposed Value[int]
+	decided  []Value[int]
 }
 
 func TestConsensus(t *testing.T) {
@@ -22,23 +23,18 @@ func TestConsensus(t *testing.T) {
 	// sch := scheduler.NewRandomScheduler(10000, 1)
 	sm := gomc.NewStateManager(
 		func(node *HierarchicalConsensus[int]) state {
-			decidedHere := false
-			select {
-			case <-node.DecidedSignal:
-				decidedHere = true
-			default:
-			}
+			decided := make([]Value[int], len(node.DecidedVal))
+			copy(decided, node.DecidedVal)
 			return state{
-				proposed:    node.ProposedVal,
-				decided:     node.DecidedVal,
-				decidedHere: decidedHere,
+				proposed: node.ProposedVal,
+				decided:  decided,
 			}
 		},
 		func(a, b state) bool {
 			if a.proposed.val != b.proposed.val {
 				return false
 			}
-			return a.decided.val == b.decided.val
+			return slices.Equal(a.decided, b.decided)
 		},
 	)
 	sender := eventManager.NewSender(sch)
@@ -78,7 +74,7 @@ func TestConsensus(t *testing.T) {
 			// C1: Termination
 			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
 				return predicate.ForAllNodes(func(s state) bool {
-					return s.decided.val != 0
+					return len(s.decided) > 0
 				}, gs, true)
 			},
 		),
@@ -88,31 +84,24 @@ func TestConsensus(t *testing.T) {
 			for _, node := range gs.LocalStates {
 				proposed[node.proposed] = true
 			}
-			return predicate.ForAllNodes(func(s state) bool { return proposed[s.decided] }, gs, false)
+			return predicate.ForAllNodes(func(s state) bool {
+				if len(s.decided) < 1 {
+					// The process has not decided a value yet
+					return true
+				}
+				return proposed[s.decided[0]]
+			}, gs, false)
 		},
 		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
 			// C3: Integrity
-			numDecided := make(map[int]int)
-			for _, state := range seq {
-				for id, node := range state.LocalStates {
-					if node.decidedHere {
-						numDecided[id]++
-					}
-				}
-			}
-			for id := range gs.LocalStates {
-				if numDecided[id] > 1 {
-					return false
-				}
-			}
-			return true
+			return predicate.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, gs, false)
 		},
 		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
 			// C4: Agreement
 			decided := make(map[Value[int]]bool)
 			predicate.ForAllNodes(func(s state) bool {
-				if s.decided.val != 0 {
-					decided[s.decided] = true
+				for _, val := range s.decided {
+					decided[val] = true
 				}
 				return true
 			}, gs, true)
@@ -141,21 +130,18 @@ func TestConsensusReplay(t *testing.T) {
 	sch := scheduler.NewReplayScheduler(run)
 	sm := gomc.NewStateManager(
 		func(node *HierarchicalConsensus[int]) state {
-			var val Value[int]
-			select {
-			case val = <-node.DecidedSignal:
-			default:
-			}
+			decided := make([]Value[int], len(node.DecidedVal))
+			copy(decided, node.DecidedVal)
 			return state{
-				proposed: node.proposal,
-				decided:  val,
+				proposed: node.ProposedVal,
+				decided:  decided,
 			}
 		},
 		func(a, b state) bool {
 			if a.proposed.val != b.proposed.val {
 				return false
 			}
-			return a.decided.val == b.decided.val
+			return slices.Equal(a.decided, b.decided)
 		},
 	)
 	sender := eventManager.NewSender(sch)
@@ -195,7 +181,7 @@ func TestConsensusReplay(t *testing.T) {
 			// C1: Termination
 			func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
 				return predicate.ForAllNodes(func(s state) bool {
-					return s.decided.val != 0
+					return len(s.decided) > 0
 				}, gs, true)
 			},
 		),
@@ -205,31 +191,23 @@ func TestConsensusReplay(t *testing.T) {
 			for _, node := range gs.LocalStates {
 				proposed[node.proposed] = true
 			}
-			return predicate.ForAllNodes(func(s state) bool { return proposed[s.decided] }, gs, false)
+			return predicate.ForAllNodes(func(s state) bool {
+				if len(s.decided) < 1 {
+					return true
+				}
+				return proposed[s.decided[0]]
+			}, gs, false)
 		},
 		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
 			// C3: Integrity
-			numDecided := make(map[int]int)
-			for _, state := range seq {
-				for id, node := range state.LocalStates {
-					if node.decidedHere {
-						numDecided[id]++
-					}
-				}
-			}
-			for id := range gs.LocalStates {
-				if numDecided[id] > 1 {
-					return false
-				}
-			}
-			return true
+			return predicate.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, gs, false)
 		},
 		func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
 			// C4: Agreement
 			decided := make(map[Value[int]]bool)
 			predicate.ForAllNodes(func(s state) bool {
-				if s.decided.val != 0 {
-					decided[s.decided] = true
+				for _, val := range s.decided {
+					decided[val] = true
 				}
 				return true
 			}, gs, true)
