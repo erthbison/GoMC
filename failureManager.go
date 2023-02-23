@@ -4,6 +4,8 @@ import "errors"
 
 // The failureManager keeps track of which nodes has crashed and which has not.
 // It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
+// The subscribe function replicates the functionality of a perfect failure detectors. 
+// All provided callback functions are called immediately upon the crash of a node
 type failureManager struct {
 	correct         map[int]bool
 	failureCallback []func(int)

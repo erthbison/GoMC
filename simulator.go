@@ -15,7 +15,7 @@ var (
 /*
 	Requirements of nodes:
 		- Must call the Send function with the required input when sending a message.
-		- The message type in the Send function must correspond to a method of the node that takes the input (int, int, []byte)
+		- The message type in the Send function must correspond to a method of the node, whose arguments must match the args passed to the send function.
 		- All functions must run to completion without waiting for a response from the tester
 */
 
