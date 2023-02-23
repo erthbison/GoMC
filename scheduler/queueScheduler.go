@@ -27,11 +27,11 @@ func NewQueueScheduler() *QueueScheduler {
 
 // Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
 func (qs *QueueScheduler) GetEvent() (event.Event, error) {
-	if len(qs.pendingEvents) == 0 {
-		return nil, RunEndedError
-	}
 	if qs.currentRun == nil {
 		return nil, NoEventError
+	}
+	if len(qs.pendingEvents) == 0 {
+		return nil, RunEndedError
 	}
 
 	var evt event.Event
