@@ -1,10 +1,5 @@
 package main
 
-import (
-	"bytes"
-	"encoding/gob"
-)
-
 type Value struct {
 	Ts  int
 	Val int
@@ -85,9 +80,6 @@ func (onrr *onrr) Write(val int) {
 
 	onrr.ongoingWrite = true
 
-	// msg := encodeMsg(BroadcastWriteMsg{
-	// 	Val: value,
-	// })
 	msg := BroadcastWriteMsg{Val: value}
 	for _, target := range onrr.nodes {
 		onrr.send(target, "BroadcastWrite", onrr.id, msg)
@@ -95,7 +87,6 @@ func (onrr *onrr) Write(val int) {
 }
 
 func (onrr *onrr) BroadcastWrite(from int, msg BroadcastWriteMsg) {
-	// bwMsg := decodeMsg[BroadcastWriteMsg](msg)
 	bwMsg := msg
 	if bwMsg.Val.Ts > onrr.val.Ts {
 		onrr.val = bwMsg.Val
@@ -107,7 +98,6 @@ func (onrr *onrr) BroadcastWrite(from int, msg BroadcastWriteMsg) {
 }
 
 func (onrr *onrr) AckWrite(msg AckMsg) {
-	// ackMsg := decodeMsg[AckMsg](msg)
 	ackMsg := msg
 	if ackMsg.Ts != onrr.wts {
 		return
@@ -137,7 +127,6 @@ func (onrr *onrr) Read() {
 }
 
 func (onrr *onrr) BroadcastRead(from int, msg BroadcastReadMsg) {
-	// readMsg := decodeMsg[BroadcastReadMsg](msg)
 	readMsg := msg
 	valMsg := ReadValueMsg{
 		Rid: readMsg.Rid,
@@ -147,7 +136,6 @@ func (onrr *onrr) BroadcastRead(from int, msg BroadcastReadMsg) {
 }
 
 func (onrr *onrr) ReadValue(from int, msg ReadValueMsg) {
-	// valMsg := decodeMsg[ReadValueMsg](msg)
 	valMsg := msg
 	if valMsg.Rid != onrr.rid {
 		return
@@ -170,25 +158,4 @@ func getvalue(valueMap map[int]Value) Value {
 		}
 	}
 	return highest
-}
-
-func encodeMsg(v interface{}) []byte {
-	var buffer bytes.Buffer
-	err := gob.NewEncoder(&buffer).Encode(v)
-	if err != nil {
-		// Un-optimal error handling, but we do it for simplicity
-		panic(err)
-	}
-	return buffer.Bytes()
-}
-
-func decodeMsg[T any](input []byte) T {
-	var msg T
-	buffer := bytes.NewBuffer(input)
-	err := gob.NewDecoder(buffer).Decode(&msg)
-	if err != nil {
-		// Un-optimal error handling, but we do it for simplicity
-		panic(err)
-	}
-	return msg
 }
