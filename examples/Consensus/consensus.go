@@ -1,7 +1,7 @@
 package main
 
 type Value[T any] struct {
-	val T
+	Val T
 }
 
 type HierarchicalConsensus[T any] struct {

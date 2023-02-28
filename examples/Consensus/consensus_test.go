@@ -31,7 +31,7 @@ func TestConsensus(t *testing.T) {
 			}
 		},
 		func(a, b state) bool {
-			if a.proposed.val != b.proposed.val {
+			if a.proposed.Val != b.proposed.Val {
 				return false
 			}
 			return slices.Equal(a.decided, b.decided)
@@ -138,7 +138,7 @@ func TestConsensusReplay(t *testing.T) {
 			}
 		},
 		func(a, b state) bool {
-			if a.proposed.val != b.proposed.val {
+			if a.proposed.Val != b.proposed.Val {
 				return false
 			}
 			return slices.Equal(a.decided, b.decided)
@@ -234,7 +234,7 @@ func BenchmarkConsensus(b *testing.B) {
 				}
 			},
 			func(a, b state) bool {
-				if a.proposed.val != b.proposed.val {
+				if a.proposed.Val != b.proposed.Val {
 					return false
 				}
 				return slices.Equal(a.decided, b.decided)

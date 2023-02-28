@@ -49,7 +49,7 @@ func (fd *fd) Start() {
 			fd.send(id, "HeartBeatRequest", fd.id)
 		}
 		fd.alive = make(map[int]bool)
-		if len(fd.crashed) == 3 {
+		if len(fd.crashed) == len(fd.nodes) {
 			return
 		}
 		fd.sleep(fd.duration)
