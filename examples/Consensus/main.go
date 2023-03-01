@@ -136,9 +136,18 @@ func runRunner() {
 		return NewNode(id, nodeIds, addrs)
 	}, addrs)
 
+	go func (){
+		chn := r.GetStateUpdates()
+		for state := range chn {
+			fmt.Println(state)
+		}
+	}()
+
 	<-time.After(5 * time.Second)
 	for _, id := range nodeIds {
 		r.Request(int(id), "Propose", Value[string]{Val: addrs[int(id)]})
 	}
+	fmt.Scanln()
+	r.Stop()
 	fmt.Scanln()
 }

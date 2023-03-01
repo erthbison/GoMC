@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"fmt"
 	"net"
 	"reflect"
 	"time"
@@ -17,11 +16,14 @@ type Node interface {
 type Runner struct {
 	ticker *time.Ticker
 	nodes  map[int]Node
+
+	stateChannels []chan map[int]any
 }
 
 func NewRunner(pollingInterval time.Duration) *Runner {
 	return &Runner{
-		ticker: time.NewTicker(pollingInterval),
+		ticker:        time.NewTicker(pollingInterval),
+		stateChannels: make([]chan map[int]any, 0),
 	}
 }
 
@@ -48,12 +50,21 @@ func (r *Runner) Start(createNode func(id int) Node, addrs map[int]string) {
 		for id, node := range nodes {
 			states[id] = node.State()
 		}
-		fmt.Printf("States: %v\n", states)
+		for _, chn := range r.stateChannels {
+			chn <- states
+		}
 	}
 }
 
 func (r *Runner) Stop() {
 	r.ticker.Stop()
+}
+
+// Subscribe to state updates
+func (r *Runner) GetStateUpdates() chan map[int]any {
+	chn := make(chan map[int]any)
+	r.stateChannels = append(r.stateChannels, chn)
+	return chn
 }
 
 func (r *Runner) Request(id int, requestType string, params ...any) {
