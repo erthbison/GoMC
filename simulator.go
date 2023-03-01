@@ -114,25 +114,11 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		} else if err != nil {
 			return err
 		}
-		if node, ok := nodes[evt.Target()]; !ok {
+		node, ok := nodes[evt.Target()]
+		if !ok {
 			return fmt.Errorf("Event not targeting an existing node. Targeting %v", evt.Target())
-		} else {
-			// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
-			go func() {
-				// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
-				defer func() {
-					// TODO: We might not want to catch panics and let them stop the execution instead.
-					// 	Catching the panics obscures the actual cause of the panic and makes troubleshooting harder.
-					//  However, by catching the error we can perform checking on the execution up to the panic and replay it if we want to
-					if p := recover(); p != nil {
-						// using the debug package to get the stack could be useful, but it adds some clutter at the top
-						s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
-					}
-				}()
-				evt.Execute(node, s.NextEvt)
-			}()
 		}
-		err = <-s.NextEvt
+		err = s.executeEvent(node, evt)
 		if err != nil {
 			return err
 		}
@@ -140,6 +126,23 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		depth++
 	}
 	return nil
+}
+
+// Executes the provided event on the provided node in a separate goroutine and returns the error.
+// Blocks until the event has been executed and a signal is received on the NextEvt channel
+func (s *Simulator[T, S]) executeEvent(node *T, evt event.Event) error {
+	// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
+	go func() {
+		// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
+		defer func() {
+			if p := recover(); p != nil {
+				// using the debug package to get the stack could be useful, but it adds some clutter at the top
+				s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
+			}
+		}()
+		evt.Execute(node, s.NextEvt)
+	}()
+	return <-s.NextEvt
 }
 
 func (s *Simulator[T, S]) scheduleRequests(requests []Request) {
