@@ -35,6 +35,10 @@ type Server struct {
 
 	// Modules that have subscribed to indications from the server
 	subscriptions map[string][]string
+
+	pause    chan bool
+	resume   chan bool
+	isPaused bool
 }
 
 func NewServer() *Server {
@@ -44,6 +48,10 @@ func NewServer() *Server {
 		msg:           make(chan Message),
 		connection:    make(map[int]net.Conn),
 		subscriptions: make(map[string][]string),
+
+		pause:    make(chan bool),
+		resume:   make(chan bool),
+		isPaused: false,
 	}
 }
 
@@ -71,6 +79,15 @@ func (s *Server) Start(lis net.Listener) {
 func (s *Server) startMainLoop() {
 	go func() {
 		for {
+			// Pause the main loop until a resume indication is received
+			select {
+			case <-s.pause:
+				s.isPaused = true
+				<-s.resume
+				s.isPaused = false
+			default:
+			}
+
 			select {
 			case msg := <-s.msg:
 				err := s.handleMessages(msg)
@@ -176,4 +193,21 @@ func (s *Server) Subscribe(indication string, module string) {
 		modules = make([]string, 0)
 	}
 	modules = append(modules, module)
+	s.subscriptions[indication] = modules
+}
+
+func (s *Server) Pause() error {
+	if s.isPaused {
+		return fmt.Errorf("Node is already paused")
+	}
+	s.pause <- true
+	return nil
+}
+
+func (s *Server) Resume() error {
+	if !s.isPaused {
+		return fmt.Errorf("Node is not paused")
+	}
+	s.resume <- true
+	return nil
 }

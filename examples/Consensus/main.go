@@ -117,6 +117,14 @@ func (n *Node) Propose(val Value[string]) {
 	n.c.Propose(val)
 }
 
+func (n *Node) Pause() error {
+	return n.srv.Pause()
+}
+
+func (n *Node) Resume() error {
+	return n.srv.Resume()
+}
+
 func runRunner() {
 	addrs := map[int]string{
 		1: ":50000",
@@ -136,7 +144,7 @@ func runRunner() {
 		return NewNode(id, nodeIds, addrs)
 	}, addrs)
 
-	go func (){
+	go func() {
 		chn := r.GetStateUpdates()
 		for state := range chn {
 			fmt.Println(state)
@@ -144,6 +152,11 @@ func runRunner() {
 	}()
 
 	<-time.After(5 * time.Second)
+	go func() {
+		r.PauseNode(3)
+		<-time.After(5 * time.Second)
+		r.ResumeNode(3)
+	}()
 	for _, id := range nodeIds {
 		r.Request(int(id), "Propose", Value[string]{Val: addrs[int(id)]})
 	}

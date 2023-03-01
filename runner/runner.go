@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"net"
 	"reflect"
 	"time"
@@ -10,6 +11,8 @@ import (
 
 type Node interface {
 	Start(net.Listener, func(string) (net.Conn, error))
+	Pause() error
+	Resume() error
 	State() any
 }
 
@@ -75,4 +78,20 @@ func (r *Runner) Request(id int, requestType string, params ...any) {
 	}
 	method := reflect.ValueOf(node).MethodByName(requestType)
 	method.Call(valueParams)
+}
+
+func (r *Runner) PauseNode(id int) error {
+	node, ok := r.nodes[id]
+	if !ok {
+		return fmt.Errorf("Invalid Node id")
+	}
+	return node.Pause()
+}
+
+func (r *Runner) ResumeNode(id int) error {
+	node, ok := r.nodes[id]
+	if !ok {
+		return fmt.Errorf("Invalid node Id")
+	}
+	return node.Resume()
 }
