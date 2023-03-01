@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/scheduler"
+	"runtime/debug"
 )
 
 var (
@@ -81,7 +82,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 			)
 		}
 
-		err := s.executeRun(nodes, s.Fm.CorrectNodes())
+		err := s.executeRun(nodes)
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -103,8 +104,8 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
 // If there is an error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
-func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) error {
-	var depth uint
+func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
+	var depth uint // The depth of the current run
 	for depth < s.maxDepth {
 		// Select an event
 		evt, err := s.Scheduler.GetEvent()
@@ -120,8 +121,12 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 			go func() {
 				// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
 				defer func() {
+					// TODO: We might not want to catch panics and let them stop the execution instead.
+					// 	Catching the panics obscures the actual cause of the panic and makes troubleshooting harder.
+					//  However, by catching the error we can perform checking on the execution up to the panic and replay it if we want to
 					if p := recover(); p != nil {
-						s.NextEvt <- fmt.Errorf("Error while executing Event: %v", p)
+						// using the debug package to get the stack could be useful, but it adds some clutter at the top
+						s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
 					}
 				}()
 				evt.Execute(node, s.NextEvt)
@@ -131,7 +136,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, correct map[int]bool) err
 		if err != nil {
 			return err
 		}
-		s.sm.UpdateGlobalState(nodes, correct, evt)
+		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), evt)
 		depth++
 	}
 	return nil
