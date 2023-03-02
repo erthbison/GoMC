@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/scheduler"
+	"log"
 	"runtime/debug"
 )
 
@@ -89,7 +90,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		s.sm.EndRun()
 		numRuns++
 		if numRuns%1000 == 0 {
-			fmt.Println("Running Simulation:", numRuns)
+			log.Println("Running Simulation:", numRuns)
 		}
 	}
 	return nil
