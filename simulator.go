@@ -8,11 +8,6 @@ import (
 	"runtime/debug"
 )
 
-var (
-	NoMessagesError = errors.New("tester: No messages in the queue matching the event")
-	UnknownEvent    = errors.New("tester: Received unknown event type")
-)
-
 /*
 	Requirements of nodes:
 		- Must call the Send function with the required input when sending a message.
@@ -24,8 +19,7 @@ type Simulator[T any, S any] struct {
 	// Responsibility for maintaining the state space.
 	sm StateManager[T, S]
 
-	// The event tree should be a tree of events that has been discovered during the traversal of the state space
-	// It includes both paths that have been fully explored, and potential paths that we know need further interleaving of the messages to fully explore
+	// The scheduler keeps track of the events and selects the next event to be executed
 	Scheduler scheduler.Scheduler
 
 	// Used to control the flow of events. The simulator will only proceed to gather state and run the next event after it receives a signal on the nextEvt chan
@@ -60,7 +54,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S], 
 func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []int, requests ...Request) error {
 	var numRuns uint
 	if len(requests) < 1 {
-		return fmt.Errorf("Simulator: Need at least one provided function to start simulation. No functions provided.")
+		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
 	for numRuns < s.maxRuns {
 		// Perform initialization of the run
