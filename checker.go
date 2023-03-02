@@ -21,7 +21,7 @@ type predicateCheckerResponse[S any] struct {
 // Generate a response
 // Returns two parameters, result, and description.
 // Result is true if all predicates hold, false otherwise.
-// Description is a string providing a detailed description of the result.
+// Description is a formatted string providing a detailed description of the result.
 // If result is false the description contain a representation of the sequence of states that lead to the failing state
 func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	if pcr.Result {
