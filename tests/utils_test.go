@@ -1,16 +1,18 @@
 package gomc_test
 
 import (
+	"gomc"
 	"gomc/event"
-	"io"
 	"strconv"
 )
 
 // Create some dummy types and states for use when testing
-type Node struct{}
+type MockNode struct {
+	Id int
+}
 
-func (n *Node) Foo(from, to int, msg []byte) {}
-func (n *Node) Bar(from, to int, msg []byte) {}
+func (n *MockNode) Foo(from, to int, msg []byte) {}
+func (n *MockNode) Bar(from, to int, msg []byte) {}
 
 type State struct{}
 
@@ -49,14 +51,13 @@ func NewMockStateManager() *MockStateManager {
 	return &MockStateManager{}
 }
 
-func (msm *MockStateManager) UpdateGlobalState(map[int]*Node, map[int]bool, event.Event) {}
-
-func (msm *MockStateManager) EndRun() {}
-
-func (msm *MockStateManager) Export(io.Writer) {}
+func (ms *MockStateManager) NewRun() *gomc.RunStateManager[MockNode, State] {
+	return &gomc.RunStateManager[MockNode, State]{}
+}
 
 type MockEvent struct {
 	id       int
+	target   int
 	executed bool
 }
 
@@ -64,7 +65,10 @@ func (me MockEvent) Id() string {
 	return strconv.Itoa(me.id)
 }
 
-func (me MockEvent) Execute(_ map[int]*Node, chn chan error) {
-	me.executed = true
+func (me MockEvent) Execute(_ any, chn chan error) {
 	chn <- nil
+}
+
+func (me MockEvent) Target() int {
+	return me.target
 }
