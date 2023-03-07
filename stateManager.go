@@ -9,11 +9,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-type StateManager[T any, S any] interface {
-	UpdateGlobalState(map[int]*T, map[int]bool, event.Event) // Update the state stored for this tick
-	EndRun()                                                 // End the current run and prepare for the next
-}
-
 type GlobalState[S any] struct {
 	LocalStates map[int]S    // A map storing the local state of the nodes. The map stores (id, state) combination.
 	Correct     map[int]bool // A map storing the status of the node. The map stores (id, status) combination. If status is true, the node with id "id" is correct, otherwise the node is true. All nodes are represented in the map.
@@ -30,65 +25,87 @@ func (gs GlobalState[S]) String() string {
 	return fmt.Sprintf("Evt: %v\t States: %v\t Crashed: %v\t", gs.evt, gs.LocalStates, crashed)
 }
 
-type treeStateManager[T any, S any] struct {
-	StateRoot     *tree.Tree[GlobalState[S]]
-	currentState  *tree.Tree[GlobalState[S]]
-	getLocalState func(*T) S
-
-	stateCmp func(S, S) bool
+// Manages the global state across several runs.
+type StateManager[T, S any] interface {
+	NewRun() *RunStateManager[T, S]
 }
 
-func NewTreeStateManager[T any, S any](getLocalState func(*T) S, stateCmp func(S, S) bool) *treeStateManager[T, S] {
-	stateRoot := tree.New(GlobalState[S]{}, func(a, b GlobalState[S]) bool {
+// A type that manages the state of several runs of the same system and represent all discovered states of the system.
+// The TreeStateManger waits for completed runs on the send channel. Once they are received they are added to the state tree that is used to represent the state space.
+// After calling Stop() the send channel will be closed and the TreeStateManager will no longer add new runs to the state tree
+type TreeStateManager[T, S any] struct {
+	StateRoot *tree.Tree[GlobalState[S]]
+
+	getLocalState func(*T) S
+	stateEq       func(S, S) bool
+	send          chan []GlobalState[S]
+}
+
+func NewTreeStateManager[T, S any](getLocalState func(*T) S, stateEq func(S, S) bool) *TreeStateManager[T, S] {
+	sm := &TreeStateManager[T, S]{
+		getLocalState: getLocalState,
+		stateEq:       stateEq,
+		send:          make(chan []GlobalState[S]),
+	}
+	go sm.start()
+	return sm
+}
+
+func (sm *TreeStateManager[T, S]) start() {
+	for run := range sm.send {
+		if run == nil {
+			close(sm.send)
+		}
+		currentTree := sm.StateRoot
+		if len(run) < 1 {
+			continue
+		}
+		if currentTree == nil {
+			currentTree = sm.initStateTree(run[0])
+		}
+		for _, state := range run[1:] {
+
+			// If the state already is a child of the current state, retrieve it and set it as the next state
+			if nextState := currentTree.GetChild(state); nextState != nil {
+				currentTree = nextState
+				continue
+			}
+			//  Otherwise add it as a child to the state tree
+			currentTree = currentTree.AddChild(state)
+		}
+	}
+}
+
+func (sm *TreeStateManager[T, S]) Stop() {
+	sm.send <- nil
+}
+
+// Initializes the state tree with the provided state as the initial state
+func (sm *TreeStateManager[T, S]) initStateTree(state GlobalState[S]) *tree.Tree[GlobalState[S]] {
+	cmp := func(a, b GlobalState[S]) bool {
 		if !event.EventsEquals(a.evt, b.evt) {
 			return false
 		}
-		if !maps.EqualFunc(a.LocalStates, b.LocalStates, stateCmp) {
+		if !maps.EqualFunc(a.LocalStates, b.LocalStates, sm.stateEq) {
 			return false
 		}
 		return maps.Equal(a.Correct, b.Correct)
-	})
-
-	return &treeStateManager[T, S]{
-		StateRoot:     &stateRoot,
-		currentState:  &stateRoot,
-		getLocalState: getLocalState,
-		stateCmp:      stateCmp,
 	}
+	stateRoot := tree.New(state, cmp)
+	sm.StateRoot = &stateRoot
+	return &stateRoot
 }
 
-// Retrieve the new global state and store it
-func (sm *treeStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[int]bool, evt event.Event) {
-	states := map[int]S{}
-	for id, node := range nodes {
-		states[id] = sm.getLocalState(node)
+// Create a RunStateManager to be used to collect the state of the new run
+func (sm *TreeStateManager[T, S]) NewRun() *RunStateManager[T, S] {
+	return &RunStateManager[T, S]{
+		run:           make([]GlobalState[S], 0),
+		getLocalState: sm.getLocalState,
+		send:          sm.send,
 	}
-
-	copiedCorrect := map[int]bool{}
-	for id, status := range correct {
-		copiedCorrect[id] = status
-	}
-	globalState := GlobalState[S]{
-		LocalStates: states,
-		Correct:     copiedCorrect,
-		evt:         evt,
-	}
-
-	// If the state already is a child of the current state, retrieve it and set it as the next state
-	//  Otherwise add it as a child to the state tree
-	if nextState := sm.currentState.GetChild(globalState); nextState != nil {
-		sm.currentState = nextState
-		return
-	}
-	sm.currentState = sm.currentState.AddChild(globalState)
-}
-
-// Mark a run as ended and returns to the state root to begin the next run
-func (sm *treeStateManager[T, S]) EndRun() {
-	sm.currentState = sm.StateRoot
 }
 
 // Write the Newick representation of the state tree to the writer
-func (sm *treeStateManager[T, S]) Export(wrt io.Writer) {
+func (sm *TreeStateManager[T, S]) Export(wrt io.Writer) {
 	fmt.Fprint(wrt, sm.StateRoot.Newick())
 }
