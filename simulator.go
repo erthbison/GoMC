@@ -66,7 +66,8 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		}
 		s.Fm.Init(nodeSlice)
 
-		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
+		sm := s.sm.NewRun()
+		sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
 
 		s.scheduleRequests(requests)
 
@@ -77,7 +78,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 			)
 		}
 
-		err := s.executeRun(nodes)
+		err := s.executeRun(nodes, sm)
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -87,7 +88,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		// End the run
 		// Add an end event at the end of this path of the event tree
 		s.Scheduler.EndRun()
-		s.sm.EndRun()
+		sm.EndRun()
 		numRuns++
 		if numRuns%1000 == 0 {
 			log.Println("Running Simulation:", numRuns)
@@ -99,7 +100,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
 // If there is an error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
-func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
+func (s *Simulator[T, S]) executeRun(nodes map[int]*T, sm *RunStateManager[T, S]) error {
 	var depth uint // The depth of the current run
 	for depth < s.maxDepth {
 		// Select an event
@@ -117,7 +118,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T) error {
 		if err != nil {
 			return err
 		}
-		s.sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), evt)
+		sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), evt)
 		depth++
 	}
 	return nil

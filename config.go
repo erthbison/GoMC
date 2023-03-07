@@ -69,7 +69,7 @@ type SimulationRunner[T, S any] struct {
 	Preds []Predicate[S]
 
 	sch scheduler.Scheduler
-	sm  *treeStateManager[T, S]
+	sm  *TreeStateManager[T, S]
 	sim *Simulator[T, S]
 }
 
