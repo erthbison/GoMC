@@ -13,8 +13,8 @@ type Tree[T any] struct {
 	eq       func(a, b T) bool
 }
 
-func New[T any](payload T, eq func(a, b T) bool) Tree[T] {
-	return Tree[T]{
+func New[T any](payload T, eq func(a, b T) bool) *Tree[T] {
+	return &Tree[T]{
 		payload:  payload,
 		parent:   nil,
 		children: []*Tree[T]{},
