@@ -55,6 +55,13 @@ func (ms *MockStateManager) NewRun() *gomc.RunStateManager[MockNode, State] {
 	return &gomc.RunStateManager[MockNode, State]{}
 }
 
+func (ms *MockStateManager) State() gomc.StateSpace[State] {
+	return gomc.TreeStateSpace[State]{}
+}
+
+func (ms *MockStateManager) AddRun([]gomc.GlobalState[State]) {
+}
+
 type MockEvent struct {
 	id       int
 	target   int
