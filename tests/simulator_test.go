@@ -9,8 +9,9 @@ func TestSimulatorNoEvents(t *testing.T) {
 	// Test
 	sch := NewMockScheduler()
 	sm := NewMockStateManager()
-	simulator := gomc.NewSimulator[MockNode, State](sch, sm, 10000, 1000)
+	simulator := gomc.NewSimulator[MockNode, State](sch, 10000, 1000)
 	err := simulator.Simulate(
+		sm,
 		func() map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
@@ -20,7 +21,9 @@ func TestSimulatorNoEvents(t *testing.T) {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")
 	}
 
+	sm = NewMockStateManager()
 	err = simulator.Simulate(
+		sm,
 		func() map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
