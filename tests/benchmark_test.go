@@ -21,20 +21,14 @@ type AckMsg struct {
 
 type BroadcastNode struct {
 	Id        int
-	nodes     map[int]*BroadcastNode
+	nodes     []int
 	Delivered int
 	Acked     int
 	send      func(int, string, ...any)
 }
 
-func (n *BroadcastNode) RegisterNodes(nodes map[int]*BroadcastNode) {
-	for id, node := range nodes {
-		n.nodes[id] = node
-	}
-}
-
 func (n *BroadcastNode) Broadcast(message []byte) {
-	for id := range n.nodes {
+	for _, id := range n.nodes {
 		n.send(
 			id,
 			"Deliver",
@@ -45,7 +39,7 @@ func (n *BroadcastNode) Broadcast(message []byte) {
 
 func (n *BroadcastNode) Deliver(message []byte) {
 	n.Delivered++
-	for id := range n.nodes {
+	for _, id := range n.nodes {
 		n.send(
 			id,
 			"Ack",
@@ -78,22 +72,24 @@ func Benchmark(b *testing.B) {
 				return s1 == s2
 			},
 		)
-		tester := gomc.NewSimulator[BroadcastNode, BroadcastState](sch, sm, 10000, 1000)
+		tester := gomc.NewSimulator[BroadcastNode, BroadcastState](sch, 10000, 1000)
 		sender := eventManager.NewSender(sch)
 		err := tester.Simulate(
+			sm,
 			func() map[int]*BroadcastNode {
 				nodes := map[int]*BroadcastNode{}
+				nodeIds := []int{}
 				for i := 0; i < numNodes; i++ {
-					nodes[i] = &BroadcastNode{
-						Id:        i,
-						send:      sender.SendFunc(i),
+					nodeIds = append(nodeIds, i)
+				}
+				for _, id := range nodeIds {
+					nodes[id] = &BroadcastNode{
+						Id:        id,
+						send:      sender.SendFunc(id),
 						Delivered: 0,
 						Acked:     0,
-						nodes:     map[int]*BroadcastNode{},
+						nodes:     nodeIds,
 					}
-				}
-				for _, node := range nodes {
-					node.RegisterNodes(nodes)
 				}
 				return nodes
 			},
