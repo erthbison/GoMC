@@ -19,6 +19,9 @@ func TestReplayScheduler(t *testing.T) {
 			if err == NoEventError {
 				break
 			}
+			if err == RunEndedError {
+				break
+			}
 			if evt == nil {
 				if !test.expectedErr {
 					t.Errorf("Did not expect to receive an error in test %v", i)
@@ -55,6 +58,9 @@ func TestReplayNodeCrash(t *testing.T) {
 		if errors.Is(err, NoEventError) {
 			break
 		}
+		if errors.Is(err, RunEndedError) {
+			break
+		}
 		actualRun = append(actualRun, evt.Id())
 	}
 	if !slices.Equal(actualRun, run) {
@@ -74,7 +80,6 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 		{id: 6, target: 0},
 	}
 	sch := NewReplayScheduler(run)
-	for i := 0; i < 3; i++ {
 		for _, evt := range events {
 			sch.AddEvent(evt)
 		}
@@ -84,13 +89,15 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 			if errors.Is(err, NoEventError) {
 				break
 			}
+			if errors.Is(err, RunEndedError) {
+				break
+			}
 			actualRun = append(actualRun, evt.Id())
 		}
 		if !slices.Equal(actualRun, run) {
 			t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
 		}
 		sch.EndRun()
-	}
 
 }
 

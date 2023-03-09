@@ -5,10 +5,10 @@ type Value[T any] struct {
 }
 
 type HierarchicalConsensus[T any] struct {
-	detectedRanks map[uint]bool
-	round         uint
+	detectedRanks map[int]bool
+	round         int
 	proposal      Value[T]
-	proposer      uint
+	proposer      int
 	proposed      bool
 
 	DecidedSignal chan Value[T]
@@ -17,22 +17,22 @@ type HierarchicalConsensus[T any] struct {
 	DecidedVal  []Value[T]
 	ProposedVal Value[T]
 
-	delivered map[uint]bool
+	delivered map[int]bool
 	broadcast bool
 
-	id    uint
-	nodes []uint
+	id    int
+	nodes []int
 	send  func(int, string, ...any)
 }
 
-func NewHierarchicalConsensus[T any](id uint, nodes []uint, send func(int, string, ...any)) *HierarchicalConsensus[T] {
+func NewHierarchicalConsensus[T any](id int, nodes []int, send func(int, string, ...any)) *HierarchicalConsensus[T] {
 	return &HierarchicalConsensus[T]{
-		detectedRanks: make(map[uint]bool),
+		detectedRanks: make(map[int]bool),
 		round:         1,
 		proposal:      Value[T]{},
 		proposer:      0,
 		proposed:      false,
-		delivered:     make(map[uint]bool),
+		delivered:     make(map[int]bool),
 		broadcast:     false,
 
 		DecidedSignal: make(chan Value[T], 1),
@@ -45,7 +45,7 @@ func NewHierarchicalConsensus[T any](id uint, nodes []uint, send func(int, strin
 }
 
 func (hc *HierarchicalConsensus[T]) Crash(id int) {
-	hc.detectedRanks[uint(id)] = true
+	hc.detectedRanks[id] = true
 	for hc.delivered[hc.round] || hc.detectedRanks[hc.round] {
 		hc.round++
 		hc.decide()
@@ -61,7 +61,7 @@ func (hc *HierarchicalConsensus[T]) Propose(val Value[T]) {
 	hc.decide()
 }
 
-func (hc *HierarchicalConsensus[T]) Decided(from uint, val Value[T]) {
+func (hc *HierarchicalConsensus[T]) Decided(from int, val Value[T]) {
 	if from < hc.id && from > hc.proposer {
 		hc.proposed = true
 		hc.proposal = val

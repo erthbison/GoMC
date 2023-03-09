@@ -11,6 +11,7 @@ type replayScheduler struct {
 	// The index of the current event
 	index int
 
+	done          bool
 	pendingEvents []event.Event
 	failed        map[int]bool
 }
@@ -22,13 +23,19 @@ func NewReplayScheduler(run []string) *replayScheduler {
 
 		pendingEvents: make([]event.Event, 0),
 		failed:        make(map[int]bool),
+
+		done: false,
 	}
 }
 
 // Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
 func (rs *replayScheduler) GetEvent() (event.Event, error) {
-	if rs.index >= len(rs.run) {
+	if rs.done {
 		return nil, NoEventError
+	}
+	if rs.index >= len(rs.run) {
+		rs.done = true
+		return nil, RunEndedError
 	}
 	evtId := rs.run[rs.index]
 	evt := rs.popEvent(evtId)
@@ -61,6 +68,7 @@ func (rs *replayScheduler) AddEvent(evt event.Event) {
 func (rs *replayScheduler) EndRun() {
 	rs.index = 0
 	rs.failed = make(map[int]bool)
+	rs.done = false
 }
 
 // Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
