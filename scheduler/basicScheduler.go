@@ -21,8 +21,8 @@ type BasicScheduler struct {
 func NewBasicScheduler() *BasicScheduler {
 	eventTree := tree.New("Start", func(a, b string) bool { return a == b })
 	return &BasicScheduler{
-		EventRoot:     &eventTree,
-		currentEvent:  &eventTree,
+		EventRoot:     eventTree,
+		currentEvent:  eventTree,
 		pendingEvents: make([]event.Event, 0),
 
 		failed: make(map[int]bool),
