@@ -17,8 +17,6 @@ import (
 */
 
 type Simulator[T any, S any] struct {
-	// Responsibility for maintaining the state space.
-	sm StateManager[T, S]
 
 	// The scheduler keeps track of the events and selects the next event to be executed
 	Scheduler scheduler.Scheduler
@@ -32,15 +30,14 @@ type Simulator[T any, S any] struct {
 	maxDepth uint
 }
 
-func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S], maxRuns uint, maxDepth uint) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch scheduler.Scheduler, maxRuns uint, maxDepth uint) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 	fm := NewFailureManager()
 	fm.Subscribe(sch.NodeCrash)
 	return &Simulator[T, S]{
 		Scheduler: sch,
-		sm:        sm,
-		Fm:        fm,
-		NextEvt:   make(chan error),
+		Fm:      fm,
+		NextEvt: make(chan error),
 
 		maxRuns:  maxRuns,
 		maxDepth: maxDepth,
@@ -52,7 +49,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, sm StateManager[T, S], 
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []int, requests ...Request) error {
+func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func() map[int]*T, failingNodes []int, requests ...Request) error {
 	var numRuns uint
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
@@ -66,8 +63,8 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		}
 		s.Fm.Init(nodeSlice)
 
-		sm := s.sm.NewRun()
-		sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
+		rsm := sm.NewRun()
+		rsm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), nil)
 
 		s.scheduleRequests(requests)
 
@@ -78,7 +75,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 			)
 		}
 
-		err := s.executeRun(nodes, sm)
+		err := s.executeRun(nodes, rsm)
 		if errors.Is(err, scheduler.NoEventError) {
 			// If there are no available events that means that all possible event chains have been attempted and we are done
 			return nil
@@ -88,7 +85,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 		// End the run
 		// Add an end event at the end of this path of the event tree
 		s.Scheduler.EndRun()
-		sm.EndRun()
+		rsm.EndRun()
 		numRuns++
 		if numRuns%1000 == 0 {
 			log.Println("Running Simulation:", numRuns)
@@ -100,7 +97,7 @@ func (s Simulator[T, S]) Simulate(initNodes func() map[int]*T, failingNodes []in
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
 // If there is an error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
-func (s *Simulator[T, S]) executeRun(nodes map[int]*T, sm *RunStateManager[T, S]) error {
+func (s *Simulator[T, S]) executeRun(nodes map[int]*T, rsm *RunStateManager[T, S]) error {
 	var depth uint // The depth of the current run
 	for depth < s.maxDepth {
 		// Select an event
@@ -118,7 +115,7 @@ func (s *Simulator[T, S]) executeRun(nodes map[int]*T, sm *RunStateManager[T, S]
 		if err != nil {
 			return err
 		}
-		sm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), evt)
+		rsm.UpdateGlobalState(nodes, s.Fm.CorrectNodes(), evt)
 		depth++
 	}
 	return nil
