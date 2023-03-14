@@ -74,10 +74,17 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
-
 	// Check the predicates
 	checker := NewPredicateChecker(predicates...)
 	return checker.Check(sm.State())
+}
+
+func (sr *SimulationRunner[T, S]) Scheduler() scheduler.Scheduler {
+	return sr.sch
+}
+
+func (sr *SimulationRunner[T, S]) NextEvent() chan error {
+	return sr.sim.NextEvt
 }
 
 type SchedulerOption struct {

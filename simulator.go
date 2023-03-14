@@ -6,7 +6,6 @@ import (
 	"gomc/event"
 	"gomc/scheduler"
 	"log"
-	"runtime/debug"
 )
 
 /*
@@ -33,11 +32,11 @@ type Simulator[T any, S any] struct {
 func NewSimulator[T any, S any](sch scheduler.Scheduler, maxRuns uint, maxDepth uint) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 	fm := NewFailureManager()
-	fm.Subscribe(sch.NodeCrash)
+	// fm.Subscribe(sch.NodeCrash)
 	return &Simulator[T, S]{
 		Scheduler: sch,
-		Fm:      fm,
-		NextEvt: make(chan error),
+		Fm:        fm,
+		NextEvt:   make(chan error),
 
 		maxRuns:  maxRuns,
 		maxDepth: maxDepth,

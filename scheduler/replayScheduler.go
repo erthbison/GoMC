@@ -68,7 +68,6 @@ func (rs *replayScheduler) AddEvent(evt event.Event) {
 func (rs *replayScheduler) EndRun() {
 	rs.index = 0
 	rs.failed = make(map[int]bool)
-	rs.done = false
 }
 
 // Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled

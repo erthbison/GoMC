@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+type Stopper interface {
+	// Ungracefully stops the client. Immediately stopping all processing of messages and close all connections
+	Stop()
+}
+
 type CrashEvent struct {
 	target int
 	crash  func(int) error
@@ -26,7 +31,12 @@ func (ce CrashEvent) Id() string {
 // An event should be able to be executed multiple times and any two events with the same Id should be interchangeable.
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
-func (ce CrashEvent) Execute(_ any, evtChan chan error) {
+func (ce CrashEvent) Execute(node any, evtChan chan error) {
+
+	// if the node implements the stopper interface we also call the stop method on the node
+	if n, ok := node.(Stopper); ok {
+		n.Stop()
+	}
 	evtChan <- ce.crash(ce.target)
 }
 

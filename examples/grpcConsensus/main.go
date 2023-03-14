@@ -20,6 +20,13 @@ func main() {
 		1: ":50000",
 		2: ":50001",
 		3: ":50002",
+		4: ":50003",
+		5: ":50004",
+	}
+	ids := []int32{1, 2, 3, 4, 5}
+	addrToIdMao := map[string]int{}
+	for id, addr := range addrMap {
+		addrToIdMao[addr] = int(id)
 	}
 
 	lisMap := map[string]*bufconn.Listener{}
@@ -35,18 +42,26 @@ func main() {
 
 	for _, node := range nodes {
 		node.DialServers(
+			ids,
 			addrMap,
 			grpc.WithContextDialer(
 				func(ctx context.Context, s string) (net.Conn, error) {
 					return lisMap[s].DialContext(ctx)
 				},
 			),
+			grpc.WithBlock(),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 	}
 
-	for id, node := range nodes {
-		node.Propose(strconv.Itoa(int(id)))
+	fmt.Scanln()
+
+	nodes[2].Stop()
+	for _, node := range nodes {
+		go func(n *GrpcConsensus) {
+			n.Propose(strconv.Itoa(int(n.id)))
+			n.Crash(2)
+		}(node)
 	}
 	fmt.Scanln()
 }

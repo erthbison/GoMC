@@ -42,7 +42,6 @@ func TestStateMangerMerge(t *testing.T) {
 	}
 }
 
-
 // Generate mock data for the run. The content of the data is not important, what is important is that it is properly stored
 func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEvent) {
 	nodes := map[int]*MockNode{}
@@ -54,7 +53,6 @@ func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEve
 	evt := MockEvent{i, 0, false}
 	return nodes, correct, evt
 }
-
 
 var mergeTest = []struct {
 	numProcesses int

@@ -98,6 +98,7 @@ func TestConsensus(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(predicates...),
+		gomc.IncorrectNodes(3, 5),
 	)
 	if ok, out := resp.Response(); !ok {
 		t.Errorf("Expected no errors while checking. Got: %v", out)
