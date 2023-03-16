@@ -13,9 +13,6 @@ type Scheduler interface {
 	AddEvent(event.Event)
 	// Finish the current run and prepare for the next one
 	EndRun()
-
-	// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
-	// NodeCrash(int)
 }
 
 var (
