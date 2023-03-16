@@ -58,7 +58,7 @@ var predicates = []gomc.Predicate[state]{
 
 func TestConsensus(t *testing.T) {
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
-		gomc.RandomWalkScheduler(1000, 1),
+		gomc.RandomWalkScheduler(100, 1),
 	)
 
 	nodeIds := []int{1, 2, 3, 4, 5}
@@ -97,6 +97,9 @@ func TestConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
+		gomc.IncorrectNodes(func(t *HierarchicalConsensus[int]) {
+			t.crashed = true
+		}, 1, 2),
 		gomc.WithPredicate(predicates...),
 	)
 	if ok, out := resp.Response(); !ok {

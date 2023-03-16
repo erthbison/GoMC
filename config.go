@@ -3,6 +3,7 @@ package gomc
 import (
 	"gomc/eventManager"
 	"gomc/scheduler"
+	"io"
 	"log"
 	"time"
 )
@@ -53,14 +54,20 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 		incorrectNodes = []int{}
 		predicates     = []Predicate[S]{}
 		requests       = []Request{}
+		crashFunc      = func(*T) {}
+
+		export io.Writer
 	)
 
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case IncorrectNodesOption:
+		case IncorrectNodesOption[T]:
 			incorrectNodes = append(incorrectNodes, t.nodes...)
+			crashFunc = t.crashFunc
 		case PredicateOption[S]:
 			predicates = append(predicates, t.pred...)
+		case ExportOption:
+			export = t.w
 		}
 	}
 
@@ -70,9 +77,13 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	}
 
 	sm := smOpts.sm
-	err := sr.sim.Simulate(sm, InitNodes.f, incorrectNodes, requests...)
+	err := sr.sim.Simulate(sm, InitNodes.f, incorrectNodes, crashFunc, requests...)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
+	}
+
+	if export != nil {
+		sm.State().Export(export)
 	}
 
 	// Check the predicates
@@ -153,10 +164,13 @@ func InitSingleNode[T any](nodeIds []int, f func(id int) *T) InitNodeOption[T] {
 
 type RunOptions interface{}
 
-type IncorrectNodesOption struct{ nodes []int }
+type IncorrectNodesOption[T any] struct {
+	crashFunc func(*T)
+	nodes     []int
+}
 
-func IncorrectNodes(nodes ...int) RunOptions {
-	return IncorrectNodesOption{nodes: nodes}
+func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
+	return IncorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
 }
 
 type PredicateOption[S any] struct{ pred []Predicate[S] }
@@ -171,4 +185,12 @@ type RequestOption struct {
 
 func WithRequests(requests ...Request) RequestOption {
 	return RequestOption{request: requests}
+}
+
+type ExportOption struct {
+	w io.Writer
+}
+
+func Export(w io.Writer) RunOptions {
+	return ExportOption{w: w}
 }
