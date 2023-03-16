@@ -43,8 +43,3 @@ func TestRandomScheduler(t *testing.T) {
 		t.Errorf("Expected to get a NoEventError. Got: %v", err)
 	}
 }
-
-func TestRandomSchedulerNodeCrash(t *testing.T) {
-	sch := NewRandomScheduler(2, 1)
-	testSchedulerCrash(sch, t)
-}

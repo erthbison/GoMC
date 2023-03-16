@@ -14,8 +14,6 @@ type RandomScheduler struct {
 	numRuns       uint
 	maxRuns       uint
 
-	failed map[int]bool
-
 	rand *rand.Rand
 }
 
@@ -25,8 +23,6 @@ func NewRandomScheduler(maxRuns uint, seed int64) *RandomScheduler {
 		pendingEvents: make([]event.Event, 0),
 		numRuns:       0,
 		maxRuns:       maxRuns,
-
-		failed: make(map[int]bool),
 
 		rand: rand,
 	}
@@ -52,9 +48,6 @@ func (rs *RandomScheduler) GetEvent() (event.Event, error) {
 }
 
 func (rs *RandomScheduler) AddEvent(evt event.Event) {
-	if rs.failed[evt.Target()] {
-		return
-	}
 	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
@@ -62,22 +55,4 @@ func (rs *RandomScheduler) EndRun() {
 	rs.numRuns++
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	rs.pendingEvents = make([]event.Event, 0)
-
-	// Reset the map of failed nodes
-	rs.failed = make(map[int]bool)
-}
-
-func (rs *RandomScheduler) NodeCrash(id int) {
-	// Remove all events that target the node from pending events
-
-	i := 0
-	for _, evt := range rs.pendingEvents {
-		if evt.Target() != id {
-			rs.pendingEvents[i] = evt
-			i++
-		}
-	}
-	rs.pendingEvents = rs.pendingEvents[:i]
-
-	rs.failed[id] = true
 }

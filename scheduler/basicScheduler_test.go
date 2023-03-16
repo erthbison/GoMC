@@ -28,10 +28,6 @@ func TestBasicExploreBranchingEvents(t *testing.T) {
 	testDeterministicExploreBranchingEvents(t, sch)
 }
 
-func TestBasicSchedulerNodeCrash(t *testing.T) {
-	sch := NewBasicScheduler()
-	testSchedulerCrash(sch, t)
-}
 
 func BenchmarkBasicScheduler(b *testing.B) {
 	for i := 0; i < b.N; i++ {

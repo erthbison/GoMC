@@ -64,9 +64,3 @@ func (gs *guidedSearch) EndRun() {
 	gs.guided = NewReplayScheduler(gs.run)
 	gs.search.EndRun()
 }
-
-// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
-func (gs *guidedSearch) NodeCrash(id int) {
-	gs.guided.NodeCrash(id)
-	gs.search.NodeCrash(id)
-}

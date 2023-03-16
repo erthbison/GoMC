@@ -13,7 +13,6 @@ type replayScheduler struct {
 
 	done          bool
 	pendingEvents []event.Event
-	failed        map[int]bool
 }
 
 func NewReplayScheduler(run []string) *replayScheduler {
@@ -22,7 +21,6 @@ func NewReplayScheduler(run []string) *replayScheduler {
 		run:   run,
 
 		pendingEvents: make([]event.Event, 0),
-		failed:        make(map[int]bool),
 
 		done: false,
 	}
@@ -59,29 +57,11 @@ func (rs *replayScheduler) popEvent(id string) event.Event {
 
 // Add an event to the list of possible events
 func (rs *replayScheduler) AddEvent(evt event.Event) {
-	if !rs.failed[evt.Target()] {
-		rs.pendingEvents = append(rs.pendingEvents, evt)
-	}
+	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
 // Finish the current run and prepare for the next one
 func (rs *replayScheduler) EndRun() {
 	rs.index = 0
-	rs.failed = make(map[int]bool)
 	rs.done = false
-}
-
-// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
-func (rs *replayScheduler) NodeCrash(id int) {
-	// Remove all events that target the node from pending events
-	i := 0
-	for _, evt := range rs.pendingEvents {
-		if evt.Target() != id {
-			rs.pendingEvents[i] = evt
-			i++
-		}
-	}
-	rs.pendingEvents = rs.pendingEvents[:i]
-
-	rs.failed[id] = true
 }

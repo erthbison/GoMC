@@ -15,7 +15,7 @@ type Scheduler interface {
 	EndRun()
 
 	// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
-	NodeCrash(int)
+	// NodeCrash(int)
 }
 
 var (

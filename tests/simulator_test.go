@@ -16,6 +16,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 			return map[int]*MockNode{0: {}}
 		},
 		[]int{},
+		func(*MockNode) {},
 	)
 	if err == nil {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")
@@ -28,6 +29,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 			return map[int]*MockNode{0: {}}
 		},
 		[]int{},
+		func(*MockNode) {},
 	)
 	if err == nil {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")

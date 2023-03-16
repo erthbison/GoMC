@@ -36,38 +36,6 @@ func TestReplayScheduler(t *testing.T) {
 	}
 }
 
-func TestReplayNodeCrash(t *testing.T) {
-	run := []string{"1", "3", "4", "6", "7"}
-	events := []MockEvent{
-		{id: 4, target: 0},
-		{id: 5, target: 1},
-		{id: 1, target: 0},
-		{id: 3, target: 0},
-		{id: 7, target: 0},
-		{id: 2, target: 1},
-		{id: 6, target: 0},
-	}
-	sch := NewReplayScheduler(run)
-	for _, evt := range events {
-		sch.AddEvent(evt)
-	}
-	sch.NodeCrash(1)
-	actualRun := []string{}
-	for {
-		evt, err := sch.GetEvent()
-		if errors.Is(err, NoEventError) {
-			break
-		}
-		if errors.Is(err, RunEndedError) {
-			break
-		}
-		actualRun = append(actualRun, evt.Id())
-	}
-	if !slices.Equal(actualRun, run) {
-		t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
-	}
-}
-
 func TestReplaySchedulerEndRun(t *testing.T) {
 	run := []string{"1", "3", "4", "6", "7"}
 	events := []MockEvent{
