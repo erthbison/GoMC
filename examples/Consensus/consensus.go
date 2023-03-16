@@ -20,6 +20,8 @@ type HierarchicalConsensus[T any] struct {
 	delivered map[int]bool
 	broadcast bool
 
+	crashed bool
+
 	id    int
 	nodes []int
 	send  func(int, string, ...any)
@@ -45,6 +47,9 @@ func NewHierarchicalConsensus[T any](id int, nodes []int, send func(int, string,
 }
 
 func (hc *HierarchicalConsensus[T]) Crash(id int) {
+	if hc.crashed {
+		return
+	}
 	hc.detectedRanks[id] = true
 	for hc.delivered[hc.round] || hc.detectedRanks[hc.round] {
 		hc.round++
@@ -53,6 +58,9 @@ func (hc *HierarchicalConsensus[T]) Crash(id int) {
 }
 
 func (hc *HierarchicalConsensus[T]) Propose(val Value[T]) {
+	if hc.crashed {
+		return
+	}
 	hc.ProposedVal = val
 	if !hc.proposed {
 		hc.proposed = true
@@ -62,6 +70,9 @@ func (hc *HierarchicalConsensus[T]) Propose(val Value[T]) {
 }
 
 func (hc *HierarchicalConsensus[T]) Decided(from int, val Value[T]) {
+	if hc.crashed {
+		return
+	}
 	if from < hc.id && from > hc.proposer {
 		hc.proposed = true
 		hc.proposal = val

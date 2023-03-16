@@ -12,7 +12,6 @@ type QueueScheduler struct {
 	pendingRuns [][]string
 
 	pendingEvents []event.Event
-	crashedNodes  map[int]bool
 }
 
 func NewQueueScheduler() *QueueScheduler {
@@ -21,7 +20,6 @@ func NewQueueScheduler() *QueueScheduler {
 		currentRun:    make([]string, 0),
 		pendingRuns:   make([][]string, 0),
 		pendingEvents: make([]event.Event, 0),
-		crashedNodes:  make(map[int]bool),
 	}
 }
 
@@ -75,15 +73,12 @@ func (qs *QueueScheduler) popEvent(evtId string) event.Event {
 
 // Add an event to the list of possible events
 func (qs *QueueScheduler) AddEvent(evt event.Event) {
-	if !qs.crashedNodes[evt.Target()] {
-		qs.pendingEvents = append(qs.pendingEvents, evt)
-	}
+	qs.pendingEvents = append(qs.pendingEvents, evt)
 }
 
 // Finish the current run and prepare for the next one
 func (qs *QueueScheduler) EndRun() {
 	qs.currentIndex = 0
-	qs.crashedNodes = make(map[int]bool)
 	if len(qs.pendingRuns) > 0 {
 		qs.currentRun = qs.pendingRuns[len(qs.pendingRuns)-1]
 		qs.pendingRuns = qs.pendingRuns[:len(qs.pendingRuns)-1]
@@ -91,19 +86,4 @@ func (qs *QueueScheduler) EndRun() {
 		qs.currentRun = nil
 	}
 
-}
-
-// Signal to the scheduler that a node has crashed and that events targeting the node should not be scheduled
-func (qs *QueueScheduler) NodeCrash(id int) {
-	qs.crashedNodes[id] = true
-
-	// remove all pending events with the crashed node as its target
-	i := 0
-	for _, evt := range qs.pendingEvents {
-		if evt.Target() != id {
-			qs.pendingEvents[i] = evt
-			i++
-		}
-	}
-	qs.pendingEvents = qs.pendingEvents[:i]
 }

@@ -10,14 +10,16 @@ type Stopper interface {
 }
 
 type CrashEvent struct {
-	target int
-	crash  func(int) error
+	target    int
+	crash     func(int) error
+	crashFunc func()
 }
 
-func NewCrashEvent(target int, crash func(int) error) CrashEvent {
+func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEvent {
 	return CrashEvent{
-		target: target,
-		crash:  crash,
+		target:    target,
+		crash:     crash,
+		crashFunc: crashFunc,
 	}
 }
 
@@ -31,12 +33,8 @@ func (ce CrashEvent) Id() string {
 // An event should be able to be executed multiple times and any two events with the same Id should be interchangeable.
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
-func (ce CrashEvent) Execute(node any, evtChan chan error) {
-
-	// if the node implements the stopper interface we also call the stop method on the node
-	if n, ok := node.(Stopper); ok {
-		n.Stop()
-	}
+func (ce CrashEvent) Execute(_ any, evtChan chan error) {
+	ce.crashFunc()
 	evtChan <- ce.crash(ce.target)
 }
 

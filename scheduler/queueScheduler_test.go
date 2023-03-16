@@ -2,11 +2,6 @@ package scheduler
 
 import "testing"
 
-func TestQueueSchedulerCrash(t *testing.T) {
-	sch := NewQueueScheduler()
-	testSchedulerCrash(sch, t)
-}
-
 func TestQueueSchedulerExplore2Events(t *testing.T) {
 	sch := NewQueueScheduler()
 	testDeterministicExplore2Events(t, sch)

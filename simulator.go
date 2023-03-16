@@ -6,7 +6,6 @@ import (
 	"gomc/event"
 	"gomc/scheduler"
 	"log"
-	"runtime/debug"
 )
 
 /*
@@ -33,7 +32,6 @@ type Simulator[T any, S any] struct {
 func NewSimulator[T any, S any](sch scheduler.Scheduler, maxRuns uint, maxDepth uint) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 	fm := NewFailureManager()
-	// fm.Subscribe(sch.NodeCrash)
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		Fm:        fm,
@@ -49,7 +47,7 @@ func NewSimulator[T any, S any](sch scheduler.Scheduler, maxRuns uint, maxDepth 
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func() map[int]*T, failingNodes []int, requests ...Request) error {
+func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func() map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
 	var numRuns uint
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
@@ -71,7 +69,7 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func() map[in
 		// Add crash events to simulation.
 		for _, id := range failingNodes {
 			s.Scheduler.AddEvent(
-				event.NewCrashEvent(id, s.Fm.NodeCrash),
+				event.NewCrashEvent(id, s.Fm.NodeCrash, func() { crashFunc(nodes[id]) }),
 			)
 		}
 
@@ -127,12 +125,12 @@ func (s *Simulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
 	go func() {
 		// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
-		defer func() {
-			if p := recover(); p != nil {
-				// using the debug package to get the stack could be useful, but it adds some clutter at the top
-				s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
-			}
-		}()
+		// defer func() {
+		// 	if p := recover(); p != nil {
+		// 		// using the debug package to get the stack could be useful, but it adds some clutter at the top
+		// 		s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
+		// 	}
+		// }()
 		evt.Execute(node, s.NextEvt)
 	}()
 	return <-s.NextEvt
