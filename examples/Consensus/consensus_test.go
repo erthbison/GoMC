@@ -101,7 +101,7 @@ func TestConsensus(t *testing.T) {
 			t.crashed = true
 		}, 1, 2),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(3, 5),
+		gomc.IncorrectNodes(func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5),
 	)
 	if ok, out := resp.Response(); !ok {
 		t.Errorf("Expected no errors while checking. Got: %v", out)
@@ -162,6 +162,7 @@ func TestConsensusReplay(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(predicates...),
+		gomc.IncorrectNodes(func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5),
 	)
 
 	if ok, _ := resp.Response(); ok {

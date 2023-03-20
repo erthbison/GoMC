@@ -56,7 +56,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 		requests       = []Request{}
 		crashFunc      = func(*T) {}
 
-		export io.Writer
+		export []io.Writer
 	)
 
 	for _, opt := range opts {
@@ -67,7 +67,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 		case PredicateOption[S]:
 			predicates = append(predicates, t.pred...)
 		case ExportOption:
-			export = t.w
+			export = append(export, t.w)
 		}
 	}
 
@@ -82,8 +82,8 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
 
-	if export != nil {
-		sm.State().Export(export)
+	for _, w := range export {
+		sm.State().Export(w)
 	}
 
 	// Check the predicates

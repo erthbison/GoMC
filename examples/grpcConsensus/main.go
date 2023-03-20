@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -36,7 +35,7 @@ func main() {
 
 	nodes := map[int32]*GrpcConsensus{}
 	for id, addr := range addrMap {
-		gc := NewGrpcConsensus(id, lisMap[addr])
+		gc := NewGrpcConsensus(id, lisMap[addr], func(int, int) {})
 		nodes[id] = gc
 	}
 
@@ -59,8 +58,8 @@ func main() {
 	nodes[2].Stop()
 	for _, node := range nodes {
 		go func(n *GrpcConsensus) {
-			n.Propose(strconv.Itoa(int(n.id)))
 			n.Crash(2)
+			n.Propose(addrMap[n.id])
 		}(node)
 	}
 	fmt.Scanln()

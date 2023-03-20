@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gomc"
-	"gomc/predicate"
 	"net"
 	"os"
 	"testing"
+
+	"gomc"
+	"gomc/gomcGrpc"
+	"gomc/predicate"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -58,7 +60,7 @@ var predicates = []gomc.Predicate[state]{
 }
 
 func TestGrpcConsensus(t *testing.T) {
-	sim := gomc.Prepare[GrpcConsensus, state](gomc.RandomWalkScheduler(1000, 1))
+	sim := gomc.Prepare[GrpcConsensus, state](gomc.RandomWalkScheduler(10000, 1))
 
 	sm := gomc.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
@@ -90,7 +92,7 @@ func TestGrpcConsensus(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	gem := NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
+	gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
 
 	resp := sim.RunSimulation(
 		gomc.InitNodeFunc(
@@ -102,7 +104,7 @@ func TestGrpcConsensus(t *testing.T) {
 
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
-					gc := NewGrpcConsensus(id, lisMap[addr], grpc.UnaryInterceptor(gem.UnaryServerControllerInterceptor(int(id))))
+					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend)
 					sim.CrashCallback(gc.Crash)
 					nodes[int(id)] = gc
 				}
@@ -133,7 +135,7 @@ func TestGrpcConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(3, 5),
+		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
 	)
 	sm.Export(os.Stdout)
 
@@ -193,7 +195,7 @@ func TestReplayConsensus(t *testing.T) {
 		gomc.InitNodeFunc(
 			func() map[int]*GrpcConsensus {
 
-				gem := NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
+				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
 
 				lisMap := map[string]*bufconn.Listener{}
 				for _, addr := range addrMap {
@@ -202,7 +204,7 @@ func TestReplayConsensus(t *testing.T) {
 
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
-					gc := NewGrpcConsensus(id, lisMap[addr], grpc.UnaryInterceptor(gem.UnaryServerControllerInterceptor(int(id))))
+					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend)
 					sim.CrashCallback(gc.Crash)
 					nodes[int(id)] = gc
 				}
@@ -233,7 +235,7 @@ func TestReplayConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(3, 5),
+		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
 	)
 	sm.Export(os.Stdout)
 

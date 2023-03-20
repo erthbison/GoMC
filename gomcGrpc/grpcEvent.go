@@ -1,4 +1,4 @@
-package main
+package gomcGrpc
 
 import "fmt"
 
@@ -31,4 +31,3 @@ func (ge GrpcEvent) Target() int {
 func (ge GrpcEvent) String() string {
 	return fmt.Sprintf("GrpcEvent From: %v To: %v Method: %v", ge.from, ge.target, ge.method)
 }
-

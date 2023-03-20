@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	pb "gomc/examples/grpcConsensus/proto"
 	"net"
 
@@ -37,10 +36,12 @@ type GrpcConsensus struct {
 	DecidedVal  []string
 	ProposedVal string
 
+	waitForSend func(id int, num int)
+
 	srv *grpc.Server
 }
 
-func NewGrpcConsensus(id int32, lis net.Listener, srvOpts ...grpc.ServerOption) *GrpcConsensus {
+func NewGrpcConsensus(id int32, lis net.Listener, waitForSend func(int, int), srvOpts ...grpc.ServerOption) *GrpcConsensus {
 	srv := grpc.NewServer(srvOpts...)
 	gc := &GrpcConsensus{
 		detectedRanks: make(map[int32]bool),
@@ -53,6 +54,8 @@ func NewGrpcConsensus(id int32, lis net.Listener, srvOpts ...grpc.ServerOption) 
 
 		DecidedVal:  make([]string, 0),
 		ProposedVal: "",
+
+		waitForSend: waitForSend,
 
 		srv: srv,
 	}
@@ -67,7 +70,6 @@ func (gc *GrpcConsensus) DialServers(ids []int32, addrMap map[int32]string, dial
 	for _, id := range ids {
 		addr := addrMap[id]
 		conn, err := grpc.Dial(addr, dialOpts...)
-		grpc.Dial(addr)
 		if err != nil {
 			panic(err)
 		}
@@ -114,17 +116,18 @@ func (gc *GrpcConsensus) decide() {
 	if gc.id == gc.round && !gc.broadcast && gc.proposal != nil {
 		gc.broadcast = true
 		gc.DecidedVal = append(gc.DecidedVal, gc.proposal.GetVal())
+		msg := &pb.DecideRequest{
+			Val:  gc.proposal,
+			From: gc.id,
+		}
+		num := 0
 		for _, node := range gc.nodes {
 			if node.id > gc.id {
-				_, err := node.Decided(context.Background(), &pb.DecideRequest{
-					Val:  gc.proposal,
-					From: gc.id,
-				})
-				if err != nil {
-					fmt.Printf("An error occurred while dialing node %v: %v\n", node.id, err)
-				}
+				num++
+				go node.Decided(context.Background(), msg)
 			}
 		}
+		gc.waitForSend(int(gc.id), num) // Wait until all messages has been sent, but do not wait until an answer is received
 	}
 }
 
