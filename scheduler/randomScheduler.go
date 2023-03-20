@@ -3,12 +3,14 @@ package scheduler
 import (
 	"gomc/event"
 	"math/rand"
+	"sync"
 )
 
 // A scheduler that randomly picks the next event from the available events.
 // It is useful for testing a random selection of the state space when the state space is to large to perform an exhaustive search
 // It provides no guarantee that all errors have been found, but since it is random it generally contains a larger spread in the states that are checked compared to the exhaustive search.
 type RandomScheduler struct {
+	sync.Mutex
 	// a slice of all events that can be chosen
 	pendingEvents []event.Event
 	numRuns       uint
@@ -29,6 +31,8 @@ func NewRandomScheduler(maxRuns uint, seed int64) *RandomScheduler {
 }
 
 func (rs *RandomScheduler) GetEvent() (event.Event, error) {
+	rs.Lock()
+	defer rs.Unlock()
 	if len(rs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
@@ -48,10 +52,14 @@ func (rs *RandomScheduler) GetEvent() (event.Event, error) {
 }
 
 func (rs *RandomScheduler) AddEvent(evt event.Event) {
+	rs.Lock()
+	defer rs.Unlock()
 	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
 func (rs *RandomScheduler) EndRun() {
+	rs.Lock()
+	defer rs.Unlock()
 	rs.numRuns++
 	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
 	rs.pendingEvents = make([]event.Event, 0)

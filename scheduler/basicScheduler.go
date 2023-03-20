@@ -4,9 +4,12 @@ import (
 	"errors"
 	"gomc/event"
 	"gomc/tree"
+	"sync"
 )
 
 type BasicScheduler struct {
+	sync.Mutex
+
 	// Trees storing the ID of events as the payload
 	// Are used to keep track of already executed runs
 	EventRoot    *tree.Tree[string]
@@ -26,6 +29,8 @@ func NewBasicScheduler() *BasicScheduler {
 }
 
 func (bs *BasicScheduler) GetEvent() (event.Event, error) {
+	bs.Lock()
+	defer bs.Unlock()
 	if len(bs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
@@ -64,10 +69,14 @@ func (bs *BasicScheduler) popEvent(evtId string) event.Event {
 }
 
 func (bs *BasicScheduler) AddEvent(evt event.Event) {
+	bs.Lock()
+	defer bs.Unlock()
 	bs.pendingEvents = append(bs.pendingEvents, evt)
 }
 
 func (bs *BasicScheduler) EndRun() {
+	bs.Lock()
+	defer bs.Unlock()
 	// Add an "End" event to the end of the chain
 	// Then change the current event to the root of the event tree
 	bs.currentEvent.AddChild("End")

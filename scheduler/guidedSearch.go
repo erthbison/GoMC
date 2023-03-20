@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"gomc/event"
+	"sync"
 )
 
 // A scheduler that initially will follow a provided run before it begin searching the state space.
 type guidedSearch struct {
+	sync.Mutex
 	// The scheduler used to search the state space
 	search Scheduler
 
@@ -33,6 +35,8 @@ func NewGuidedSearch(search Scheduler, run []string) *guidedSearch {
 // Will follow the provided run until it has been completed or until it is unable to find the next event.
 // After that the scheduler will begin to search the state space using teh provided search scheduler.
 func (gs *guidedSearch) GetEvent() (event.Event, error) {
+	gs.Lock()
+	defer gs.Unlock()
 	if gs.useGuided {
 		evt, err := gs.guided.GetEvent()
 		if err != nil {
@@ -51,6 +55,8 @@ func (gs *guidedSearch) GetEvent() (event.Event, error) {
 
 // Add an event to the list of possible events
 func (gs *guidedSearch) AddEvent(evt event.Event) {
+	gs.Lock()
+	defer gs.Unlock()
 	if gs.useGuided {
 		gs.guided.AddEvent(evt)
 	} else {
@@ -60,6 +66,8 @@ func (gs *guidedSearch) AddEvent(evt event.Event) {
 
 // Finish the current run and prepare for the next one
 func (gs *guidedSearch) EndRun() {
+	gs.Lock()
+	defer gs.Unlock()
 	gs.useGuided = true
 	gs.guided = NewReplayScheduler(gs.run)
 	gs.search.EndRun()

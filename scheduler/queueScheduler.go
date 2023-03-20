@@ -3,9 +3,11 @@ package scheduler
 import (
 	"errors"
 	"gomc/event"
+	"sync"
 )
 
 type QueueScheduler struct {
+	sync.Mutex
 	currentIndex int
 	currentRun   []string
 
@@ -25,6 +27,8 @@ func NewQueueScheduler() *QueueScheduler {
 
 // Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
 func (qs *QueueScheduler) GetEvent() (event.Event, error) {
+	qs.Lock()
+	defer qs.Unlock()
 	if qs.currentRun == nil {
 		return nil, NoEventError
 	}
@@ -73,11 +77,15 @@ func (qs *QueueScheduler) popEvent(evtId string) event.Event {
 
 // Add an event to the list of possible events
 func (qs *QueueScheduler) AddEvent(evt event.Event) {
+	qs.Lock()
+	defer qs.Unlock()
 	qs.pendingEvents = append(qs.pendingEvents, evt)
 }
 
 // Finish the current run and prepare for the next one
 func (qs *QueueScheduler) EndRun() {
+	qs.Lock()
+	defer qs.Unlock()
 	qs.currentIndex = 0
 	if len(qs.pendingRuns) > 0 {
 		qs.currentRun = qs.pendingRuns[len(qs.pendingRuns)-1]
