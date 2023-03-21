@@ -2,7 +2,9 @@ package gomcGrpc
 
 import (
 	"context"
+	"errors"
 	"gomc/scheduler"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -69,7 +71,12 @@ func (gem *grpcEventManager) UnaryClientControllerInterceptor(id int) grpc.Unary
 		gem.addEvent(id, target, req, method, wait)
 
 		// Signal that an event has been created for the event
-		gem.msgChan[id] <- true
+
+		select {
+		case gem.msgChan[id] <- true:
+		case <-time.After(10 * time.Second):
+			panic(errors.New("grpcEventManager: timed out while sending confirming that message has been processed. grpcEventManager.WaitForSend must be called after sending messages to ensure that the message is properly handled."))
+		}
 		// Wait until the event has been executed
 		<-wait
 
