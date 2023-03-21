@@ -82,13 +82,14 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
 
+	state := sm.State()
 	for _, w := range export {
-		sm.State().Export(w)
+		state.Export(w)
 	}
 
 	// Check the predicates
 	checker := NewPredicateChecker(predicates...)
-	return checker.Check(sm.State())
+	return checker.Check(state)
 }
 
 func (sr *SimulationRunner[T, S]) Scheduler() scheduler.Scheduler {
