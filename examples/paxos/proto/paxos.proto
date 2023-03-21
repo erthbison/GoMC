@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package proto;
+import "google/protobuf/empty.proto";
+option go_package = "gomc/examples/grpcConsensus/proto";
+
+service Proposer {
+  rpc Promise(PromiseRequest) returns (google.protobuf.Empty);
+}
+
+service Acceptor {
+  rpc Prepare(PrepareRequest) returns (google.protobuf.Empty);
+  rpc Accept(AcceptRequest) returns (google.protobuf.Empty);
+}
+
+service Learner {
+  rpc Learn(LearnRequest) returns (google.protobuf.Empty);
+}
+
+
+message Round {
+  int64 val = 1;
+}
+
+message Value {
+  string val = 1;
+  Round rnd = 2;
+}
+
+message NodeId {
+  int64 val = 1;
+}
+
+message PromiseRequest {
+  Round rnd = 1;
+  Value val = 2;
+  NodeId from = 3;
+}
+
+message PrepareRequest {
+  Round crnd = 1;
+  NodeId from = 2;
+}
+
+message AcceptRequest {
+  Value  val = 1;
+  NodeId from = 2;
+}
+
+message LearnRequest {
+  Value val = 1;
+  NodeId from = 2;
+}
