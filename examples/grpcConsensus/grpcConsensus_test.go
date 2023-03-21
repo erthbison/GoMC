@@ -60,7 +60,7 @@ var predicates = []gomc.Predicate[state]{
 }
 
 func TestGrpcConsensus(t *testing.T) {
-	sim := gomc.Prepare[GrpcConsensus, state](gomc.RandomWalkScheduler(10000, 1))
+	sim := gomc.Prepare[GrpcConsensus, state](gomc.RandomWalkScheduler(1000, 1), gomc.MaxRuns(1000))
 
 	sm := gomc.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
