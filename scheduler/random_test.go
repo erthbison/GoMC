@@ -8,8 +8,8 @@ import (
 
 func TestRandomScheduler(t *testing.T) {
 	// Perform one random run
-	sch := NewRandomScheduler(1, 1)
-
+	gsch := NewRandom(1)
+	sch := gsch.GetRunScheduler()
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 0, false})
 
