@@ -18,7 +18,7 @@ func TestStateMangerMerge(t *testing.T) {
 		for j := 0; j < test.numProcesses; j++ {
 			go func(numNodes, i int) {
 				for runLength := range inChan {
-					rst := sm.NewRun()
+					rst := sm.GetRunStateManager()
 					for _, k := range runLength {
 						nodes, correct, evt := generateMockData(numNodes, k)
 						rst.UpdateGlobalState(nodes, correct, evt)
@@ -42,7 +42,6 @@ func TestStateMangerMerge(t *testing.T) {
 	}
 }
 
-
 // Generate mock data for the run. The content of the data is not important, what is important is that it is properly stored
 func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEvent) {
 	nodes := map[int]*MockNode{}
@@ -54,7 +53,6 @@ func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEve
 	evt := MockEvent{i, 0, false}
 	return nodes, correct, evt
 }
-
 
 var mergeTest = []struct {
 	numProcesses int

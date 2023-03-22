@@ -59,7 +59,7 @@ func (gs GlobalState[S]) String() string {
 
 // Manages the global state across several runs.
 type StateManager[T, S any] interface {
-	NewRun() *RunStateManager[T, S]
+	GetRunStateManager() *RunStateManager[T, S]
 	AddRun(run []GlobalState[S])
 	State() StateSpace[S]
 }
@@ -120,7 +120,7 @@ func (sm *TreeStateManager[T, S]) initStateTree(state GlobalState[S]) *tree.Tree
 }
 
 // Create a RunStateManager to be used to collect the state of the new run
-func (sm *TreeStateManager[T, S]) NewRun() *RunStateManager[T, S] {
+func (sm *TreeStateManager[T, S]) GetRunStateManager() *RunStateManager[T, S] {
 	return &RunStateManager[T, S]{
 		run:           make([]GlobalState[S], 0),
 		getLocalState: sm.getLocalState,
