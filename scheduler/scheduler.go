@@ -5,12 +5,19 @@ import (
 	"gomc/event"
 )
 
-type Scheduler interface {
+type GlobalScheduler interface {
+	GetRunScheduler() RunScheduler
+}
+
+type RunScheduler interface {
 	// Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if called after returning a RunEnded error if a new run has not been started and if there are no more available events in any run.
 	// The event returned must be an event that has been added during the current run.
 	GetEvent() (event.Event, error)
 	// Add an event to the list of possible events
 	AddEvent(event.Event)
+
+	// Prepare for starting a new run
+	StartRun() error
 	// Finish the current run and prepare for the next one
 	EndRun()
 }
