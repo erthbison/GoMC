@@ -39,7 +39,7 @@ func TestRandomScheduler(t *testing.T) {
 	sch.AddEvent(MockEvent{1, 0, false})
 
 	_, err = sch.GetEvent()
-	if !errors.Is(err, NoEventError) {
+	if !errors.Is(err, NoRunsError) {
 		t.Errorf("Expected to get a NoEventError. Got: %v", err)
 	}
 }
