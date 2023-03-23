@@ -26,6 +26,8 @@ func (ms *MockScheduler) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
+func (ms *MockScheduler) StartRun() error { return nil }
+
 func (ms *MockScheduler) EndRun() {}
 
 func (ms *MockScheduler) NodeCrash(i int) {}
