@@ -3,17 +3,19 @@ package gomc_test
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"testing"
 )
 
 func TestConfig(t *testing.T) {
 	sim := gomc.Prepare[BroadcastNode, BroadcastState](
-		gomc.QueueScheduler(),
+		gomc.PrefixScheduler(),
 		gomc.MaxDepth(10000),
 	)
 	resp := sim.RunSimulation(
 		gomc.InitNodeFunc(
-			func() map[int]*BroadcastNode {
+			func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
+				send := eventManager.NewSender(sp.Sch)
 				nodes := map[int]*BroadcastNode{}
 				nodeIds := []int{}
 				for i := 0; i < 2; i++ {
@@ -22,7 +24,7 @@ func TestConfig(t *testing.T) {
 				for _, id := range nodeIds {
 					nodes[id] = &BroadcastNode{
 						Id:        id,
-						send:      sim.SendFactory(id),
+						send:      send.SendFunc(id),
 						Delivered: 0,
 						Acked:     0,
 						nodes:     nodeIds,

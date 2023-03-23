@@ -7,12 +7,12 @@ import (
 
 func TestSimulatorNoEvents(t *testing.T) {
 	// Test
-	sch := NewMockScheduler()
+	sch := NewMockGlobalScheduler()
 	sm := NewMockStateManager()
-	simulator := gomc.NewSimulator[MockNode, State](sch, 10000, 1000)
+	simulator := gomc.NewSimulator[MockNode, State](sch, 10000, 1000, 1)
 	err := simulator.Simulate(
 		sm,
-		func() map[int]*MockNode {
+		func(sp gomc.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
 		[]int{},
@@ -25,7 +25,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 	sm = NewMockStateManager()
 	err = simulator.Simulate(
 		sm,
-		func() map[int]*MockNode {
+		func(sp gomc.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
 		[]int{},
