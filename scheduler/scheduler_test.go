@@ -15,7 +15,7 @@ func benchmarkRunScheduler(sch RunScheduler, numEvents int) error {
 			for i := 0; i < numEvents; i++ {
 				sch.AddEvent(MockEvent{i, 0, false})
 			}
-		} else if errors.Is(err, NoEventError) {
+		} else if errors.Is(err, NoRunsError) {
 			return nil
 		}
 		if err == nil && evt == nil {
@@ -26,7 +26,10 @@ func benchmarkRunScheduler(sch RunScheduler, numEvents int) error {
 
 func testDeterministicExplore2Events(t *testing.T, gsch GlobalScheduler) {
 	sch := gsch.GetRunScheduler()
-	sch.StartRun()
+	err := sch.StartRun()
+	if err != nil {
+		t.Errorf("Did not expect to receive an error. Got %v", err)
+	}
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 0, false})
 
@@ -39,13 +42,16 @@ func testDeterministicExplore2Events(t *testing.T, gsch GlobalScheduler) {
 		}
 		run1 = append(run1, evt)
 	}
-	_, err := sch.GetEvent()
+	_, err = sch.GetEvent()
 	if !errors.Is(err, RunEndedError) {
 		t.Errorf("Expected to get a RunEndedError. Got: %v", err)
 	}
 	sch.EndRun()
 
-	sch.StartRun()
+	err = sch.StartRun()
+	if err != nil {
+		t.Errorf("Did not expect to receive an error. Got %v", err)
+	}
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 0, false})
 
@@ -68,11 +74,8 @@ func testDeterministicExplore2Events(t *testing.T, gsch GlobalScheduler) {
 	}
 	sch.EndRun()
 
-	sch.StartRun()
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 0, false})
-	_, err = sch.GetEvent()
-	if !errors.Is(err, NoEventError) {
+	err = sch.StartRun()
+	if !errors.Is(err, NoRunsError) {
 		t.Errorf("Expected to get a NoEventError. Got: %v", err)
 	}
 }
@@ -85,7 +88,10 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	// Expects two chains. Both should contain all 3 events and start with event 0
 	sch := gsch.GetRunScheduler()
 
-	sch.StartRun()
+	err := sch.StartRun()
+	if err != nil {
+		t.Errorf("Did not expect to receive an error. Got %v", err)
+	}
 	sch.AddEvent(MockEvent{0, 0, false})
 
 	run1 := []event.Event{}
@@ -114,7 +120,10 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	}
 	sch.EndRun()
 
-	sch.StartRun()
+	err = sch.StartRun()
+	if err != nil {
+		t.Errorf("Did not expect to receive an error. Got %v", err)
+	}
 	sch.AddEvent(MockEvent{0, 0, false})
 
 	run2 := []event.Event{}
@@ -142,11 +151,9 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	}
 	sch.EndRun()
 
-	sch.StartRun()
-	sch.AddEvent(MockEvent{0, 0, false})
-	_, err = sch.GetEvent()
-	if !errors.Is(err, NoEventError) {
-		t.Errorf("Expected %v, got: %v", NoEventError, err)
+	err = sch.StartRun()
+	if !errors.Is(err, NoRunsError) {
+		t.Errorf("Expected to get a NoEventError. Got: %v", err)
 	}
 
 	if run1[0].Id() != run2[0].Id() {
@@ -167,7 +174,7 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 			sch := gsch.GetRunScheduler()
 			for {
 				err := sch.StartRun()
-				if errors.Is(err, NoEventError) {
+				if errors.Is(err, NoRunsError) {
 					break
 				}
 				sch.AddEvent(MockEvent{0, 0, false})
