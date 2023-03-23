@@ -12,10 +12,13 @@ type Prefix struct {
 	// Explores the state space by maintaining a stack of unexplored prefixes.
 	// When a new run is started it follows the prefix and begins exploring from there, adding new prefixes it discovers as it executes events
 
+	// unexplored prefixes
 	r []run
 
+	// Used to wait for a change in p.ongoing or p.r. The condition is len(p.r) == 0 and p.ongoing > 0
 	cond *sync.Cond
 
+	// Number of runScheduler currently scheduling a run. I.e. runScheduler no waiting for a new run
 	ongoing int
 }
 
@@ -51,12 +54,17 @@ func (p *Prefix) getRun() run {
 	defer p.cond.L.Unlock()
 
 	p.ongoing--
-	for len(p.r) == 0 {
-		if p.ongoing > 0 {
-			p.cond.Wait()
-		} else {
-			return nil
-		}
+	p.cond.Broadcast()
+
+	// If there are no available events wait until there are.
+	// If at the same time all runSchedulers are waiting for a new event then there will never be a new available event since there are no runSchedulers that can add a new event
+	// All possible runs have therefore been explored and we return nil
+	// Use the cond to wait for a change in p.ongoing or p.r
+	for len(p.r) == 0 && p.ongoing > 0 {
+		p.cond.Wait()
+	}
+	if len(p.r) == 0 {
+		return nil
 	}
 
 	r := p.r[len(p.r)-1]
@@ -153,7 +161,7 @@ func (rp *runPrefix) StartRun() error {
 	rp.currentIndex = 0
 	r := rp.p.getRun()
 	if r == nil {
-		return NoEventError
+		return NoRunsError
 	}
 	rp.currentRun = r
 	return nil
