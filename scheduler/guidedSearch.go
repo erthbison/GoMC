@@ -5,25 +5,41 @@ import (
 )
 
 // A scheduler that initially will follow a provided run before it begin searching the state space.
-type guidedSearch struct {
+type GuidedSearch struct {
+	run    []string
+	search GlobalScheduler
+}
+
+func NewGuidedSearch(search GlobalScheduler, run []string) *GuidedSearch {
+	return &GuidedSearch{
+		run:    run,
+		search: search,
+	}
+}
+
+func (gs *GuidedSearch) GetRunScheduler() RunScheduler {
+	search := gs.search.GetRunScheduler()
+	return newRunGuidedSearch(search, gs.run)
+}
+
+type runGuidedSearch struct {
 	// The scheduler used to search the state space
-	search Scheduler
+	search RunScheduler
 
 	// The provided run
 	run    []string
-	guided *replayScheduler
+	guided *runReplay
 
 	useGuided bool
 }
 
 // Create a new GuidedSearch scheduler using the provided search scheduler for searching the state space after it hasa followed the provided run
-func NewGuidedSearch(search Scheduler, run []string) *guidedSearch {
-	guided := NewReplayScheduler(run)
-	return &guidedSearch{
+func newRunGuidedSearch(search RunScheduler, run []string) *runGuidedSearch {
+	return &runGuidedSearch{
 		search: search,
 
 		run:       run,
-		guided:    guided,
+		guided:    nil,
 		useGuided: true,
 	}
 }
@@ -32,7 +48,7 @@ func NewGuidedSearch(search Scheduler, run []string) *guidedSearch {
 // The event returned must be an event that has been added during the current run.
 // Will follow the provided run until it has been completed or until it is unable to find the next event.
 // After that the scheduler will begin to search the state space using teh provided search scheduler.
-func (gs *guidedSearch) GetEvent() (event.Event, error) {
+func (gs *runGuidedSearch) GetEvent() (event.Event, error) {
 	if gs.useGuided {
 		evt, err := gs.guided.GetEvent()
 		if err != nil {
@@ -50,7 +66,7 @@ func (gs *guidedSearch) GetEvent() (event.Event, error) {
 }
 
 // Add an event to the list of possible events
-func (gs *guidedSearch) AddEvent(evt event.Event) {
+func (gs *runGuidedSearch) AddEvent(evt event.Event) {
 	if gs.useGuided {
 		gs.guided.AddEvent(evt)
 	} else {
@@ -58,9 +74,18 @@ func (gs *guidedSearch) AddEvent(evt event.Event) {
 	}
 }
 
-// Finish the current run and prepare for the next one
-func (gs *guidedSearch) EndRun() {
+func (gs *runGuidedSearch) StartRun() error {
 	gs.useGuided = true
-	gs.guided = NewReplayScheduler(gs.run)
+	gs.guided = newRunReplay(gs.run)
+	err := gs.guided.StartRun()
+	if err != nil {
+		return err
+	}
+	return gs.search.StartRun()
+}
+
+// Finish the current run and prepare for the next one
+func (gs *runGuidedSearch) EndRun() {
 	gs.search.EndRun()
+	gs.guided.EndRun()
 }
