@@ -9,14 +9,19 @@ import (
 
 func TestReplayScheduler(t *testing.T) {
 	for i, test := range replaySchedulerTest {
-		sch := NewReplayScheduler(test.run)
+		gsch := NewReplay(test.run)
+		sch := gsch.GetRunScheduler()
+		err := sch.StartRun()
+		if err != nil {
+			t.Errorf("Received unexpected error: %v", err)
+		}
 		for _, evt := range test.events {
 			sch.AddEvent(evt)
 		}
 		actualRun := []string{}
 		for {
 			evt, err := sch.GetEvent()
-			if err == NoEventError {
+			if err == NoRunsError {
 				break
 			}
 			if err == RunEndedError {
@@ -47,25 +52,30 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 		{id: 2, target: 1},
 		{id: 6, target: 0},
 	}
-	sch := NewReplayScheduler(run)
-		for _, evt := range events {
-			sch.AddEvent(evt)
+	gsch := NewReplay(run)
+	sch := gsch.GetRunScheduler()
+	err := sch.StartRun()
+	if err != nil {
+		t.Errorf("Received unexpected error: %v", err)
+	}
+	for _, evt := range events {
+		sch.AddEvent(evt)
+	}
+	actualRun := []string{}
+	for {
+		evt, err := sch.GetEvent()
+		if errors.Is(err, NoRunsError) {
+			break
 		}
-		actualRun := []string{}
-		for {
-			evt, err := sch.GetEvent()
-			if errors.Is(err, NoEventError) {
-				break
-			}
-			if errors.Is(err, RunEndedError) {
-				break
-			}
-			actualRun = append(actualRun, evt.Id())
+		if errors.Is(err, RunEndedError) {
+			break
 		}
-		if !slices.Equal(actualRun, run) {
-			t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
-		}
-		sch.EndRun()
+		actualRun = append(actualRun, evt.Id())
+	}
+	if !slices.Equal(actualRun, run) {
+		t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
+	}
+	sch.EndRun()
 
 }
 
