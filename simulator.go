@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/scheduler"
+	"sync"
 )
 
 /*
@@ -41,43 +42,44 @@ func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, maxRuns int, maxD
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(sch scheduler.RunScheduler, nextEvt chan error, crashCallback func(func(int))) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
+func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
 
-	var numRuns int
 	nextRun := make(chan bool)
-	runStatus := make(chan error)
+	var wait sync.WaitGroup
 	for i := 0; i < s.numConcurrent; i++ {
-		go func() {
-			rsim := newRunSimulator(s.Scheduler, sm, s.maxDepth)
-			for {
-				if _, ok := <-nextRun; !ok {
-					return
+		wait.Add(1)
+		rsim := newRunSimulator(s.Scheduler, sm, s.maxDepth)
+		go func(rsim *runSimulator[T, S]) {
+			for range nextRun {
+				err := rsim.SimulateRun(initNodes, failingNodes, crashFunc, requests...)
+				if errors.Is(err, scheduler.NoRunsError) {
+					break
 				}
-				runStatus <- rsim.SimulateRun(initNodes, failingNodes, crashFunc, requests...)
+			}
+			wait.Done()
+		}(rsim)
+	}
 
-			}
-		}()
-		nextRun <- true
-	}
-	for status := range runStatus {
-		if status != nil {
-			if errors.Is(status, scheduler.NoEventError) {
-				close(nextRun)
-				return nil
-			} else {
-				return status
+	stop := make(chan bool)
+	go func() {
+		numRuns := 0
+		for numRuns < s.maxRuns {
+			select {
+			case nextRun <- true:
+				numRuns++
+			case <-stop:
+				break
 			}
 		}
-		numRuns++
-		if numRuns > s.maxRuns {
-			close(nextRun)
-			return nil
-		}
-		nextRun <- true
-	}
+		close(nextRun)
+	}()
+
+	wait.Wait()
+	close(stop)
+
 	return nil
 }
 
@@ -86,9 +88,15 @@ type runSimulator[T, S any] struct {
 	sm  *RunStateManager[T, S]
 	fm  *failureManager
 
-	NextEvt chan error
+	nextEvt chan error
 
 	maxDepth int
+}
+
+type SimulationParameters struct {
+	NextEvt chan error
+	Fm      *failureManager
+	Sch     scheduler.RunScheduler
 }
 
 func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T, S], maxDepth int) *runSimulator[T, S] {
@@ -97,14 +105,18 @@ func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T,
 		sm:  sm.GetRunStateManager(),
 		fm:  NewFailureManager(),
 
-		NextEvt: make(chan error),
+		nextEvt: make(chan error),
 
 		maxDepth: maxDepth,
 	}
 }
 
-func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sch scheduler.RunScheduler, nextEvt chan error, crashCallback func(func(int))) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
-	nodes := initNodes(rs.sch, rs.NextEvt, rs.fm.Subscribe)
+func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
+	nodes := initNodes(SimulationParameters{
+		NextEvt: rs.nextEvt,
+		Fm:      rs.fm,
+		Sch:     rs.sch,
+	})
 	nodeSlice := []int{}
 	for id := range nodes {
 		nodeSlice = append(nodeSlice, id)
@@ -177,9 +189,9 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 		// 		s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
 		// 	}
 		// }()
-		evt.Execute(node, rs.NextEvt)
+		evt.Execute(node, rs.nextEvt)
 	}()
-	return <-rs.NextEvt
+	return <-rs.nextEvt
 }
 
 func (rs *runSimulator[T, S]) scheduleRequests(requests []Request) {
