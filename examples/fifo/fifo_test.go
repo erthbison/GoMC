@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"testing"
 )
 
@@ -12,15 +13,16 @@ func TestFifo(t *testing.T) {
 	numNodes := 2
 
 	sim := gomc.Prepare[fifo, State](
-		gomc.BasicScheduler(),
+		gomc.PrefixScheduler(),
 	)
 	sim.RunSimulation(
 		gomc.InitNodeFunc(
-			func() map[int]*fifo {
+			func(sp gomc.SimulationParameters) map[int]*fifo {
 				nodes := map[int]*fifo{}
+				send := eventManager.NewSender(sp.Sch)
 				for i := 0; i < numNodes; i++ {
 					nodes[i] = &fifo{
-						send: sim.SendFactory(i),
+						send: send.SendFunc(i),
 					}
 				}
 				return nodes

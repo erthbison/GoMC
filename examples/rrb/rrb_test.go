@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/predicate"
 	"strings"
 	"testing"
@@ -35,11 +36,12 @@ func TestRrb(t *testing.T) {
 	numNodes := 2
 
 	sim := gomc.Prepare[Rrb, State](
-		gomc.BasicScheduler(),
+		gomc.PrefixScheduler(),
 	)
 
 	resp := sim.RunSimulation(gomc.InitNodeFunc(
-		func() map[int]*Rrb {
+		func(sp gomc.SimulationParameters) map[int]*Rrb {
+			send := eventManager.NewSender(sp.Sch)
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
 				nodeIds = append(nodeIds, i)
@@ -49,7 +51,7 @@ func TestRrb(t *testing.T) {
 				nodes[id] = NewRrb(
 					id,
 					nodeIds,
-					sim.SendFactory(id),
+					send.SendFunc(id),
 				)
 			}
 			return nodes

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"gomc"
+	"gomc/eventManager"
 	"gomc/predicate"
 	"os"
 	"testing"
@@ -58,19 +59,21 @@ var predicates = []gomc.Predicate[state]{
 
 func TestConsensus(t *testing.T) {
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
-		gomc.RandomWalkScheduler(100, 1),
+		gomc.RandomWalkScheduler(1),
+		gomc.MaxRuns(1000),
 	)
 
 	nodeIds := []int{1, 2, 3, 4, 5}
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
-			func(id int) *HierarchicalConsensus[int] {
+			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
+				send := eventManager.NewSender(sp.Sch)
 				node := NewHierarchicalConsensus[int](
 					id,
 					nodeIds,
-					sim.SendFactory(id),
+					send.SendFunc(id),
 				)
-				sim.CrashCallback(node.Crash)
+				sp.Fm.Subscribe(node.Crash)
 				return node
 			},
 		),
@@ -101,6 +104,7 @@ func TestConsensus(t *testing.T) {
 			t.crashed = true
 		}, 1, 2),
 		gomc.WithPredicate(predicates...),
+		gomc.Export(os.Stdout),
 	)
 	if ok, out := resp.Response(); !ok {
 		t.Errorf("Expected no errors while checking. Got: %v", out)
@@ -127,13 +131,14 @@ func TestConsensusReplay(t *testing.T) {
 	nodeIds := []int{1, 2, 3, 4, 5}
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
-			func(id int) *HierarchicalConsensus[int] {
+			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
+				send := eventManager.NewSender(sp.Sch)
 				node := NewHierarchicalConsensus[int](
 					id,
 					nodeIds,
-					sim.SendFactory(id),
+					send.SendFunc(id),
 				)
-				sim.CrashCallback(node.Crash)
+				sp.Fm.Subscribe(node.Crash)
 				return node
 			},
 		),
@@ -161,6 +166,7 @@ func TestConsensusReplay(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(predicates...),
+		gomc.Export(os.Stdout),
 	)
 
 	if ok, _ := resp.Response(); ok {
@@ -171,19 +177,20 @@ func TestConsensusReplay(t *testing.T) {
 func BenchmarkConsensus(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		sim := gomc.Prepare[HierarchicalConsensus[int], state](
-			gomc.RandomWalkScheduler(1000, 1),
+			gomc.RandomWalkScheduler(1),
 		)
 
 		nodeIds := []int{1, 2, 3, 4, 5}
 		sim.RunSimulation(
 			gomc.InitSingleNode(nodeIds,
-				func(id int) *HierarchicalConsensus[int] {
+				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
+					send := eventManager.NewSender(sp.Sch)
 					node := NewHierarchicalConsensus[int](
 						id,
 						nodeIds,
-						sim.SendFactory(id),
+						send.SendFunc(id),
 					)
-					sim.CrashCallback(node.Crash)
+					sp.Fm.Subscribe(node.Crash)
 					return node
 				},
 			),

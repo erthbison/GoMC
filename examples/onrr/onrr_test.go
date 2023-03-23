@@ -2,6 +2,7 @@ package main
 
 import (
 	"gomc"
+	"gomc/eventManager"
 	"gomc/predicate"
 	"math"
 	"testing"
@@ -23,12 +24,13 @@ func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
 	sim := gomc.Prepare[onrr, State](
-		gomc.RandomWalkScheduler(10000, 1),
+		gomc.RandomWalkScheduler(10000),
 	)
 	resp := sim.RunSimulation(
 		gomc.InitNodeFunc(
-			func() map[int]*onrr {
+			func(sp gomc.SimulationParameters) map[int]*onrr {
 				numNodes := 5
+				send := eventManager.NewSender(sp.Sch)
 
 				nodeIds := []int{}
 				for i := 0; i < numNodes; i++ {
@@ -36,7 +38,7 @@ func TestOnrr(t *testing.T) {
 				}
 				nodes := make(map[int]*onrr)
 				for _, id := range nodeIds {
-					nodes[id] = NewOnrr(id, sim.SendFactory(id), nodeIds)
+					nodes[id] = NewOnrr(id, send.SendFunc(id), nodeIds)
 				}
 				go func() {
 					for {
@@ -53,7 +55,7 @@ func TestOnrr(t *testing.T) {
 			gomc.NewRequest(3, "Read"),
 			gomc.NewRequest(4, "Read"),
 		),
-		gomc.WithTreeStateManager[onrr, State](
+		gomc.WithTreeStateManager(
 			func(node *onrr) State {
 				reads := []int{}
 				reads = append(reads, node.possibleReads...)
