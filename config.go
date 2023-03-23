@@ -12,7 +12,7 @@ func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulati
 	var (
 		maxRuns       = 1000
 		maxDepth      = 1000
-		numConcurrent = runtime.GOMAXPROCS(0)
+		numConcurrent = runtime.GOMAXPROCS(0) // Will not change GOMAXPROCS but only return the current value
 	)
 
 	// Use the simulator options to configure
@@ -22,6 +22,8 @@ func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulati
 			maxRuns = t.maxRuns
 		case MaxDepthOption:
 			maxDepth = t.maxDepth
+		case NumConcurrentOption:
+			numConcurrent = t.n
 		}
 	}
 	sch := schOpt.sch
@@ -96,9 +98,9 @@ func PrefixScheduler() SchedulerOption {
 // 	return SchedulerOption{sch: scheduler.NewBasicScheduler()}
 // }
 
-// func ReplayScheduler(run []string) SchedulerOption {
-// 	return SchedulerOption{sch: scheduler.NewReplayScheduler(run)}
-// }
+func ReplayScheduler(run []string) SchedulerOption {
+	return SchedulerOption{sch: scheduler.NewReplay(run)}
+}
 
 func WithScheduler(sch scheduler.GlobalScheduler) SchedulerOption {
 	return SchedulerOption{sch: sch}
@@ -118,6 +120,12 @@ func MaxDepth(maxDepth int) SimulatorOption {
 	return MaxDepthOption{maxDepth: maxDepth}
 }
 
+type NumConcurrentOption struct{ n int }
+
+func NumConcurrent(n int) SimulatorOption {
+	return NumConcurrentOption{n: n}
+}
+
 type StateManagerOption[T, S any] struct{ sm StateManager[T, S] }
 
 func WithStateManager[T, S any](sm StateManager[T, S]) StateManagerOption[T, S] {
@@ -131,20 +139,20 @@ func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S
 
 // Used to specify how the nodes are started.
 type InitNodeOption[T any] struct {
-	f func(scheduler.RunScheduler, chan error, func(func(int))) map[int]*T
+	f func(SimulationParameters) map[int]*T
 }
 
 // Uses the provided function f to generate a map of the nodes
-func InitNodeFunc[T any](f func(scheduler.RunScheduler, chan error, func(func(int))) map[int]*T) InitNodeOption[T] {
+func InitNodeFunc[T any](f func(sp SimulationParameters) map[int]*T) InitNodeOption[T] {
 	return InitNodeOption[T]{f: f}
 }
 
 // Uses the provided function f to generate nodes with the provided id and add them to a map of the nodes
-func InitSingleNode[T any](nodeIds []int, f func(id int, sch scheduler.RunScheduler, nextEvt chan error, crash func(func(int))) *T) InitNodeOption[T] {
-	t := func(sch scheduler.RunScheduler, nextEvt chan error, crash func(func(int))) map[int]*T {
+func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters) *T) InitNodeOption[T] {
+	t := func(sp SimulationParameters) map[int]*T {
 		nodes := map[int]*T{}
 		for _, id := range nodeIds {
-			nodes[id] = f(id, sch, nextEvt, crash)
+			nodes[id] = f(id, sp)
 		}
 		return nodes
 	}
