@@ -10,6 +10,10 @@ func TestRandomScheduler(t *testing.T) {
 	// Perform one random run
 	gsch := NewRandom(1)
 	sch := gsch.GetRunScheduler()
+	err := sch.StartRun()
+	if err != nil {
+		t.Errorf("Got unexpected error: %v", err)
+	}
 	sch.AddEvent(MockEvent{0, 0, false})
 	sch.AddEvent(MockEvent{1, 0, false})
 
@@ -22,7 +26,7 @@ func TestRandomScheduler(t *testing.T) {
 		}
 		run = append(run, evt)
 	}
-	_, err := sch.GetEvent()
+	_, err = sch.GetEvent()
 	if !errors.Is(err, RunEndedError) {
 		t.Errorf("Expected to get a RunEndedError. Got: %v", err)
 	}
@@ -35,11 +39,9 @@ func TestRandomScheduler(t *testing.T) {
 		}
 	}
 	sch.EndRun()
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 0, false})
 
-	_, err = sch.GetEvent()
-	if !errors.Is(err, NoRunsError) {
-		t.Errorf("Expected to get a NoEventError. Got: %v", err)
+	err = sch.StartRun()
+	if err != nil {
+		t.Errorf("Got unexpected error: %v", err)
 	}
 }
