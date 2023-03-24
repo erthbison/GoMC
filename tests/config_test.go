@@ -54,28 +54,4 @@ func TestConfig(t *testing.T) {
 		resp.Export()
 	}
 
-	// nodeIds := []int{0, 1, 2}
-	// resp = sim.RunSimulation(
-	// 	gomc.InitSingleNode(
-	// 		nodeIds,
-	// 		func(id int) *BroadcastNode {
-	// 			return &BroadcastNode{
-	// 				Id:        id,
-	// 				send:      sim.SendFactory(id),
-	// 				Delivered: 0,
-	// 				Acked:     0,
-	// 				nodes:     nodeIds,
-	// 			}
-	// 		},
-	// 	),
-	// 	gomc.WithRequests(
-	// 		gomc.NewRequest(0, "Broadcast", []byte("Test Message")),
-	// 	),
-	// 	gomc.WithPredicate[State](),
-	// )
-
-	// if ok, txt := resp.Response(); !ok {
-	// 	fmt.Println(txt)
-	// 	resp.Export()
-	// }
 }
