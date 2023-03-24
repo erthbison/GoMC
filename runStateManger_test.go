@@ -33,7 +33,7 @@ func TestStateMangerMerge(t *testing.T) {
 		}
 		wait.Wait()
 		close(inChan)
-		state := sm.State().(TreeStateSpace[int])
+		state := sm.State().(treeStateSpace[int])
 		size := state.Len()
 		if size != test.expectedLen {
 			state.Export(os.Stdout)
