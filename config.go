@@ -10,24 +10,34 @@ import (
 func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) SimulationRunner[T, S] {
 	// Default values:
 	var (
-		maxRuns       = 1000
-		maxDepth      = 1000
+		maxRuns  = 1000
+		maxDepth = 1000
+		// number of runs that is simulated at the same time
 		numConcurrent = runtime.GOMAXPROCS(0) // Will not change GOMAXPROCS but only return the current value
+		// If true will ignore all errors while simulating runs. Will return aggregate of errors at the end. If false will interrupt simulation if an error occur
+		ignoreErrors = false
+		// If true will ignore panics that occur during the simulation and let them execute as normal, stopping the simulation. If false will catch the panic and return it as an error.
+		// ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
+		ignorePanics = false
 	)
 
 	// Use the simulator options to configure
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case MaxRunsOption:
+		case maxRunsOption:
 			maxRuns = t.maxRuns
-		case MaxDepthOption:
+		case maxDepthOption:
 			maxDepth = t.maxDepth
-		case NumConcurrentOption:
+		case numConcurrentOption:
 			numConcurrent = t.n
+		case ignoreErrorOption:
+			ignoreErrors = true
+		case ignorePanicOption:
+			ignorePanics = true
 		}
 	}
 	sch := schOpt.sch
-	sim := NewSimulator[T, S](sch, maxRuns, maxDepth, numConcurrent)
+	sim := NewSimulator[T, S](sch, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return SimulationRunner[T, S]{
 		sch: sch,
 		sim: sim,
@@ -52,12 +62,12 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case IncorrectNodesOption[T]:
+		case incorrectNodesOption[T]:
 			incorrectNodes = append(incorrectNodes, t.nodes...)
 			crashFunc = t.crashFunc
-		case PredicateOption[S]:
+		case predicateOption[S]:
 			predicates = append(predicates, t.pred...)
-		case ExportOption:
+		case exportOption:
 			export = t.w
 		}
 	}
@@ -86,52 +96,100 @@ type SchedulerOption struct {
 	sch scheduler.GlobalScheduler
 }
 
+// Use a random walk scheduler for the simulation.
+//
+// The random walk scheduler is a randomized scheduler.
+// It uniformly picks the next event to be scheduled from the currently enabled events.
+// It does not have a designated stop point, and will continue to schedule events until maxRuns is reached.
+// It does not guarantee that all runs have been tested, nor does it guarantee that the same run will not be simulated multiple times.
+// Generally, it provides a more even/varied exploration of the state space than systematic exploration
 func RandomWalkScheduler(seed int64) SchedulerOption {
 	return SchedulerOption{sch: scheduler.NewRandom(seed)}
 }
 
+// Use a prefix scheduler for the simulation.
+//
+// The prefix scheduler is a systematic tester, that performs a depth first search of the state space.
+// It will stop when the entire state space is explored and will not schedule identical runs.
 func PrefixScheduler() SchedulerOption {
 	return SchedulerOption{sch: scheduler.NewPrefix()}
 }
 
-// func BasicScheduler() SchedulerOption {
-// 	return SchedulerOption{sch: scheduler.NewBasicScheduler()}
-// }
-
+// Use a replay scheduler for the simulation
+//
+// The replay scheduler replays the provided run, returning an error if it is unable to reproduce it
+// The provided run is represented as a slice of event ids, and can be exported using the CheckerResponse.Export()
 func ReplayScheduler(run []string) SchedulerOption {
 	return SchedulerOption{sch: scheduler.NewReplay(run)}
 }
 
+// Use the provided scheduler for the simulation
+//
+// Used to configure the simulation to use a different implementation of scheduler than is commonly provided
 func WithScheduler(sch scheduler.GlobalScheduler) SchedulerOption {
 	return SchedulerOption{sch: sch}
 }
 
 type SimulatorOption interface{}
 
-type MaxRunsOption struct{ maxRuns int }
+type maxRunsOption struct{ maxRuns int }
 
+// Configure the maximum number of runs simulated
+//
+// Default value is 1000
 func MaxRuns(maxRuns int) SimulatorOption {
-	return MaxRunsOption{maxRuns: maxRuns}
+	return maxRunsOption{maxRuns: maxRuns}
 }
 
-type MaxDepthOption struct{ maxDepth int }
+type maxDepthOption struct{ maxDepth int }
 
+// Configure the maximum depth explored.
+//
+// Default value is 1000.
+//
+// Note that liveness properties can not be verified if a run is not fully explored to its end.
 func MaxDepth(maxDepth int) SimulatorOption {
-	return MaxDepthOption{maxDepth: maxDepth}
+	return maxDepthOption{maxDepth: maxDepth}
 }
 
-type NumConcurrentOption struct{ n int }
+type numConcurrentOption struct{ n int }
 
+// Configure the number of runs that will be executed concurrently.
+//
+// Default value is GOMAXPROCS
 func NumConcurrent(n int) SimulatorOption {
-	return NumConcurrentOption{n: n}
+	return numConcurrentOption{n: n}
+}
+
+type ignorePanicOption struct{}
+
+// Set the ignorePanic flag to true.
+//
+// If true will ignore panics that occur during the simulation and let them execute as normal, stopping the simulation.
+// If false will catch the panic and return it as an error.
+// Ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
+func IgnorePanic() SimulatorOption {
+	return ignorePanicOption{}
+}
+
+type ignoreErrorOption struct{}
+
+// Set the ignoreError flag to true.
+//
+// If true will ignore all errors while simulating runs. Will return aggregate of errors at the end.
+// If false will interrupt simulation if an error occur.
+func IgnoreError() SimulatorOption {
+	return ignoreErrorOption{}
 }
 
 type StateManagerOption[T, S any] struct{ sm StateManager[T, S] }
 
+// Use the provided state manger in the simulation.
 func WithStateManager[T, S any](sm StateManager[T, S]) StateManagerOption[T, S] {
 	return StateManagerOption[T, S]{sm: sm}
 }
 
+// Use a TreeStateManager in the simulation.
 func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S, S) bool) StateManagerOption[T, S] {
 	sm := NewTreeStateManager(getLocalState, statesEqual)
 	return StateManagerOption[T, S]{sm: sm}
@@ -142,12 +200,12 @@ type InitNodeOption[T any] struct {
 	f func(SimulationParameters) map[int]*T
 }
 
-// Uses the provided function f to generate a map of the nodes
+// Uses the provided function f to generate a map of the nodes.
 func InitNodeFunc[T any](f func(sp SimulationParameters) map[int]*T) InitNodeOption[T] {
 	return InitNodeOption[T]{f: f}
 }
 
-// Uses the provided function f to generate nodes with the provided id and add them to a map of the nodes
+// Uses the provided function f to generate nodes with the provided id and add them to a map of the nodes.
 func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters) *T) InitNodeOption[T] {
 	t := func(sp SimulationParameters) map[int]*T {
 		nodes := map[int]*T{}
@@ -161,19 +219,22 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 
 type RunOptions interface{}
 
-type IncorrectNodesOption[T any] struct {
+type incorrectNodesOption[T any] struct {
 	crashFunc func(*T)
 	nodes     []int
 }
 
+// Configure the provided nodes to crash during the simulation.
+// The crash function specifies how to represent the node crash.
 func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
-	return IncorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
+	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
 }
 
-type PredicateOption[S any] struct{ pred []Predicate[S] }
+type predicateOption[S any] struct{ pred []Predicate[S] }
 
+// Specify a list of predicates that will be used when verifying the implementation.
 func WithPredicate[S any](preds ...Predicate[S]) RunOptions {
-	return PredicateOption[S]{pred: preds}
+	return predicateOption[S]{pred: preds}
 }
 
 type RequestOption struct {
@@ -184,10 +245,11 @@ func WithRequests(requests ...Request) RequestOption {
 	return RequestOption{request: requests}
 }
 
-type ExportOption struct {
+type exportOption struct {
 	w io.Writer
 }
 
+// Write the state to the writer
 func Export(w io.Writer) RunOptions {
-	return ExportOption{w: w}
+	return exportOption{w: w}
 }
