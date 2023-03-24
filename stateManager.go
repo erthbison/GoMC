@@ -16,37 +16,6 @@ type GlobalState[S any] struct {
 	evt         event.Event  // A copy of the event that caused the transition into this state. It should not be changed.
 }
 
-type StateSpace[S any] interface {
-	Payload() GlobalState[S]
-	Children() []StateSpace[S]
-	IsTerminal() bool
-
-	Export(io.Writer)
-}
-
-// A wrapper around the Tree structure so that it implements the StateSpace interface
-type TreeStateSpace[S any] struct {
-	*tree.Tree[GlobalState[S]]
-}
-
-func (tss TreeStateSpace[S]) Children() []StateSpace[S] {
-	out := []StateSpace[S]{}
-	for _, child := range tss.Tree.Children() {
-		out = append(out, TreeStateSpace[S]{
-			Tree: child,
-		})
-	}
-	return out
-}
-
-func (tss TreeStateSpace[S]) IsTerminal() bool {
-	return tss.IsLeafNode()
-}
-
-func (tss TreeStateSpace[S]) Export(w io.Writer) {
-	fmt.Fprint(w, tss.Newick())
-}
-
 func (gs GlobalState[S]) String() string {
 	crashed := []int{}
 	for id, status := range gs.Correct {
@@ -138,5 +107,5 @@ func (sm *TreeStateManager[T, S]) Export(wrt io.Writer) {
 func (sm *TreeStateManager[T, S]) State() StateSpace[S] {
 	sm.RLock()
 	defer sm.RUnlock()
-	return TreeStateSpace[S]{Tree: sm.stateRoot}
+	return treeStateSpace[S]{Tree: sm.stateRoot}
 }
