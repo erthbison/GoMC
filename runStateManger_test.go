@@ -60,12 +60,12 @@ var mergeTest = []struct {
 	runs         [][]int // A slice of runs, where a run is represented by a slice of the ordered ids in the run
 	expectedLen  int
 }{
-	// {
-	// 	numProcesses: 1,
-	// 	numNodes:     3,
-	// 	runs:         [][]int{{0, 1, 2, 3, 4}, {0, 1, 2, 3, 4}},
-	// 	expectedLen:  5,
-	// },
+	{
+		numProcesses: 1,
+		numNodes:     3,
+		runs:         [][]int{{0, 1, 2, 3, 4}, {0, 1, 2, 3, 4}},
+		expectedLen:  5,
+	},
 	{
 		numProcesses: 3,
 		numNodes:     3,
