@@ -40,19 +40,23 @@ func TestPaxosSim(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	sim := gomc.Prepare[Server, State](gomc.RandomWalkScheduler(1000, 1), gomc.MaxDepth(100000), gomc.MaxRuns(5000))
-	gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
+	sim := gomc.Prepare[Server, State](
+		gomc.RandomWalkScheduler(1),
+		gomc.MaxDepth(100000),
+		gomc.MaxRuns(1000),
+	)
 	w, err := os.Create("export.txt")
 	if err != nil {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
 	resp := sim.RunSimulation(
-		gomc.InitNodeFunc(func() map[int]*Server {
+		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
@@ -61,7 +65,7 @@ func TestPaxosSim(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sim.CrashCallback(srv.NodeCrash)
+				sp.Fm.Subscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -165,18 +169,18 @@ func TestPaxosReplay(t *testing.T) {
 
 	sim := gomc.Prepare[Server, State](gomc.ReplayScheduler(run), gomc.MaxDepth(100000))
 	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
-	gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sim.Scheduler(), sim.NextEvent())
 	w, err := os.Create("export.txt")
 	if err != nil {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
 	resp := sim.RunSimulation(
-		gomc.InitNodeFunc(func() map[int]*Server {
+		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
@@ -185,7 +189,7 @@ func TestPaxosReplay(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sim.CrashCallback(srv.NodeCrash)
+				sp.Fm.Subscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
