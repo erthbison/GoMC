@@ -18,7 +18,7 @@ func TestStateMangerMerge(t *testing.T) {
 		for j := 0; j < test.numProcesses; j++ {
 			go func(numNodes, i int) {
 				for runLength := range inChan {
-					rst := sm.NewRun()
+					rst := sm.GetRunStateManager()
 					for _, k := range runLength {
 						nodes, correct, evt := generateMockData(numNodes, k)
 						rst.UpdateGlobalState(nodes, correct, evt)

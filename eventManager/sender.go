@@ -6,10 +6,10 @@ import (
 )
 
 type Sender struct {
-	sch scheduler.Scheduler
+	sch scheduler.RunScheduler
 }
 
-func NewSender(sch scheduler.Scheduler) *Sender {
+func NewSender(sch scheduler.RunScheduler) *Sender {
 	return &Sender{sch: sch}
 }
 

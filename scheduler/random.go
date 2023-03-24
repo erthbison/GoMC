@@ -9,35 +9,39 @@ import (
 // A scheduler that randomly picks the next event from the available events.
 // It is useful for testing a random selection of the state space when the state space is to large to perform an exhaustive search
 // It provides no guarantee that all errors have been found, but since it is random it generally contains a larger spread in the states that are checked compared to the exhaustive search.
-type RandomScheduler struct {
-	sync.Mutex
+type Random struct {
+	rand *rand.Rand
+}
+
+func NewRandom(seed int64) *Random {
+	// The provided seed is used to generate seeds for the runScheduler
+	return &Random{
+		rand: rand.New(rand.NewSource(seed)),
+	}
+}
+
+func (r *Random) GetRunScheduler() RunScheduler {
+	return newRandomRun(rand.Int63())
+}
+
+type randomRun struct {
 	// a slice of all events that can be chosen
 	pendingEvents []event.Event
-	numRuns       uint
-	maxRuns       uint
 
 	rand *rand.Rand
 }
 
-func NewRandomScheduler(maxRuns uint, seed int64) *RandomScheduler {
-	rand := rand.New(rand.NewSource(1))
-	return &RandomScheduler{
+func newRandomRun(seed int64) *randomRun {
+	return &randomRun{
 		pendingEvents: make([]event.Event, 0),
-		numRuns:       0,
-		maxRuns:       maxRuns,
 
-		rand: rand,
+		rand: rand.New(rand.NewSource(seed)),
 	}
 }
 
-func (rs *RandomScheduler) GetEvent() (event.Event, error) {
-	rs.Lock()
-	defer rs.Unlock()
+func (rs *randomRun) GetEvent() (event.Event, error) {
 	if len(rs.pendingEvents) == 0 {
 		return nil, RunEndedError
-	}
-	if rs.numRuns >= rs.maxRuns {
-		return nil, NoEventError
 	}
 
 	index := rs.rand.Intn(len(rs.pendingEvents))
@@ -51,16 +55,14 @@ func (rs *RandomScheduler) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
-func (rs *RandomScheduler) AddEvent(evt event.Event) {
-	rs.Lock()
-	defer rs.Unlock()
+func (rs *randomRun) AddEvent(evt event.Event) {
 	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
-func (rs *RandomScheduler) EndRun() {
-	rs.Lock()
-	defer rs.Unlock()
-	rs.numRuns++
-	// The pendingEvents slice is supposed to be empty when the run ends, but just in case it is not(or the run is manually reset), create a new, empty slice.
+func (rs *randomRun) StartRun() error {
 	rs.pendingEvents = make([]event.Event, 0)
+	return nil
+}
+
+func (rs *randomRun) EndRun() {
 }

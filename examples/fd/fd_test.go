@@ -2,6 +2,7 @@ package main
 
 import (
 	"gomc"
+	"gomc/eventManager"
 	"testing"
 	"time"
 
@@ -14,16 +15,18 @@ type State struct {
 
 func TestFd(t *testing.T) {
 	sim := gomc.Prepare[fd, State](
-		gomc.RandomWalkScheduler(500, 1),
+		gomc.RandomWalkScheduler(500),
 	)
 
 	nodeIds := []int{0, 1, 2}
 	sim.RunSimulation(
 		gomc.InitSingleNode(
 			nodeIds,
-			func(id int) *fd {
+			func(id int, sp gomc.SimulationParameters) *fd {
+				send := eventManager.NewSender(sp.Sch)
+				sleep := eventManager.NewSleepManager(sp.Sch, sp.NextEvt)
 				return NewFd(
-					id, nodeIds, 5*time.Second, sim.SendFactory(id), sim.SleepFactory(id),
+					id, nodeIds, 5*time.Second, send.SendFunc(id), sleep.SleepFunc(id),
 				)
 			},
 		),
@@ -42,6 +45,6 @@ func TestFd(t *testing.T) {
 				return slices.Equal(s1.crashed, s2.crashed)
 			},
 		),
-		gomc.IncorrectNodes(2),
+		gomc.IncorrectNodes(func(t *fd) { t.stopped = true }, 2),
 	)
 }

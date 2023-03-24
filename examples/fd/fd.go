@@ -13,6 +13,7 @@ type fd struct {
 	sleep    func(time.Duration)
 	send     func(int, string, ...any)
 
+	stopped bool
 	crashed []int
 }
 
@@ -37,7 +38,7 @@ func NewFd(id int, nodes []int, duration time.Duration, send func(int, string, .
 }
 
 func (fd *fd) Start() {
-	for {
+	for !fd.stopped {
 		for _, id := range fd.nodes {
 			tmp := !fd.alive[id]
 			_ = tmp
@@ -57,9 +58,15 @@ func (fd *fd) Start() {
 }
 
 func (fd *fd) HeartBeatRequest(from int) {
+	if fd.stopped {
+		return
+	}
 	fd.send(from, "HeartBeatReply", fd.id)
 }
 
 func (fd *fd) HeartBeatReply(from int) {
+	if fd.stopped {
+		return
+	}
 	fd.alive[from] = true
 }

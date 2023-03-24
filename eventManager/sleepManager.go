@@ -9,11 +9,11 @@ import (
 )
 
 type SleepManager struct {
-	sch     scheduler.Scheduler
+	sch     scheduler.RunScheduler
 	nextEvt chan error
 }
 
-func NewSleepManager(sch scheduler.Scheduler, nextEvent chan error) *SleepManager {
+func NewSleepManager(sch scheduler.RunScheduler, nextEvent chan error) *SleepManager {
 	return &SleepManager{
 		sch:     sch,
 		nextEvt: nextEvent,
