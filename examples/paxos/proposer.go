@@ -58,7 +58,7 @@ func (p *Proposer) performPrepare(propsedVal string) {
 	for _, n := range p.nodes {
 		go n.Prepare(context.Background(), msg)
 	}
-	// p.waitForSend(int(p.id.GetVal()), len(p.nodes))
+	p.waitForSend(int(p.id.GetVal()), len(p.nodes))
 }
 
 func (p *Proposer) Promise(_ context.Context, in *proto.PromiseRequest) (*empty.Empty, error) {
