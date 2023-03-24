@@ -12,7 +12,7 @@ import (
 type grpcEventManager struct {
 	AddrIdMap map[string]int
 
-	sch     scheduler.Scheduler
+	sch     scheduler.RunScheduler
 	nextEvt chan error
 
 	msgChan map[int]chan bool
@@ -22,7 +22,7 @@ type grpcEventManager struct {
 // Grpc async calls are called in a separate goroutine without handling the response.
 // A context with a deadline should not be used when simulating since real time does not make sense during simulations.
 // addr is a map from address to node id, shc is the scheduler used and nextEvent is the NextEvent channel from the simulator
-func NewGrpcEventManager(addr map[string]int, sch scheduler.Scheduler, nextEvent chan error) *grpcEventManager {
+func NewGrpcEventManager(addr map[string]int, sch scheduler.RunScheduler, nextEvent chan error) *grpcEventManager {
 	msgChan := make(map[int]chan bool)
 	for _, id := range addr {
 		msgChan[id] = make(chan bool)
