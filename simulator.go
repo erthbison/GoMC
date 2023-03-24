@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gomc/event"
 	"gomc/scheduler"
-	"sync"
+	"runtime/debug"
 )
 
 /*
@@ -15,21 +15,38 @@ import (
 		- All functions must run to completion without waiting for a response from the tester
 */
 
+type simulationError struct {
+	errorSlice []error
+}
+
+func (se simulationError) Error() string {
+	return fmt.Sprintf("Simulator: %v Errors occurred running simulations. \nError 1: %v", len(se.errorSlice), se.errorSlice[0])
+}
+
 type Simulator[T any, S any] struct {
 
 	// The scheduler keeps track of the events and selects the next event to be executed
 	Scheduler scheduler.GlobalScheduler
+
+	// If true will ignore all errors while simulating runs. Will return aggregate of errors at the end. If false will interrupt simulation if an error occur
+	ignoreErrors bool
+
+	// If true will ignore panics that are raised during the simulation. If false will catch the panic and return it as an error.
+	ignorePanics bool
 
 	maxRuns       int
 	maxDepth      int
 	numConcurrent int
 }
 
-func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, maxRuns int, maxDepth int, numConcurrent int) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, ignoreErrors bool, ignorePanics bool, maxRuns int, maxDepth int, numConcurrent int) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 
 	return &Simulator[T, S]{
 		Scheduler: sch,
+
+		ignoreErrors: ignoreErrors,
+		ignorePanics: ignorePanics,
 
 		maxRuns:       maxRuns,
 		maxDepth:      maxDepth,
@@ -47,40 +64,83 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
 
+	// Used to signal to start the next run
 	nextRun := make(chan bool)
-	var wait sync.WaitGroup
+	// used by runSimulators to signal that a run has been completed to the main loop. Errors are also returned
+	status := make(chan error)
+	// Used by the runSimulators to signal that they have stopped executing runs and have closed the goroutine
+	// Main loop stops when all runSimulators have stopped executing runs
+	closing := make(chan bool)
+
+	ongoing := 0
+	startedRuns := 0
 	for i := 0; i < s.numConcurrent; i++ {
-		wait.Add(1)
-		rsim := newRunSimulator(s.Scheduler, sm, s.maxDepth)
+		ongoing++
+		rsim := newRunSimulator(s.Scheduler, sm, s.maxDepth, s.ignorePanics)
 		go func(rsim *runSimulator[T, S]) {
+			// Continue executing runs until the nextRun channel is closed or until the scheduler returns NoRunsError
 			for range nextRun {
 				err := rsim.SimulateRun(initNodes, failingNodes, crashFunc, requests...)
 				if errors.Is(err, scheduler.NoRunsError) {
 					break
 				}
+				status <- err
 			}
-			wait.Done()
+			closing <- true
 		}(rsim)
+
+		// Send a signal to start processing runs
+		startedRuns++
+		nextRun <- true
 	}
 
-	stop := make(chan bool)
-	go func() {
-		numRuns := 0
-		for numRuns < s.maxRuns {
-			select {
-			case nextRun <- true:
-				numRuns++
-			case <-stop:
-				break
-			}
+	errorSlice := []error{}
+	var out error
+
+	stopped := false
+
+	// Stop the simulation by closing the nextRun channel if it is not already closed
+	stop := func() {
+		if !stopped {
+			stopped = true
+			close(nextRun)
 		}
-		close(nextRun)
-	}()
+	}
+	// Loop until all runSimulators has stopped simulating
+	for ongoing > 0 {
+		select {
+		case err := <-status:
+			// Handle errors depending on whether the ignoreErrors flag is set or not
+			if err != nil {
+				if !s.ignoreErrors {
+					out = err
+					stop()
+					break
+				} else {
+					errorSlice = append(errorSlice, err)
+				}
+			}
 
-	wait.Wait()
-	close(stop)
+			if startedRuns < s.maxRuns {
+				nextRun <- true
+				startedRuns++
+			} else {
+				stop()
+			}
+		case <-closing:
+			ongoing--
+		}
+	}
 
-	return nil
+	stop()
+
+	if s.ignoreErrors {
+		out = simulationError{
+			errorSlice: errorSlice,
+		}
+	}
+
+	return out
 }
 
 type runSimulator[T, S any] struct {
@@ -90,7 +150,8 @@ type runSimulator[T, S any] struct {
 
 	nextEvt chan error
 
-	maxDepth int
+	maxDepth     int
+	ignorePanics bool
 }
 
 type SimulationParameters struct {
@@ -99,7 +160,7 @@ type SimulationParameters struct {
 	Sch     scheduler.RunScheduler
 }
 
-func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T, S], maxDepth int) *runSimulator[T, S] {
+func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
 		sch: sch.GetRunScheduler(),
 		sm:  sm.GetRunStateManager(),
@@ -107,7 +168,8 @@ func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T,
 
 		nextEvt: make(chan error),
 
-		maxDepth: maxDepth,
+		maxDepth:     maxDepth,
+		ignorePanics: ignorePanics,
 	}
 }
 
@@ -140,13 +202,16 @@ func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sp SimulationParameters
 	}
 
 	err = rs.executeRun(nodes)
-	if err != nil {
-		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
-	}
+
 	// End the run
 	// Add an end event at the end of this path of the event tree
 	rs.sch.EndRun()
 	rs.sm.EndRun()
+
+	if err != nil {
+		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
+	}
+
 	return nil
 }
 
@@ -182,13 +247,15 @@ func (rs *runSimulator[T, S]) executeRun(nodes map[int]*T) error {
 func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	// execute next event in a goroutine to ensure that we can pause it midway trough if necessary, e.g. for timeouts or some types of messages
 	go func() {
-		// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
-		// defer func() {
-		// 	if p := recover(); p != nil {
-		// 		// using the debug package to get the stack could be useful, but it adds some clutter at the top
-		// 		s.NextEvt <- fmt.Errorf("Node panicked while executing event: %v \nStack Trace:\n %s", p, debug.Stack())
-		// 	}
-		// }()
+		if !rs.ignorePanics {
+			// Catch all panics that occur while executing the event. These are often caused by faults in the implementation and are therefore reported to the simulator.
+			defer func() {
+				if p := recover(); p != nil {
+					// using the debug package to get the stack could be useful, but it adds some clutter at the top
+					rs.nextEvt <- fmt.Errorf("Node panicked while executing an: %v \nStack Trace:\n %s", p, debug.Stack())
+				}
+			}()
+		}
 		evt.Execute(node, rs.nextEvt)
 	}()
 	return <-rs.nextEvt
