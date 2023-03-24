@@ -31,10 +31,6 @@ func NewPrefix() *Prefix {
 }
 
 func (p *Prefix) GetRunScheduler() RunScheduler {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	p.ongoing++
 	return newRunQueue(p)
 }
 
