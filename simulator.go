@@ -164,7 +164,7 @@ func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T,
 	return &runSimulator[T, S]{
 		sch: sch.GetRunScheduler(),
 		sm:  sm.GetRunStateManager(),
-		fm:  NewFailureManager(),
+		fm:  newFailureManager(),
 
 		nextEvt: make(chan error),
 
