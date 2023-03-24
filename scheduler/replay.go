@@ -3,6 +3,7 @@ package scheduler
 import (
 	"errors"
 	"gomc/event"
+	"sync"
 )
 
 type Replay struct {
@@ -25,6 +26,7 @@ func (r *Replay) GetRunScheduler() RunScheduler {
 }
 
 type runReplay struct {
+	sync.Mutex
 	// A slice of the run to be replayed with event ids in order
 	run []string
 	// The index of the current event
@@ -44,6 +46,9 @@ func newRunReplay(run []string) *runReplay {
 
 // Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
 func (rr *runReplay) GetEvent() (event.Event, error) {
+	rr.Lock()
+	defer rr.Unlock()
+
 	if rr.index >= len(rr.run) {
 		rr.run = nil
 		return nil, RunEndedError
@@ -70,10 +75,14 @@ func (rr *runReplay) popEvent(id string) event.Event {
 
 // Add an event to the list of possible events
 func (rr *runReplay) AddEvent(evt event.Event) {
+	rr.Lock()
+	defer rr.Unlock()
 	rr.pendingEvents = append(rr.pendingEvents, evt)
 }
 
 func (rr *runReplay) StartRun() error {
+	rr.Lock()
+	defer rr.Unlock()
 	if rr.run == nil {
 		return NoRunsError
 	}
@@ -82,5 +91,7 @@ func (rr *runReplay) StartRun() error {
 
 // Finish the current run and prepare for the next one
 func (rr *runReplay) EndRun() {
+	rr.Lock()
+	defer rr.Unlock()
 	rr.index = 0
 }

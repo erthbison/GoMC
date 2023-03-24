@@ -24,6 +24,7 @@ func (gs *GuidedSearch) GetRunScheduler() RunScheduler {
 }
 
 type runGuidedSearch struct {
+	sync.Mutex
 	// The scheduler used to search the state space
 	search RunScheduler
 
@@ -50,6 +51,8 @@ func newRunGuidedSearch(search RunScheduler, run []string) *runGuidedSearch {
 // Will follow the provided run until it has been completed or until it is unable to find the next event.
 // After that the scheduler will begin to search the state space using teh provided search scheduler.
 func (gs *runGuidedSearch) GetEvent() (event.Event, error) {
+	gs.Lock()
+	defer gs.Unlock()
 	if gs.useGuided {
 		evt, err := gs.guided.GetEvent()
 		if err != nil {
@@ -68,6 +71,8 @@ func (gs *runGuidedSearch) GetEvent() (event.Event, error) {
 
 // Add an event to the list of possible events
 func (gs *runGuidedSearch) AddEvent(evt event.Event) {
+	gs.Lock()
+	defer gs.Unlock()
 	if gs.useGuided {
 		gs.guided.AddEvent(evt)
 	} else {
@@ -76,6 +81,8 @@ func (gs *runGuidedSearch) AddEvent(evt event.Event) {
 }
 
 func (gs *runGuidedSearch) StartRun() error {
+	gs.Lock()
+	defer gs.Unlock()
 	gs.useGuided = true
 	gs.guided = newRunReplay(gs.run)
 	err := gs.guided.StartRun()

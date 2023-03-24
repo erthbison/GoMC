@@ -25,6 +25,8 @@ func (r *Random) GetRunScheduler() RunScheduler {
 }
 
 type randomRun struct {
+	sync.Mutex
+
 	// a slice of all events that can be chosen
 	pendingEvents []event.Event
 
@@ -40,6 +42,9 @@ func newRandomRun(seed int64) *randomRun {
 }
 
 func (rs *randomRun) GetEvent() (event.Event, error) {
+	rs.Lock()
+	defer rs.Unlock()
+
 	if len(rs.pendingEvents) == 0 {
 		return nil, RunEndedError
 	}
@@ -56,10 +61,14 @@ func (rs *randomRun) GetEvent() (event.Event, error) {
 }
 
 func (rs *randomRun) AddEvent(evt event.Event) {
+	rs.Lock()
+	defer rs.Unlock()
 	rs.pendingEvents = append(rs.pendingEvents, evt)
 }
 
 func (rs *randomRun) StartRun() error {
+	rs.Lock()
+	defer rs.Unlock()
 	rs.pendingEvents = make([]event.Event, 0)
 	return nil
 }
