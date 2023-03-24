@@ -34,28 +34,32 @@ func NewMockGlobalScheduler() *MockGlobalScheduler {
 }
 
 func (mgs *MockGlobalScheduler) GetRunScheduler() scheduler.RunScheduler {
-	return NewMockScheduler()
+	return NewMockRunScheduler()
 }
 
 type MockRunScheduler struct {
-	eventQueue []event.Event
-	index      int
+	eventQueue  []event.Event
+	addedEvents []event.Event
+	index       int
 }
 
-func NewMockScheduler(events ...event.Event) *MockRunScheduler {
+func NewMockRunScheduler(events ...event.Event) *MockRunScheduler {
 	return &MockRunScheduler{
-		eventQueue: events,
-		index:      0,
+		eventQueue:  events,
+		index:       0,
+		addedEvents: make([]event.Event, 0),
 	}
 }
 
 func (ms *MockRunScheduler) AddEvent(evt event.Event) {
-
+	ms.addedEvents = append(ms.addedEvents, evt)
 }
 
 func (ms *MockRunScheduler) GetEvent() (event.Event, error) {
 	if ms.index < len(ms.eventQueue) {
-		return ms.eventQueue[ms.index], nil
+		evt := ms.eventQueue[ms.index]
+		ms.index++
+		return evt, nil
 	}
 	return nil, scheduler.RunEndedError
 }
@@ -65,7 +69,7 @@ func (ms *MockRunScheduler) StartRun() error {
 }
 
 func (ms *MockRunScheduler) EndRun() {
-	
+	ms.addedEvents = make([]event.Event, 0)
 }
 
 type MockStateManager struct {

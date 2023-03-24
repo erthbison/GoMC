@@ -76,7 +76,7 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 	startedRuns := 0
 	for i := 0; i < s.numConcurrent; i++ {
 		ongoing++
-		rsim := newRunSimulator(s.Scheduler, sm, s.maxDepth, s.ignorePanics)
+		rsim := newRunSimulator(s.Scheduler.GetRunScheduler(), sm.GetRunStateManager(), s.maxDepth, s.ignorePanics)
 		go func(rsim *runSimulator[T, S]) {
 			// Continue executing runs until the nextRun channel is closed or until the scheduler returns NoRunsError
 			for range nextRun {
@@ -160,10 +160,10 @@ type SimulationParameters struct {
 	Sch     scheduler.RunScheduler
 }
 
-func newRunSimulator[T, S any](sch scheduler.GlobalScheduler, sm StateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
+func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
-		sch: sch.GetRunScheduler(),
-		sm:  sm.GetRunStateManager(),
+		sch: sch,
+		sm:  sm,
 		fm:  newFailureManager(),
 
 		nextEvt: make(chan error),
@@ -192,7 +192,7 @@ func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sp SimulationParameters
 		return err
 	}
 
-	rs.scheduleRequests(requests)
+	rs.scheduleRequests(requests, nodes)
 
 	// Add crash events to simulation.
 	for _, id := range failingNodes {
@@ -261,13 +261,18 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	return <-rs.nextEvt
 }
 
-func (rs *runSimulator[T, S]) scheduleRequests(requests []Request) {
+func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int]*T) {
 	// add all the functions to the scheduler
-	for i, f := range requests {
+	addedRequests := 0
+	for _, f := range requests {
+		if _, ok := nodes[f.Id]; !ok {
+			continue
+		}
 		rs.sch.AddEvent(
 			event.NewFunctionEvent(
-				i, f.Id, f.Method, f.Params...,
+				addedRequests, f.Id, f.Method, f.Params...,
 			),
 		)
+		addedRequests++
 	}
 }
