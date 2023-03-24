@@ -28,11 +28,17 @@ type RunScheduler interface {
 
 	// Prepare for starting a new run. Returns a NoRunsError if all possible runs have been completed. May block until new runs are available.
 	StartRun() error
-	// Finish the current run and prepare for the next one
+	// Finish the current run and prepare for the next one.
+	// Will always be called after a run has been completely executed, even if an error occurred during execution of the run.
 	EndRun()
 }
 
 var (
+	// The current run has ended and a new run should be started.
+	// The simulator will call EndRun() and then prepare for the execution of a new run.
 	RunEndedError = errors.New("scheduler: The run has ended. Reset the state.")
-	NoRunsError   = errors.New("scheduler: No available new runs to be started")
+
+	// All possible runs have been completed. No more available runs.
+	// The simulation will stop.
+	NoRunsError = errors.New("scheduler: No available new runs to be started.")
 )
