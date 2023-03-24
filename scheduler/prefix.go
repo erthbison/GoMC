@@ -49,12 +49,17 @@ func (p *Prefix) addRun(r run) {
 	}
 }
 
-func (p *Prefix) getRun() run {
+func (p *Prefix) endRun() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
 	p.ongoing--
 	p.cond.Broadcast()
+}
+
+func (p *Prefix) getRun() run {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 
 	// If there are no available events wait until there are.
 	// If at the same time all runSchedulers are waiting for a new event then there will never be a new available event since there are no runSchedulers that can add a new event
@@ -168,7 +173,6 @@ func (rp *runPrefix) StartRun() error {
 }
 
 // Finish the current run and prepare for the next one
-func (rss *runPrefix) EndRun() {
-	// qs.currentIndex = 0
-	// qs.currentRun = qs.ss.getRun()
+func (rp *runPrefix) EndRun() {
+	rp.p.endRun()
 }
