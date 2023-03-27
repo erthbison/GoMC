@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 func TestSimulatorNoEvents(t *testing.T) {
@@ -48,7 +49,17 @@ func TestAddRequests(t *testing.T) {
 		false,
 	)
 	for i, test := range addRequestTests {
-		sim.scheduleRequests(test.requests, test.nodes)
+		err := sim.scheduleRequests(test.requests, test.nodes)
+
+		isErr := (err != nil)
+		if isErr != test.err {
+			if isErr {
+				t.Errorf("Test %v: Expected no error got: %v", i, err)
+			} else {
+				t.Errorf("Test %v: Expected to receive an error", i)
+			}
+			continue
+		}
 
 		if len(sch.addedEvents) != len(test.events) {
 			t.Errorf("Test %v: Unexpected number of added events. Got %v. Expected %v.", i, len(sch.addedEvents), len(test.events))
@@ -77,11 +88,13 @@ var addRequestTests = []struct {
 	requests []Request
 	nodes    map[int]*MockNode
 	events   []event.FunctionEvent
+	err      bool
 }{
 	{
 		[]Request{},
 		map[int]*MockNode{},
 		[]event.FunctionEvent{},
+		true,
 	},
 	{
 		[]Request{
@@ -95,6 +108,7 @@ var addRequestTests = []struct {
 			event.NewFunctionEvent(1, 1, "Foo", emptyParams...),
 			event.NewFunctionEvent(2, 0, "Foo", emptyParams...),
 		},
+		false,
 	},
 	{
 		[]Request{
@@ -106,6 +120,7 @@ var addRequestTests = []struct {
 		[]event.FunctionEvent{
 			event.NewFunctionEvent(0, 1, "Foo", emptyParams...),
 		},
+		false,
 	},
 	{
 		[]Request{
@@ -115,6 +130,7 @@ var addRequestTests = []struct {
 		},
 		map[int]*MockNode{0: {}, 3: {}},
 		[]event.FunctionEvent{},
+		true,
 	},
 }
 
@@ -246,4 +262,160 @@ func TestExecuteEventDontIgnorePanics(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected to receive an error")
 	}
+}
+
+func TestInitRun(t *testing.T) {
+	for i, test := range initRunTest {
+		sch := NewMockRunScheduler()
+		gsm := NewMockStateManager()
+		sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+		sim := newRunSimulator(
+			sch,
+			sm,
+			1000,
+			false,
+		)
+
+		sch.runEnded = test.runEnded
+
+		nodes, err := sim.initRun(test.initNodes, test.failingNodes, func(t *MockNode) { t.crashed = true }, test.requests...)
+		isErr := (err != nil)
+		if isErr != test.expectedError {
+			if isErr {
+				t.Errorf("Test %v: Expected no error got: %v", i, err)
+			} else {
+				t.Errorf("Test %v: Expected to receive an error", i)
+			}
+			continue
+		}
+
+		if !reflect.DeepEqual(nodes, test.expectedNodes) {
+			t.Errorf("Test %v: Unexpected node map returned. Got %v. Expected: %v", i, nodes, test.expectedNodes)
+		}
+		if !slices.EqualFunc(sch.addedEvents, test.expectedEvents, event.EventsEquals) {
+			t.Errorf("Test %v: Unexpected events added. Got: %v, Expected: %v", i, sch.addedEvents, test.expectedEvents)
+		}
+	}
+}
+
+var initRunTest = []struct {
+	initNodes    func(SimulationParameters) map[int]*MockNode
+	failingNodes []int
+	requests     []Request
+	runEnded     bool
+
+	expectedError  bool
+	expectedNodes  map[int]*MockNode
+	expectedEvents []event.Event
+}{
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 1: {}, 2: {}}
+		},
+		[]int{},
+		[]Request{NewRequest(0, "Foo")},
+		false,
+
+		false,
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+		[]event.Event{
+			event.NewFunctionEvent(0, 0, "Foo"),
+		},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 1: {}, 2: {}}
+		},
+		[]int{},
+		[]Request{},
+		false,
+
+		true,
+		nil,
+		[]event.Event{},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 1: {val: 3}, 2: {val: 5}}
+		},
+		[]int{},
+		[]Request{NewRequest(0, "Foo")},
+		false,
+
+		false,
+		map[int]*MockNode{0: {}, 1: {val: 3}, 2: {val: 5}},
+		[]event.Event{
+			event.NewFunctionEvent(0, 0, "Foo"),
+		},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
+		},
+		[]int{},
+		[]Request{NewRequest(0, "Foo")},
+		false,
+
+		false,
+		map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}},
+		[]event.Event{
+			event.NewFunctionEvent(0, 0, "Foo"),
+		},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
+		},
+		[]int{3, 5},
+		[]Request{NewRequest(0, "Foo")},
+		false,
+
+		false,
+		map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}},
+		[]event.Event{
+			event.NewFunctionEvent(0, 0, "Foo"),
+			event.NewCrashEvent(3, func(i int) error { return nil }, func() {}),
+			event.NewCrashEvent(5, func(i int) error { return nil }, func() {}),
+		},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
+		},
+		[]int{3, 5, 10},
+		[]Request{NewRequest(0, "Foo"), NewRequest(2, "foo")},
+		false,
+
+		false,
+		map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}},
+		[]event.Event{
+			event.NewFunctionEvent(0, 0, "Foo"),
+			event.NewCrashEvent(3, func(i int) error { return nil }, func() {}),
+			event.NewCrashEvent(5, func(i int) error { return nil }, func() {}),
+		},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
+		},
+		[]int{3, 5, 10},
+		[]Request{NewRequest(0, "Foo"), NewRequest(2, "foo")},
+		true,
+
+		true,
+		nil,
+		[]event.Event{},
+	},
+	{
+		func(sp SimulationParameters) map[int]*MockNode {
+			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
+		},
+		[]int{},
+		[]Request{NewRequest(0, "Foo")},
+		true,
+
+		true,
+		nil,
+		[]event.Event{},
+	},
 }

@@ -42,6 +42,7 @@ type MockRunScheduler struct {
 	eventQueue  []event.Event
 	addedEvents []event.Event
 	index       int
+	runEnded    bool
 }
 
 func NewMockRunScheduler(events ...event.Event) *MockRunScheduler {
@@ -66,6 +67,9 @@ func (ms *MockRunScheduler) GetEvent() (event.Event, error) {
 }
 
 func (ms *MockRunScheduler) StartRun() error {
+	if ms.runEnded {
+		return scheduler.RunEndedError
+	}
 	return nil
 }
 

@@ -80,12 +80,15 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 		go func(rsim *runSimulator[T, S]) {
 			// Continue executing runs until the nextRun channel is closed or until the scheduler returns NoRunsError
 			for range nextRun {
-				err := rsim.SimulateRun(initNodes, failingNodes, crashFunc, requests...)
+				err := rsim.simulateRun(initNodes, failingNodes, crashFunc, requests...)
 				if errors.Is(err, scheduler.NoRunsError) {
 					break
 				}
+				// Send error to main loop
 				status <- err
 			}
+
+			// Indicate that the runSimulator has stopped
 			closing <- true
 		}(rsim)
 
@@ -94,12 +97,15 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 		nextRun <- true
 	}
 
+	return s.mainLoop(ongoing, startedRuns, nextRun, status, closing)
+}
+
+func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bool, status chan error, closing chan bool) error {
 	errorSlice := []error{}
 	var out error
 
-	stopped := false
-
 	// Stop the simulation by closing the nextRun channel if it is not already closed
+	stopped := false
 	stop := func() {
 		if !stopped {
 			stopped = true
@@ -121,6 +127,7 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 				}
 			}
 
+			// If the number of runs that have been started is
 			if startedRuns < s.maxRuns {
 				nextRun <- true
 				startedRuns++
@@ -135,11 +142,10 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 	stop()
 
 	if s.ignoreErrors {
-		out = simulationError{
+		return simulationError{
 			errorSlice: errorSlice,
 		}
 	}
-
 	return out
 }
 
@@ -173,7 +179,26 @@ func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T
 	}
 }
 
-func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
+func (rs *runSimulator[T, S]) simulateRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
+	nodes, err := rs.initRun(initNodes, failingNodes, crashFunc, requests...)
+	if err != nil {
+		return err
+	}
+
+	err = rs.executeRun(nodes)
+	// End the run
+	// Add an end event at the end of this path of the event tree
+	rs.sch.EndRun()
+	rs.sm.EndRun()
+
+	if err != nil {
+		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
+	}
+
+	return nil
+}
+
+func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) (map[int]*T, error) {
 	nodes := initNodes(SimulationParameters{
 		NextEvt: rs.nextEvt,
 		Fm:      rs.fm,
@@ -189,30 +214,25 @@ func (rs *runSimulator[T, S]) SimulateRun(initNodes func(sp SimulationParameters
 
 	err := rs.sch.StartRun()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rs.scheduleRequests(requests, nodes)
+	err = rs.scheduleRequests(requests, nodes)
+	if err != nil {
+		return nil, err
+	}
 
 	// Add crash events to simulation.
 	for _, id := range failingNodes {
+		if _, ok := nodes[id]; !ok {
+			continue
+		}
 		rs.sch.AddEvent(
 			event.NewCrashEvent(id, rs.fm.NodeCrash, func() { crashFunc(nodes[id]) }),
 		)
 	}
 
-	err = rs.executeRun(nodes)
-
-	// End the run
-	// Add an end event at the end of this path of the event tree
-	rs.sch.EndRun()
-	rs.sm.EndRun()
-
-	if err != nil {
-		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
-	}
-
-	return nil
+	return nodes, nil
 }
 
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
@@ -261,7 +281,7 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	return <-rs.nextEvt
 }
 
-func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int]*T) {
+func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int]*T) error {
 	// add all the functions to the scheduler
 	addedRequests := 0
 	for _, f := range requests {
@@ -275,4 +295,8 @@ func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int
 		)
 		addedRequests++
 	}
+	if addedRequests == 0 {
+		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
+	}
+	return nil
 }
