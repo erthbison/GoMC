@@ -100,6 +100,10 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 	return s.mainLoop(ongoing, startedRuns, nextRun, status, closing)
 }
 
+// Receives status updates from each of the runSimulators. One status update for each completed run.
+// Processes the status updates and signals for the runSimulator to begin simulating the next run.
+// Does not start new simulations if more than maxRuns simulations has been started.
+// Returns when all runSimulators has stopped running.
 func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bool, status chan error, closing chan bool) error {
 	errorSlice := []error{}
 	var out error
@@ -127,7 +131,6 @@ func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bo
 				}
 			}
 
-			// If the number of runs that have been started is
 			if startedRuns < s.maxRuns {
 				nextRun <- true
 				startedRuns++
@@ -141,7 +144,11 @@ func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bo
 
 	stop()
 
-	if s.ignoreErrors {
+	// Can safely close the closing and status channels, since we know that all runSimulators has completed and will not try to send on them
+	close(closing)
+	close(status)
+
+	if s.ignoreErrors && len(errorSlice) > 0 {
 		return simulationError{
 			errorSlice: errorSlice,
 		}
@@ -187,7 +194,7 @@ func (rs *runSimulator[T, S]) simulateRun(initNodes func(sp SimulationParameters
 
 	err = rs.executeRun(nodes)
 	// End the run
-	// Add an end event at the end of this path of the event tree
+
 	rs.sch.EndRun()
 	rs.sm.EndRun()
 

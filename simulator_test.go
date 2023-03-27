@@ -1,6 +1,7 @@
 package gomc
 
 import (
+	"fmt"
 	"gomc/event"
 	"reflect"
 	"testing"
@@ -10,7 +11,6 @@ import (
 )
 
 func TestSimulatorNoEvents(t *testing.T) {
-	// Test
 	sch := NewMockGlobalScheduler()
 	sm := NewMockStateManager()
 	simulator := NewSimulator[MockNode, State](sch, false, false, 10000, 1000, 1)
@@ -417,5 +417,116 @@ var initRunTest = []struct {
 		true,
 		nil,
 		[]event.Event{},
+	},
+}
+
+func TestMainLoop(t *testing.T) {
+	for i, test := range mainLoopTest {
+		sch := NewMockGlobalScheduler()
+		sim := NewSimulator[MockNode, State](sch, test.ignoreError, false, test.maxRuns, 1000, 10)
+
+		nextRun := make(chan bool)
+		status := make(chan error)
+		closing := make(chan bool)
+
+		numNextRuns := 0
+		go func() {
+			for range nextRun {
+				if numNextRuns >= len(test.status) {
+					break
+				}
+
+				status <- test.status[numNextRuns]
+				numNextRuns++
+			}
+			closing <- true
+		}()
+
+		nextRun <- true
+
+		err := sim.mainLoop(1, test.startedRuns, nextRun, status, closing)
+		isErr := (err != nil)
+		if isErr != test.expectedErr {
+			if isErr {
+				t.Errorf("Test %v: Expected no error got: %v", i, err)
+			} else {
+				t.Errorf("Test %v: Expected to receive an error", i)
+			}
+			continue
+		}
+
+		if numNextRuns != test.expectedNextRun {
+			t.Errorf("Test %v: Unexpected number of performed runs. Got: %v. Expected: %v", i, numNextRuns, test.expectedNextRun)
+		}
+	}
+}
+
+var (
+	noError error
+	err     = fmt.Errorf("Dummy error")
+)
+
+var mainLoopTest = []struct {
+	ignoreError bool
+	maxRuns     int
+	startedRuns int // Number of started runs before the simulation begins. Does not 
+
+	status          []error
+	expectedNextRun int
+	expectedErr     bool
+}{
+	{
+		false,
+		100,
+		1,
+		[]error{noError, noError, noError, noError, noError},
+
+		5,
+		false,
+	},
+	{
+		false,
+		100,
+		1,
+
+		[]error{noError, noError, err},
+		3,
+		true,
+	},
+	{
+		false,
+		100,
+		1,
+
+		[]error{noError, noError, err, noError, noError},
+		3, // Since ignoreError is false it will stop at the error
+		true,
+	},
+	{
+		false,
+		100,
+		99,
+
+		[]error{noError, noError, err},
+		2,
+		false, // Will never get to the error, since maxRuns is reached first
+	},
+	{
+		true,
+		100,
+		99,
+
+		[]error{noError, noError, err},
+		2,
+		false, // Will never get to the error, since maxRuns is reached first
+	},
+	{
+		true,
+		15,
+		10,
+
+		[]error{noError, noError, err, noError, noError},
+		5,
+		true, // Will get to the error, but will continue executing since ignoreError is true
 	},
 }
