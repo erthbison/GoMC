@@ -4,6 +4,8 @@ import (
 	"gomc/event"
 	"reflect"
 	"testing"
+
+	"golang.org/x/exp/maps"
 )
 
 func TestSimulatorNoEvents(t *testing.T) {
@@ -112,7 +114,136 @@ var addRequestTests = []struct {
 			{10, "Foo", []reflect.Value{}},
 		},
 		map[int]*MockNode{0: {}, 3: {}},
-		[]event.FunctionEvent{
+		[]event.FunctionEvent{},
+	},
+}
+
+func TestExecuteRun(t *testing.T) {
+	for i, test := range executeRunTest {
+		sch := NewMockRunScheduler(test.events...)
+		gsm := NewMockStateManager()
+		sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+		sim := newRunSimulator(
+			sch,
+			sm,
+			1000,
+			false,
+		)
+
+		err := sim.executeRun(test.nodes)
+		isErr := (err != nil)
+		if isErr != test.expectedErr {
+			if isErr {
+				t.Errorf("Test %v: Expected no error got: %v", i, err)
+			} else {
+				t.Errorf("Test %v: Expected to receive an error", i)
+			}
+			continue
+		}
+
+		sm.EndRun()
+
+		actual := gsm.receivedRun
+		expected := test.expectedStates
+
+		if len(actual) != len(expected) {
+			t.Errorf("Test %v: Unexpected length of state. Got: %v. Expected: %v", i, len(actual), len(expected))
+		}
+
+		for j := 0; j < len(gsm.receivedRun); j++ {
+			if !maps.Equal(actual[j].LocalStates, expected[j]) {
+				t.Errorf("Test %v: Unexpected state. Got: %v. Expected: %v. \n Full run: %v", i, actual[j].LocalStates, expected[j], actual)
+			}
+		}
+	}
+}
+
+var executeRunTest = []struct {
+	nodes          map[int]*MockNode
+	events         []event.Event
+	expectedErr    bool
+	expectedStates []map[int]State
+}{
+	{
+		// Execute 1 event
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+		[]event.Event{
+			MockEvent{0, 0, false, 1},
+		},
+		false,
+		[]map[int]State{
+			{0: {1}, 1: {0}, 2: {0}},
 		},
 	},
+	{
+		// Execute event on non-existing process
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+		[]event.Event{
+			MockEvent{0, 5, false, 1},
+		},
+		true,
+		[]map[int]State{},
+	},
+	{
+		// Execute 5 correct events on different nodes event
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+		[]event.Event{
+			MockEvent{0, 0, false, 1},
+			MockEvent{1, 1, false, 1},
+			MockEvent{2, 2, false, 1},
+			MockEvent{3, 0, false, 3},
+			MockEvent{4, 0, false, 5},
+		},
+		false,
+		[]map[int]State{
+			{0: {1}, 1: {0}, 2: {0}},
+			{0: {1}, 1: {1}, 2: {0}},
+			{0: {1}, 1: {1}, 2: {1}},
+			{0: {3}, 1: {1}, 2: {1}},
+			{0: {5}, 1: {1}, 2: {1}},
+		},
+	},
+	{
+		// Execute 5 correct events on different nodes event
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+		[]event.Event{
+			MockEvent{0, 0, false, 1},
+			MockEvent{1, 1, false, 1},
+			MockEvent{2, 2, false, 1},
+			MockEvent{3, 4, false, 3},
+			MockEvent{4, 0, false, 5},
+		},
+		true,
+		[]map[int]State{
+			{0: {1}, 1: {0}, 2: {0}},
+			{0: {1}, 1: {1}, 2: {0}},
+			{0: {1}, 1: {1}, 2: {1}},
+		},
+	},
+}
+
+func TestExecuteEventDontIgnorePanics(t *testing.T) {
+	sch := NewMockRunScheduler()
+	gsm := NewMockStateManager()
+	sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+	sim := newRunSimulator(
+		sch,
+		sm,
+		1000,
+		false,
+	)
+
+	// The value -1 is hard coded to trigger a panic
+	evt := MockEvent{0, 0, false, -1}
+	n := &MockNode{}
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Did not expect code to panic")
+		}
+	}()
+
+	err := sim.executeEvent(n, evt)
+	if err == nil {
+		t.Errorf("Expected to receive an error")
+	}
 }

@@ -10,7 +10,8 @@ import (
 type MockNode struct {
 	Id int
 
-	val int
+	crashed bool
+	val     int
 }
 
 func (n *MockNode) UpdateVal(val int) {
@@ -73,6 +74,7 @@ func (ms *MockRunScheduler) EndRun() {
 }
 
 type MockStateManager struct {
+	receivedRun []GlobalState[State]
 }
 
 func NewMockStateManager() *MockStateManager {
@@ -87,20 +89,29 @@ func (ms *MockStateManager) State() StateSpace[State] {
 	return treeStateSpace[State]{}
 }
 
-func (ms *MockStateManager) AddRun([]GlobalState[State]) {
+func (ms *MockStateManager) AddRun(run []GlobalState[State]) {
+	ms.receivedRun = run
 }
 
 type MockEvent struct {
 	id       int
 	target   int
 	executed bool
+	val      int
 }
 
 func (me MockEvent) Id() string {
 	return strconv.Itoa(me.id)
 }
 
-func (me MockEvent) Execute(_ any, chn chan error) {
+func (me MockEvent) Execute(n any, chn chan error) {
+	if me.val == -1 {
+		panic("Node panicked during testing")
+	}
+	tmp := n.(*MockNode)
+	if !tmp.crashed {
+		tmp.val = me.val
+	}
 	chn <- nil
 }
 
