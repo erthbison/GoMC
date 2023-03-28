@@ -469,7 +469,7 @@ var (
 var mainLoopTest = []struct {
 	ignoreError bool
 	maxRuns     int
-	startedRuns int // Number of started runs before the simulation begins. Does not 
+	startedRuns int // Number of started runs before the simulation begins.
 
 	status          []error
 	expectedNextRun int
