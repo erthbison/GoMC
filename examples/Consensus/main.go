@@ -29,10 +29,10 @@ func runServer() {
 		5: ":50004",
 	}
 
-	nodeIds := []uint{}
+	nodeIds := []int{}
 	listeners := map[string]*bufconn.Listener{}
 	for id, addr := range addrs {
-		nodeIds = append(nodeIds, uint(id))
+		nodeIds = append(nodeIds, id)
 		lis := bufconn.Listen(1024)
 		listeners[addr] = lis
 	}
@@ -45,7 +45,7 @@ func runServer() {
 	for id, addr := range addrs {
 		server := server.NewServer()
 		n := NewHierarchicalConsensus[int](
-			uint(id),
+			id,
 			nodeIds,
 			server.SendFactory("hc"),
 		)
@@ -80,10 +80,10 @@ type Node struct {
 	addrs map[int]string
 }
 
-func NewNode(id int, nodeIds []uint, addrs map[int]string) *Node {
+func NewNode(id int, nodeIds []int, addrs map[int]string) *Node {
 	server := server.NewServer()
 	n := NewHierarchicalConsensus[string](
-		uint(id),
+		id,
 		nodeIds,
 		server.SendFactory("hc"),
 	)
@@ -134,9 +134,9 @@ func runRunner() {
 		5: ":50004",
 	}
 
-	nodeIds := []uint{}
+	nodeIds := []int{}
 	for id := range addrs {
-		nodeIds = append(nodeIds, uint(id))
+		nodeIds = append(nodeIds, id)
 	}
 
 	r := runner.NewRunner(time.Second)
