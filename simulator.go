@@ -64,6 +64,14 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
 
+	// Pack the parameters into a runParameter to make it easier to handle
+	cfg := &runParameters[T]{
+		initNodes:    initNodes,
+		failingNodes: failingNodes,
+		crashFunc:    crashFunc,
+		requests:     requests,
+	}
+
 	// Used to signal to start the next run
 	nextRun := make(chan bool)
 	// used by runSimulators to signal that a run has been completed to the main loop. Errors are also returned
@@ -77,20 +85,7 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 	for i := 0; i < s.numConcurrent; i++ {
 		ongoing++
 		rsim := newRunSimulator(s.Scheduler.GetRunScheduler(), sm.GetRunStateManager(), s.maxDepth, s.ignorePanics)
-		go func(rsim *runSimulator[T, S]) {
-			// Continue executing runs until the nextRun channel is closed or until the scheduler returns NoRunsError
-			for range nextRun {
-				err := rsim.simulateRun(initNodes, failingNodes, crashFunc, requests...)
-				if errors.Is(err, scheduler.NoRunsError) {
-					break
-				}
-				// Send error to main loop
-				status <- err
-			}
-
-			// Indicate that the runSimulator has stopped
-			closing <- true
-		}(rsim)
+		go rsim.SimulateRuns(nextRun, status, closing, cfg)
 
 		// Send a signal to start processing runs
 		startedRuns++
@@ -173,6 +168,15 @@ type SimulationParameters struct {
 	Sch     scheduler.RunScheduler
 }
 
+// Stores the parameters used to start a run.
+// Should be read only.
+type runParameters[T any] struct {
+	initNodes    func(sp SimulationParameters) map[int]*T
+	failingNodes []int
+	crashFunc    func(*T)
+	requests     []Request
+}
+
 func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
 		sch: sch,
@@ -186,8 +190,28 @@ func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T
 	}
 }
 
-func (rs *runSimulator[T, S]) simulateRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
-	nodes, err := rs.initRun(initNodes, failingNodes, crashFunc, requests...)
+// Main loop of the runSimulator. 
+// Continuously listens to the nextRun channel and starts simulating a new run each time it receives a signal.
+// Stops simulating runs when the channel is closed or when a scheduler.NoRunsError is returned.
+// Sends the status of each run on the status channel.
+// When it closes it sends an indication on the closing channel
+func (rs *runSimulator[T, S]) SimulateRuns(nextRun chan bool, status chan error, closing chan bool, cfg *runParameters[T]) {
+	// Continue executing runs until the nextRun channel is closed or until the scheduler returns NoRunsError
+	for range nextRun {
+		err := rs.simulateRun(cfg)
+		if errors.Is(err, scheduler.NoRunsError) {
+			break
+		}
+		// Send error to main loop
+		status <- err
+	}
+
+	// Indicate that the runSimulator has stopped
+	closing <- true
+}
+
+func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
+	nodes, err := rs.initRun(cfg.initNodes, cfg.failingNodes, cfg.crashFunc, cfg.requests...)
 	if err != nil {
 		return err
 	}
