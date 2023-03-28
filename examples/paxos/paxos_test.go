@@ -108,12 +108,7 @@ func TestPaxosSim(t *testing.T) {
 				for _, state := range gs.LocalStates {
 					proposedVal[state.proposed] = true
 				}
-				for _, state := range gs.LocalStates {
-					if state.decided != zeroVal && !proposedVal[state.decided] {
-						return false
-					}
-				}
-				return true
+				return predicate.ForAllNodes(func(s State) bool { return !(s.decided != zeroVal && !proposedVal[s.decided]) }, gs, false)
 			},
 			func(gs gomc.GlobalState[State], terminal bool, seq []gomc.GlobalState[State]) bool {
 				// Only a single value is chosen
@@ -131,14 +126,7 @@ func TestPaxosSim(t *testing.T) {
 			predicate.Eventually(
 				func(gs gomc.GlobalState[State], seq []gomc.GlobalState[State]) bool {
 					// All correct node should eventually learn the decided value
-					for id, state := range gs.LocalStates {
-						if gs.Correct[id] {
-							if state.decided == zeroVal {
-								return false
-							}
-						}
-					}
-					return true
+					return predicate.ForAllNodes(func(s State) bool { return s.decided != zeroVal }, gs, true)
 				},
 			),
 		),
