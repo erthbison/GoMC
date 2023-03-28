@@ -100,9 +100,6 @@ func TestConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.IncorrectNodes(func(t *HierarchicalConsensus[int]) {
-			t.crashed = true
-		}, 1, 2),
 		gomc.WithPredicate(predicates...),
 		gomc.IncorrectNodes(func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5),
 		gomc.Export(os.Stdout),
