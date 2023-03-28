@@ -9,7 +9,14 @@ import (
 
 func TestGuidedSearch(t *testing.T) {
 	for i, test := range GuidedSearchTests {
-		sch := NewGuidedSearch(NewQueueScheduler(), test.run)
+		gsch := NewGuidedSearch(NewPrefix(), test.run)
+
+		sch := gsch.GetRunScheduler()
+
+		err := sch.StartRun()
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 
 		numRuns := 0
 		actualRun := []string{}
@@ -28,11 +35,14 @@ func TestGuidedSearch(t *testing.T) {
 				if !slices.Equal(test.run[:test.lengthReplay], actualRun[:test.lengthReplay]) {
 					t.Errorf("Did not follow run for start of execution in test %v", i)
 				}
+
+				err := sch.StartRun()
+				if errors.Is(err, NoRunsError) {
+					break
+				}
 				actualRun = []string{}
 				numEvent = 0
 				continue
-			} else if errors.Is(err, NoEventError) {
-				break
 			}
 			actualRun = append(actualRun, evt.Id())
 			numEvent++

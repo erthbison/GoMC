@@ -3,7 +3,6 @@ package gomc
 import (
 	"bytes"
 	"fmt"
-	"gomc/tree"
 	"text/tabwriter"
 )
 
@@ -21,7 +20,7 @@ type predicateCheckerResponse[S any] struct {
 // Generate a response
 // Returns two parameters, result, and description.
 // Result is true if all predicates hold, false otherwise.
-// Description is a string providing a detailed description of the result.
+// Description is a formatted string providing a detailed description of the result.
 // If result is false the description contain a representation of the sequence of states that lead to the failing state
 func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 	if pcr.Result {
@@ -54,8 +53,6 @@ func (pcr predicateCheckerResponse[S]) Export() []string {
 
 // TODO: Consider if we can define the predicates as tests and automatically discover them
 
-// TODO: Consider generalizing this so that it does not depend on the tree structure, but instead can work on some arbitrary data structure
-
 // A function to be evaluated on the states
 // It returns true if the predicate holds for the state and false otherwise
 //
@@ -79,7 +76,7 @@ func NewPredicateChecker[S any](predicates ...Predicate[S]) *PredicateChecker[S]
 	}
 }
 
-func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) Check(root StateSpace[S]) *predicateCheckerResponse[S] {
 	// Checks that all predicates holds for all nodes. Nodes are searched depth first and the search is interrupted if some state that breaks the predicates are provided
 	if resp := pc.checkNode(root, []GlobalState[S]{}); resp != nil {
 		return resp
@@ -91,11 +88,11 @@ func (pc *PredicateChecker[S]) Check(root *tree.Tree[GlobalState[S]]) *predicate
 	}
 }
 
-func (pc *PredicateChecker[S]) checkNode(node *tree.Tree[GlobalState[S]], sequence []GlobalState[S]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) checkNode(node StateSpace[S], sequence []GlobalState[S]) *predicateCheckerResponse[S] {
 	// Use a depth first search to search trough all nodes and check with predicates
 	// Immediately stops when finding a state that breaches the predicates
 	sequence = append(sequence, node.Payload())
-	if ok, index := pc.checkState(node.Payload(), node.IsLeafNode(), sequence); !ok {
+	if ok, index := pc.checkState(node.Payload(), node.IsTerminal(), sequence); !ok {
 		return &predicateCheckerResponse[S]{
 			Result:   false,
 			Sequence: sequence,

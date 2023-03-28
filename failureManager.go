@@ -11,7 +11,7 @@ type failureManager struct {
 	failureCallback []func(int)
 }
 
-func NewFailureManager() *failureManager {
+func newFailureManager() *failureManager {
 	return &failureManager{
 		correct:         make(map[int]bool),
 		failureCallback: make([]func(int), 0),

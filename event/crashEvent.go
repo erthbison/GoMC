@@ -4,15 +4,22 @@ import (
 	"fmt"
 )
 
-type CrashEvent struct {
-	target int
-	crash  func(int) error
+type Stopper interface {
+	// Ungracefully stops the client. Immediately stopping all processing of messages and close all connections
+	Stop()
 }
 
-func NewCrashEvent(target int, crash func(int) error) CrashEvent {
+type CrashEvent struct {
+	target    int
+	crash     func(int) error
+	crashFunc func()
+}
+
+func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEvent {
 	return CrashEvent{
-		target: target,
-		crash:  crash,
+		target:    target,
+		crash:     crash,
+		crashFunc: crashFunc,
 	}
 }
 
@@ -27,6 +34,7 @@ func (ce CrashEvent) Id() string {
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
 func (ce CrashEvent) Execute(_ any, evtChan chan error) {
+	ce.crashFunc()
 	evtChan <- ce.crash(ce.target)
 }
 

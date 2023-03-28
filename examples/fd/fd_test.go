@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"gomc"
 	"gomc/eventManager"
-	"gomc/scheduler"
 	"testing"
 	"time"
 
@@ -16,46 +14,37 @@ type State struct {
 }
 
 func TestFd(t *testing.T) {
-	numNodes := 3
-	sch := scheduler.NewRandomScheduler(500, 1)
-	sm := gomc.NewTreeStateManager(
-		func(t *fd) State {
-			crashed := make([]int, len(t.crashed))
-			for i, val := range t.crashed {
-				crashed[i] = val
-			}
-			return State{
-				crashed: crashed,
-			}
-		},
-		func(s1, s2 State) bool {
-			return slices.Equal(s1.crashed, s2.crashed)
-		},
-	)
-	tester := gomc.NewSimulator[fd, State](sch, sm, 10000, 1000)
-	sender := eventManager.NewSender(sch)
-	sleep := eventManager.NewSleepManager(sch, tester.NextEvt)
-	err := tester.Simulate(
-		func() map[int]*fd {
-			ids := []int{}
-			for i := 0; i < numNodes; i++ {
-				ids = append(ids, i)
-			}
-			nodes := map[int]*fd{}
-			for _, id := range ids {
-				nodes[id] = NewFd(
-					id, ids, 5*time.Second, sender.SendFunc(id), sleep.SleepFunc(id),
-				)
-			}
-			return nodes
-		},
-		[]int{2},
-		gomc.NewRequest(0, "Start"),
+	sim := gomc.Prepare[fd, State](
+		gomc.RandomWalkScheduler(500),
 	)
 
-	if err != nil {
-		t.Errorf("Expected no error")
-	}
-	// fmt.Println(sch.EventRoot.Newick())
-	fmt.Println(sm.StateRoot.Newick())
+	nodeIds := []int{0, 1, 2}
+	sim.RunSimulation(
+		gomc.InitSingleNode(
+			nodeIds,
+			func(id int, sp gomc.SimulationParameters) *fd {
+				send := eventManager.NewSender(sp.Sch)
+				sleep := eventManager.NewSleepManager(sp.Sch, sp.NextEvt)
+				return NewFd(
+					id, nodeIds, 5*time.Second, send.SendFunc(id), sleep.SleepFunc(id),
+				)
+			},
+		),
+		gomc.WithRequests(gomc.NewRequest(0, "Start")),
+		gomc.WithTreeStateManager(
+			func(t *fd) State {
+				crashed := make([]int, len(t.crashed))
+				for i, val := range t.crashed {
+					crashed[i] = val
+				}
+				return State{
+					crashed: crashed,
+				}
+			},
+			func(s1, s2 State) bool {
+				return slices.Equal(s1.crashed, s2.crashed)
+			},
+		),
+		gomc.IncorrectNodes(func(t *fd) { t.stopped = true }, 2),
+	)
 }
