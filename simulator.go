@@ -190,7 +190,7 @@ func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T
 	}
 }
 
-// Main loop of the runSimulator. 
+// Main loop of the runSimulator.
 // Continuously listens to the nextRun channel and starts simulating a new run each time it receives a signal.
 // Stops simulating runs when the channel is closed or when a scheduler.NoRunsError is returned.
 // Sends the status of each run on the status channel.
