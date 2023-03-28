@@ -53,8 +53,6 @@ func (pcr predicateCheckerResponse[S]) Export() []string {
 
 // TODO: Consider if we can define the predicates as tests and automatically discover them
 
-// TODO: Consider generalizing this so that it does not depend on the tree structure, but instead can work on some arbitrary data structure
-
 // A function to be evaluated on the states
 // It returns true if the predicate holds for the state and false otherwise
 //
