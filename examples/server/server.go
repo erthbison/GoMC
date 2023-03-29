@@ -44,8 +44,8 @@ type Server struct {
 func NewServer() *Server {
 	return &Server{
 		modules:       make(map[string]any),
-		indication:    make(chan Indication),
-		msg:           make(chan Message),
+		indication:    make(chan Indication, 1000),
+		msg:           make(chan Message, 1000),
 		connection:    make(map[int]net.Conn),
 		subscriptions: make(map[string][]string),
 
@@ -79,15 +79,6 @@ func (s *Server) Start(lis net.Listener) {
 func (s *Server) startMainLoop() {
 	go func() {
 		for {
-			// Pause the main loop until a resume indication is received
-			select {
-			case <-s.pause:
-				s.isPaused = true
-				<-s.resume
-				s.isPaused = false
-			default:
-			}
-
 			select {
 			case msg := <-s.msg:
 				err := s.handleMessages(msg)
@@ -99,6 +90,10 @@ func (s *Server) startMainLoop() {
 				if err != nil {
 					log.Print(err)
 				}
+			case <-s.pause:
+				s.isPaused = true
+				<-s.resume
+				s.isPaused = false
 			}
 		}
 	}()
