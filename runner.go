@@ -2,9 +2,10 @@ package gomc
 
 import (
 	"fmt"
-	"gomc/runner"
+	"gomc/runnerControllers"
 	"net"
 	"reflect"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc/test/bufconn"
@@ -13,6 +14,8 @@ import (
 type Dialer func(string) (net.Conn, error)
 
 type Runner[T any] struct {
+	sync.Mutex
+
 	ticker *time.Ticker
 	nodes  map[int]*T
 
@@ -20,11 +23,11 @@ type Runner[T any] struct {
 
 	stop func(*T) error
 
-	ctrl runner.NodeController
+	ctrl runnerControllers.NodeController
 	fm   *failureManager
 }
 
-func NewRunner[T any](pollingInterval time.Duration, ctrl runner.NodeController, stop func(*T) error) *Runner[T] {
+func NewRunner[T any](pollingInterval time.Duration, ctrl runnerControllers.NodeController, stop func(*T) error) *Runner[T] {
 	return &Runner[T]{
 		ticker:        time.NewTicker(pollingInterval),
 		stateChannels: make([]chan map[int]any, 0),
@@ -57,6 +60,7 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 	}
 
 	for range r.ticker.C {
+		r.Lock()
 		states := make(map[int]any)
 		for id, node := range nodes {
 			states[id] = getState(node)
@@ -64,10 +68,14 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 		for _, chn := range r.stateChannels {
 			chn <- states
 		}
+		r.Unlock()
 	}
 }
 
 func (r *Runner[T]) Stop() {
+	r.Lock()
+	defer r.Unlock()
+
 	r.ticker.Stop()
 	for _, n := range r.nodes {
 		r.stop(n)
@@ -79,12 +87,18 @@ func (r *Runner[T]) Stop() {
 
 // Subscribe to state updates
 func (r *Runner[T]) GetStateUpdates() chan map[int]any {
+	r.Lock()
+	defer r.Unlock()
+
 	chn := make(chan map[int]any)
 	r.stateChannels = append(r.stateChannels, chn)
 	return chn
 }
 
 func (r *Runner[T]) Request(id int, requestType string, params ...any) {
+	r.Lock()
+	defer r.Unlock()
+
 	node := r.nodes[id]
 	valueParams := make([]reflect.Value, len(params))
 	for i, val := range params {
@@ -95,6 +109,9 @@ func (r *Runner[T]) Request(id int, requestType string, params ...any) {
 }
 
 func (r *Runner[T]) PauseNode(id int) error {
+	r.Lock()
+	defer r.Unlock()
+
 	_, ok := r.nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid Node id")
@@ -103,6 +120,9 @@ func (r *Runner[T]) PauseNode(id int) error {
 }
 
 func (r *Runner[T]) ResumeNode(id int) error {
+	r.Lock()
+	defer r.Unlock()
+
 	_, ok := r.nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid node Id")
@@ -111,6 +131,9 @@ func (r *Runner[T]) ResumeNode(id int) error {
 }
 
 func (r *Runner[T]) CrashNode(id int) error {
+	r.Lock()
+	defer r.Unlock()
+
 	n, ok := r.nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid node id")
@@ -123,5 +146,8 @@ func (r *Runner[T]) CrashNode(id int) error {
 }
 
 func (r *Runner[T]) CrashSubscribe(callback func(int)) {
+	r.Lock()
+	defer r.Unlock()
+
 	r.fm.Subscribe(callback)
 }
