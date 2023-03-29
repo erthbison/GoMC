@@ -34,9 +34,11 @@ type Learner struct {
 	waitForSend func(id int, num int)
 
 	learnSubscribe []chan string
+
+	lock *sync.Mutex
 }
 
-func NewLearner(id *proto.NodeId, waitForSend func(id int, num int)) *Learner {
+func NewLearner(id *proto.NodeId, waitForSend func(id int, num int), lock *sync.Mutex) *Learner {
 	return &Learner{
 		id: id,
 
@@ -45,6 +47,8 @@ func NewLearner(id *proto.NodeId, waitForSend func(id int, num int)) *Learner {
 		waitForSend: waitForSend,
 
 		learnSubscribe: make([]chan string, 0),
+
+		lock: lock,
 	}
 }
 
@@ -91,7 +95,9 @@ func (l *Learner) Subscribe() <-chan string {
 }
 
 func (l *Learner) emmitLearn(val *proto.Value) {
+	l.lock.Lock()
 	l.Val = val
+	l.lock.Unlock()
 	for _, c := range l.learnSubscribe {
 		c <- val.GetVal()
 	}

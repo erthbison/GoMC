@@ -66,6 +66,8 @@ func main() {
 			}
 		},
 		func(t *paxos.Server) any {
+			t.Lock.Lock()
+			defer t.Lock.Unlock()
 			return State{
 				proposed: t.Proposal,
 				decided:  t.Learner.Val.GetVal(),
