@@ -28,7 +28,7 @@ type Learner struct {
 	recvLrn map[int64]*proto.Value
 
 	// Consensus Value
-	val *proto.Value
+	Val *proto.Value
 
 	nodes       map[int64]*paxosClient
 	waitForSend func(id int, num int)
@@ -91,7 +91,7 @@ func (l *Learner) Subscribe() <-chan string {
 }
 
 func (l *Learner) emmitLearn(val *proto.Value) {
-	l.val = val
+	l.Val = val
 	for _, c := range l.learnSubscribe {
 		c <- val.GetVal()
 	}

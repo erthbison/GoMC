@@ -93,8 +93,8 @@ func TestPaxosSim(t *testing.T) {
 		gomc.WithTreeStateManager(
 			func(t *Server) State {
 				return State{
-					proposed: t.proposal,
-					decided:  t.Learner.val.GetVal(),
+					proposed: t.Proposal,
+					decided:  t.Learner.Val.GetVal(),
 				}
 			},
 			func(s1, s2 State) bool {
@@ -205,8 +205,8 @@ func TestPaxosReplay(t *testing.T) {
 		gomc.WithTreeStateManager(
 			func(t *Server) State {
 				return State{
-					proposed: t.proposal,
-					decided:  t.Learner.val.GetVal(),
+					proposed: t.Proposal,
+					decided:  t.Learner.Val.GetVal(),
 				}
 			},
 			func(s1, s2 State) bool {

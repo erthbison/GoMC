@@ -27,7 +27,7 @@ type paxos struct {
 	*Acceptor
 	*Learner
 
-	proposal string
+	Proposal string
 
 	stopped bool
 
@@ -70,8 +70,8 @@ func (p *paxos) NodeCrash(id int) {
 func (p *paxos) newLeader() {
 	p.Proposer.IncrementCrnd()
 	p.leader = p.nextLeader()
-	if p.leader == p.Id && p.proposal != "" {
-		p.performPrepare(p.proposal)
+	if p.leader == p.Id && p.Proposal != "" {
+		p.performPrepare(p.Proposal)
 	}
 }
 
@@ -91,9 +91,9 @@ func (p *paxos) Propose(val string) {
 	if p.stopped {
 		return
 	}
-	p.proposal = val
+	p.Proposal = val
 	if p.leader == p.Id {
-		p.performPrepare(p.proposal)
+		p.performPrepare(p.Proposal)
 	}
 }
 
