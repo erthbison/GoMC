@@ -60,7 +60,7 @@ func TestPaxosSim(t *testing.T) {
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
-				srv, err := NewServer(id, addrMap, gem.WaitForSend)
+				srv, err := NewServer(id, addrMap, gem.WaitForSend(int(id)))
 				if err != nil {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
@@ -172,7 +172,7 @@ func TestPaxosReplay(t *testing.T) {
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
-				srv, err := NewServer(id, addrMap, gem.WaitForSend)
+				srv, err := NewServer(id, addrMap, gem.WaitForSend(int(id)))
 				if err != nil {
 					t.Errorf("Error while starting simulation: %v", err)
 				}

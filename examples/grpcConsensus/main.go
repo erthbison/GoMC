@@ -35,7 +35,7 @@ func main() {
 
 	nodes := map[int32]*GrpcConsensus{}
 	for id, addr := range addrMap {
-		gc := NewGrpcConsensus(id, lisMap[addr], func(int, int) {})
+		gc := NewGrpcConsensus(id, lisMap[addr], func(int) {})
 		nodes[id] = gc
 	}
 

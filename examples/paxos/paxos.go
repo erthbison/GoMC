@@ -36,7 +36,7 @@ type paxos struct {
 	leader  int64
 }
 
-func newPaxos(id int64, nodes map[int64]string, waitForSend func(int, int)) *paxos {
+func newPaxos(id int64, nodes map[int64]string, waitForSend func(int)) *paxos {
 	nodeId := &proto.NodeId{Val: id}
 	var leader int64
 	correct := make(map[int64]bool)
@@ -49,7 +49,7 @@ func newPaxos(id int64, nodes map[int64]string, waitForSend func(int, int)) *pax
 	return &paxos{
 		Proposer: NewProposer(nodeId, waitForSend),
 		Acceptor: NewAcceptor(nodeId, waitForSend),
-		Learner:  NewLearner(nodeId, waitForSend),
+		Learner:  NewLearner(nodeId, len(nodes)),
 
 		Id:      id,
 		leader:  leader,
@@ -105,7 +105,7 @@ type Server struct {
 	*paxos
 }
 
-func NewServer(id int64, addrMap map[int64]string, waitForSend func(int, int), srvOpts ...grpc.ServerOption) (*Server, error) {
+func NewServer(id int64, addrMap map[int64]string, waitForSend func(int), srvOpts ...grpc.ServerOption) (*Server, error) {
 	srv := grpc.NewServer(srvOpts...)
 	paxos := newPaxos(id, addrMap, waitForSend)
 	proto.RegisterProposerServer(srv, paxos)
@@ -143,6 +143,5 @@ func (p *Server) DialNodes(dialOpts ...grpc.DialOption) error {
 	}
 	p.paxos.Proposer.nodes = nodes
 	p.paxos.Acceptor.nodes = nodes
-	p.paxos.Learner.nodes = nodes
 	return nil
 }

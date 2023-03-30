@@ -22,10 +22,10 @@ type Acceptor struct {
 	vval *proto.Value
 
 	nodes       map[int64]*paxosClient
-	waitForSend func(id int, num int)
+	waitForSend func(num int)
 }
 
-func NewAcceptor(id *proto.NodeId, waitForSend func(id int, num int)) *Acceptor {
+func NewAcceptor(id *proto.NodeId, waitForSend func(num int)) *Acceptor {
 	return &Acceptor{
 		id: id,
 
@@ -49,7 +49,7 @@ func (a *Acceptor) Prepare(_ context.Context, in *proto.PrepareRequest) (*empty.
 			From: a.id,
 		},
 	)
-	a.waitForSend(int(a.id.GetVal()), 1)
+	a.waitForSend(1)
 	return &emptypb.Empty{}, nil
 }
 
@@ -68,6 +68,6 @@ func (a *Acceptor) Accept(_ context.Context, in *proto.AcceptRequest) (*empty.Em
 	for _, node := range a.nodes {
 		go node.Learn(context.Background(), msg)
 	}
-	a.waitForSend(int(a.id.GetVal()), len(a.nodes))
+	a.waitForSend(len(a.nodes))
 	return &emptypb.Empty{}, nil
 }

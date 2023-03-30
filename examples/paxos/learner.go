@@ -27,22 +27,20 @@ type Learner struct {
 
 	recvLrn map[int64]*proto.Value
 
+	numNodes int
+
 	// Consensus Value
 	val *proto.Value
-
-	nodes       map[int64]*paxosClient
-	waitForSend func(id int, num int)
 
 	learnSubscribe []chan string
 }
 
-func NewLearner(id *proto.NodeId, waitForSend func(id int, num int)) *Learner {
+func NewLearner(id *proto.NodeId, numNodes int) *Learner {
 	return &Learner{
 		id: id,
 
-		recvLrn:     make(map[int64]*proto.Value),
-		nodes:       make(map[int64]*paxosClient),
-		waitForSend: waitForSend,
+		numNodes: numNodes,
+		recvLrn:  make(map[int64]*proto.Value),
 
 		learnSubscribe: make([]chan string, 0),
 	}
@@ -66,7 +64,7 @@ func (l *Learner) Learn(_ context.Context, in *proto.LearnRequest) (*empty.Empty
 			numLrn++
 		}
 	}
-	if numLrn > len(l.nodes)/2 {
+	if numLrn > l.numNodes/2 {
 		l.emmitLearn(freqVal)
 	}
 	return &emptypb.Empty{}, nil

@@ -39,7 +39,7 @@ func main() {
 	}
 
 	for id, addr := range addrMap {
-		srv, err := paxos.NewServer(id, addrMap, func(i1, i2 int) {})
+		srv, err := paxos.NewServer(id, addrMap, func(int) {})
 		if err != nil {
 			log.Panicln(err)
 		}

@@ -28,10 +28,10 @@ type Proposer struct {
 	phaseOne chan bool
 
 	nodes       map[int64]*paxosClient
-	waitForSend func(id int, num int)
+	waitForSend func(num int)
 }
 
-func NewProposer(id *proto.NodeId, waitForSend func(id int, num int)) *Proposer {
+func NewProposer(id *proto.NodeId, waitForSend func(num int)) *Proposer {
 	return &Proposer{
 		id: id,
 
@@ -58,7 +58,7 @@ func (p *Proposer) performPrepare(propsedVal string) {
 	for _, n := range p.nodes {
 		go n.Prepare(context.Background(), msg)
 	}
-	p.waitForSend(int(p.id.GetVal()), len(p.nodes))
+	p.waitForSend(len(p.nodes))
 }
 
 func (p *Proposer) Promise(_ context.Context, in *proto.PromiseRequest) (*empty.Empty, error) {
@@ -88,7 +88,7 @@ func (p *Proposer) Promise(_ context.Context, in *proto.PromiseRequest) (*empty.
 	for _, node := range p.nodes {
 		go node.Accept(context.Background(), msg)
 	}
-	p.waitForSend(int(p.id.GetVal()), len(p.nodes))
+	p.waitForSend(len(p.nodes))
 
 	p.numPromise = 0
 	p.largestVal = nil

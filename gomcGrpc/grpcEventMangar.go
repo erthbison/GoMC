@@ -51,9 +51,11 @@ func (gem *grpcEventManager) addEvent(from, to int, msg interface{}, method stri
 // id is the id of the process sending the messages and num is the number of messages that are sent.
 //
 // The method ensures that all messages are added before the event is complete, ensuring that the simulation can proceed as expected and not finish prematurely or ignore some messages.
-func (gem *grpcEventManager) WaitForSend(id, num int) {
-	for i := 0; i < num; i++ {
-		<-gem.msgChan[id]
+func (gem *grpcEventManager) WaitForSend(id int) func(int) {
+	return func(num int) {
+		for i := 0; i < num; i++ {
+			<-gem.msgChan[id]
+		}
 	}
 }
 
