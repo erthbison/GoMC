@@ -116,7 +116,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 			r.resp <- err
 		case c := <-r.stateSubscribe:
 			r.stateChannels = append(r.stateChannels, c)
-			fmt.Println("END STATE UPDATE")
 		}
 	}
 }
@@ -124,7 +123,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 // Subscribe to state updates
 func (r *Runner[T]) GetStateUpdates() chan map[int]any {
 	chn := make(chan map[int]any)
-	fmt.Println("START STATE UPDATE")
 	r.stateSubscribe <- chn
 	return chn
 }
