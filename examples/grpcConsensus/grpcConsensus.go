@@ -36,12 +36,12 @@ type GrpcConsensus struct {
 	DecidedVal  []string
 	ProposedVal string
 
-	waitForSend func(id int, num int)
+	waitForSend func(num int)
 
 	srv *grpc.Server
 }
 
-func NewGrpcConsensus(id int32, lis net.Listener, waitForSend func(int, int), srvOpts ...grpc.ServerOption) *GrpcConsensus {
+func NewGrpcConsensus(id int32, lis net.Listener, waitForSend func(int), srvOpts ...grpc.ServerOption) *GrpcConsensus {
 	srv := grpc.NewServer(srvOpts...)
 	gc := &GrpcConsensus{
 		detectedRanks: make(map[int32]bool),
@@ -127,7 +127,7 @@ func (gc *GrpcConsensus) decide() {
 				go node.Decided(context.Background(), msg)
 			}
 		}
-		gc.waitForSend(int(gc.id), num) // Wait until all messages has been sent, but do not wait until an answer is received
+		gc.waitForSend(num) // Wait until all messages has been sent, but do not wait until an answer is received
 	}
 }
 
