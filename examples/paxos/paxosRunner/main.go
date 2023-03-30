@@ -43,7 +43,7 @@ func main() {
 
 	gnc := runnerControllers.NewGrpcNodeController(nodeIds)
 	r := gomc.NewRunner(time.Second, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
-	go r.Start(
+	r.Start(
 		func() map[int]*paxos.Server {
 			nodes := make(map[int]*paxos.Server)
 			for id := range addrMap {

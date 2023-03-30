@@ -55,8 +55,9 @@ func NewRunner[T any](pollingInterval time.Duration, ctrl runnerControllers.Node
 		interval:      pollingInterval,
 		stateChannels: make([]chan map[int]any, 0),
 		stopFunc:      stop,
-		ctrl:          ctrl,
-		fm:            newFailureManager(),
+
+		ctrl: ctrl,
+		fm:   newFailureManager(),
 
 		stateSubscribe: make(chan chan map[int]any),
 		cmd:            make(chan interface{}),
@@ -85,40 +86,42 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 	}
 
 	fmt.Println("Starting main loop")
-	ticker := time.NewTicker(r.interval)
-	for {
-		select {
-		case <-ticker.C:
-			states := make(map[int]any)
-			for id, node := range nodes {
-				states[id] = getState(node)
-			}
-			for _, chn := range r.stateChannels {
-				chn <- states
-			}
-		case cmd := <-r.cmd:
-			var err error
-			switch t := cmd.(type) {
-			case pause:
-				err = r.pauseNode(t.id, nodes)
-			case resume:
-				err = r.resumeNode(t.id, nodes)
-			case crash:
-				err = r.crashNode(t.id, nodes)
-			case request:
-				err = r.request(t.id, t.method, t.params, nodes)
-			case stop:
-				err = r.stop(ticker, nodes)
-				if err == nil {
-					return
+	go func() {
+		ticker := time.NewTicker(r.interval)
+		for {
+			select {
+			case <-ticker.C:
+				states := make(map[int]any)
+				for id, node := range nodes {
+					states[id] = getState(node)
 				}
+				for _, chn := range r.stateChannels {
+					chn <- states
+				}
+			case cmd := <-r.cmd:
+				var err error
+				switch t := cmd.(type) {
+				case pause:
+					err = r.pauseNode(t.id, nodes)
+				case resume:
+					err = r.resumeNode(t.id, nodes)
+				case crash:
+					err = r.crashNode(t.id, nodes)
+				case request:
+					err = r.request(t.id, t.method, t.params, nodes)
+				case stop:
+					err = r.stop(ticker, nodes)
+					if err == nil {
+						return
+					}
+				}
+				r.resp <- err
+			case c := <-r.stateSubscribe:
+				r.stateChannels = append(r.stateChannels, c)
+				fmt.Println("END STATE UPDATE")
 			}
-			r.resp <- err
-		case c := <-r.stateSubscribe:
-			r.stateChannels = append(r.stateChannels, c)
-			fmt.Println("END STATE UPDATE")
 		}
-	}
+	}()
 }
 
 // Subscribe to state updates
