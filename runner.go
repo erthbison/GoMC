@@ -85,7 +85,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 		go start(node, listeners[addrs[id]], dial)
 	}
 
-	fmt.Println("Starting main loop")
 	go func() {
 		ticker := time.NewTicker(r.interval)
 		var err error
