@@ -94,7 +94,6 @@ func main() {
 		vals := strings.Split(scanner.Text(), " ")
 		cmd := vals[0]
 		params := vals[1:]
-
 		switch cmd {
 		case "stop":
 			r.Stop()
@@ -107,7 +106,10 @@ func main() {
 			if err != nil {
 				panic(fmt.Errorf("Error: %v", err))
 			}
-			r.Request(id, "Propose", params[1])
+			err = r.Request(id, "Propose", params[1])
+			if err != nil {
+				panic(fmt.Errorf("Error: %v", err))
+			}
 		case "pause":
 			id, err := strconv.Atoi(params[0])
 			if err != nil {
@@ -115,7 +117,7 @@ func main() {
 			}
 			err = r.PauseNode(id)
 			if err != nil {
-				fmt.Println("Received error:", err)
+				panic(fmt.Errorf("Error: %v", err))
 			}
 		case "resume":
 			id, err := strconv.Atoi(params[0])
@@ -124,7 +126,7 @@ func main() {
 			}
 			err = r.ResumeNode(id)
 			if err != nil {
-				fmt.Println("Received error:", err)
+				panic(fmt.Errorf("Error: %v", err))
 			}
 		case "crash":
 			id, err := strconv.Atoi(params[0])
@@ -133,7 +135,7 @@ func main() {
 			}
 			err = r.CrashNode(id)
 			if err != nil {
-				fmt.Println("Received error:", err)
+				panic(fmt.Errorf("Error: %v", err))
 			}
 		default:
 			fmt.Println("Invalid command")
