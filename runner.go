@@ -88,6 +88,7 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 	fmt.Println("Starting main loop")
 	go func() {
 		ticker := time.NewTicker(r.interval)
+		var err error
 		for {
 			select {
 			case <-ticker.C:
@@ -118,8 +119,8 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 				r.resp <- err
 			case c := <-r.stateSubscribe:
 				r.stateChannels = append(r.stateChannels, c)
-				fmt.Println("END STATE UPDATE")
 			}
+			r.resp <- err
 		}
 	}()
 }
@@ -127,7 +128,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 // Subscribe to state updates
 func (r *Runner[T]) GetStateUpdates() chan map[int]any {
 	chn := make(chan map[int]any)
-	fmt.Println("START STATE UPDATE")
 	r.stateSubscribe <- chn
 	return chn
 }
