@@ -87,7 +87,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 
 	go func() {
 		ticker := time.NewTicker(r.interval)
-		var err error
 		for {
 			select {
 			case <-ticker.C:
@@ -119,7 +118,6 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 			case c := <-r.stateSubscribe:
 				r.stateChannels = append(r.stateChannels, c)
 			}
-			r.resp <- err
 		}
 	}()
 }
