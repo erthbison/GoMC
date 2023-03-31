@@ -47,7 +47,7 @@ func main() {
 		func() map[int]*paxos.Server {
 			nodes := make(map[int]*paxos.Server)
 			for id := range addrMap {
-				srv, err := paxos.NewServer(id, addrMap, func(i1, i2 int) {}, grpc.UnaryInterceptor(gnc.ServerInterceptor(int(id))))
+				srv, err := paxos.NewServer(id, addrMap, func(int) {}, grpc.UnaryInterceptor(gnc.ServerInterceptor(int(id))))
 				r.CrashSubscribe(srv.NodeCrash)
 				if err != nil {
 					panic(err)
