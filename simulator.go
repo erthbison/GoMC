@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gomc/event"
+	"gomc/failureManager"
 	"gomc/scheduler"
 	"runtime/debug"
 )
@@ -154,7 +155,7 @@ func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bo
 type runSimulator[T, S any] struct {
 	sch scheduler.RunScheduler
 	sm  *RunStateManager[T, S]
-	fm  *failureManager
+	fm  *failureManager.FailureManager
 
 	nextEvt chan error
 
@@ -164,7 +165,7 @@ type runSimulator[T, S any] struct {
 
 type SimulationParameters struct {
 	NextEvt chan error
-	Fm      *failureManager
+	Fm      *failureManager.FailureManager
 	Sch     scheduler.RunScheduler
 }
 
@@ -181,7 +182,7 @@ func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T
 	return &runSimulator[T, S]{
 		sch: sch,
 		sm:  sm,
-		fm:  newFailureManager(),
+		fm:  failureManager.New(),
 
 		nextEvt: make(chan error),
 
