@@ -1,11 +1,11 @@
-package gomc
+package failureManager
 
 import (
 	"testing"
 )
 
 func TestFailureManager(t *testing.T) {
-	fm := newFailureManager()
+	fm := New()
 	nodes := []int{0, 1, 2, 3, 4}
 	fm.Init(nodes)
 	for _, node := range nodes {
@@ -46,7 +46,7 @@ func TestFailureManager(t *testing.T) {
 }
 
 func TestRandomId(t *testing.T) {
-	fm := newFailureManager()
+	fm := New()
 	nodes := []int{1, 485, 786, 354, 458, 456}
 	fm.Init(nodes)
 	for _, node := range nodes {

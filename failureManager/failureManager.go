@@ -1,4 +1,4 @@
-package gomc
+package failureManager
 
 import "errors"
 
@@ -6,13 +6,13 @@ import "errors"
 // It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
 // The subscribe function replicates the functionality of a perfect failure detectors.
 // All provided callback functions are called immediately upon the crash of a node
-type failureManager struct {
+type FailureManager struct {
 	correct         map[int]bool
 	failureCallback []func(int)
 }
 
-func newFailureManager() *failureManager {
-	return &failureManager{
+func New() *FailureManager {
+	return &FailureManager{
 		correct:         make(map[int]bool),
 		failureCallback: make([]func(int), 0),
 	}
@@ -20,19 +20,19 @@ func newFailureManager() *failureManager {
 
 // Init the failure manager with the provided nodes.
 // Set all the provided nodes to correct
-func (fm *failureManager) Init(nodes []int) {
+func (fm *FailureManager) Init(nodes []int) {
 	for _, id := range nodes {
 		fm.correct[id] = true
 	}
 }
 
 // Return a map of the status of the nodes
-func (fm *failureManager) CorrectNodes() map[int]bool {
+func (fm *FailureManager) CorrectNodes() map[int]bool {
 	return fm.correct
 }
 
 // register that the node with the provided id has crashed
-func (fm *failureManager) NodeCrash(nodeId int) error {
+func (fm *FailureManager) NodeCrash(nodeId int) error {
 	if _, ok := fm.correct[nodeId]; !ok {
 		return errors.New("FailureManager: Received NodeCrash for node that is not added to the system")
 	}
@@ -44,6 +44,6 @@ func (fm *failureManager) NodeCrash(nodeId int) error {
 }
 
 // Register a callback function to be called when a node crashes.
-func (fm *failureManager) Subscribe(callback func(int)) {
+func (fm *FailureManager) Subscribe(callback func(int)) {
 	fm.failureCallback = append(fm.failureCallback, callback)
 }
