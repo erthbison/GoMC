@@ -1,8 +1,10 @@
-package gomc
+package runner
 
 import (
 	"fmt"
-	"gomc/runnerControllers"
+	"gomc/failureManager"
+	"gomc/runner/controller"
+	"gomc/runner/recorder"
 	"net"
 	"reflect"
 	"sync"
@@ -13,26 +15,6 @@ import (
 
 type Dialer func(string) (net.Conn, error)
 
-type pause struct {
-	id int
-}
-
-type resume struct {
-	id int
-}
-
-type crash struct {
-	id int
-}
-
-type request struct {
-	id     int
-	method string
-	params []reflect.Value
-}
-
-type stop struct{}
-
 type Runner[T any] struct {
 	sync.Mutex
 
@@ -42,22 +24,24 @@ type Runner[T any] struct {
 
 	stopFunc func(*T) error
 
-	ctrl runnerControllers.NodeController
-	fm   *failureManager
+	rec  recorder.MessageRecorder
+	ctrl controller.NodeController
+	fm   *failureManager.FailureManager
 
 	stateSubscribe chan chan map[int]any
 	cmd            chan interface{}
 	resp           chan error
 }
 
-func NewRunner[T any](pollingInterval time.Duration, ctrl runnerControllers.NodeController, stop func(*T) error) *Runner[T] {
+func NewRunner[T any](pollingInterval time.Duration, ctrl controller.NodeController, rec recorder.MessageRecorder, stop func(*T) error) *Runner[T] {
 	return &Runner[T]{
 		interval:      pollingInterval,
 		stateChannels: make([]chan map[int]any, 0),
 		stopFunc:      stop,
 
+		rec:  rec,
 		ctrl: ctrl,
-		fm:   newFailureManager(),
+		fm:   failureManager.New(),
 
 		stateSubscribe: make(chan chan map[int]any),
 		cmd:            make(chan interface{}),
@@ -87,7 +71,8 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 
 	go func() {
 		ticker := time.NewTicker(r.interval)
-		for {
+		run := true
+		for run {
 			select {
 			case <-ticker.C:
 				states := make(map[int]any)
@@ -111,7 +96,7 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 				case stop:
 					err = r.stop(ticker, nodes)
 					if err == nil {
-						return
+						run = false
 					}
 				}
 				r.resp <- err
@@ -122,8 +107,12 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, sta
 	}()
 }
 
+func (r *Runner[T]) SubscribeMessages() <-chan recorder.Message {
+	return r.rec.Subscribe()
+}
+
 // Subscribe to state updates
-func (r *Runner[T]) GetStateUpdates() chan map[int]any {
+func (r *Runner[T]) SubscribeStateUpdates() chan map[int]any {
 	chn := make(chan map[int]any)
 	r.stateSubscribe <- chn
 	return chn
