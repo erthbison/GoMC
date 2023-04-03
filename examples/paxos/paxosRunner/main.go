@@ -29,6 +29,7 @@ var (
 		4: ":50003",
 		5: ":50004",
 	}
+	addr2id = map[string]int{}
 )
 
 type State struct {
@@ -37,10 +38,8 @@ type State struct {
 }
 
 func main() {
-	addr2id := map[string]int{}
-	nodeIds := []int{}
+
 	for id, addr := range addrMap {
-		nodeIds = append(nodeIds, int(id))
 		addr2id[addr] = int(id)
 	}
 
