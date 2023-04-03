@@ -5,15 +5,10 @@ import (
 	"gomc/failureManager"
 	"gomc/runner/controller"
 	"gomc/runner/recorder"
-	"net"
 	"reflect"
 	"sync"
 	"time"
-
-	"google.golang.org/grpc/test/bufconn"
 )
-
-type Dialer func(string) (net.Conn, error)
 
 type Runner[T any] struct {
 	sync.Mutex
@@ -49,25 +44,13 @@ func NewRunner[T any](pollingInterval time.Duration, ctrl controller.NodeControl
 	}
 }
 
-func (r *Runner[T]) Start(initNodes func() map[int]*T, addrs map[int]string, start func(*T, net.Listener, Dialer), getState func(*T) any) {
+func (r *Runner[T]) Start(initNodes func() map[int]*T, getState func(*T) any) {
 	nodes := initNodes()
-	listeners := map[string]*bufconn.Listener{}
 	nodeIds := []int{}
-	for id, addr := range addrs {
-		lis := bufconn.Listen(1024)
-		listeners[addr] = lis
+	for id := range nodes {
 		nodeIds = append(nodeIds, id)
 	}
-
 	r.fm.Init(nodeIds)
-
-	dial := func(s string) (net.Conn, error) {
-		return listeners[s].Dial()
-	}
-
-	for id, node := range nodes {
-		go start(node, listeners[addrs[id]], dial)
-	}
 
 	go func() {
 		ticker := time.NewTicker(r.interval)

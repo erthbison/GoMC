@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"gomc"
-	"gomc/gomcGrpc"
-	"gomc/predicate"
 	"net"
 	"os"
 	"testing"
+
+	"gomc"
+	"gomc/gomcGrpc"
+	"gomc/predicate"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

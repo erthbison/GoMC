@@ -17,9 +17,11 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 var (
+	bufSize = 1024
 	addrMap = map[int64]string{
 		1: "127.0.0.1:50000",
 		2: ":50001",
@@ -35,42 +37,48 @@ type State struct {
 }
 
 func main() {
-	tmp := map[int]string{}
 	addr2id := map[string]int{}
 	nodeIds := []int{}
 	for id, addr := range addrMap {
 		nodeIds = append(nodeIds, int(id))
 		addr2id[addr] = int(id)
-		tmp[int(id)] = addr
 	}
 
 	gnc := controller.NewGrpcNodeController(addr2id)
 	r := runner.NewRunner(time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
 	r.Start(
 		func() map[int]*paxos.Server {
+			lisMap := map[string]*bufconn.Listener{}
+			for _, addr := range addrMap {
+				lisMap[addr] = bufconn.Listen(bufSize)
+			}
+
 			nodes := make(map[int]*paxos.Server)
-			for id := range addrMap {
+			for id, addr := range addrMap {
 				srv, err := paxos.NewServer(id, addrMap, func(int) {}, grpc.UnaryInterceptor(gnc.ServerInterceptor(int(id))))
 				r.CrashSubscribe(srv.NodeCrash)
 				if err != nil {
 					panic(err)
 				}
 				nodes[int(id)] = srv
+				go srv.StartServer(lisMap[addr])
+			}
+
+			for _, srv := range nodes {
+				err := srv.DialNodes(
+					grpc.WithContextDialer(
+						func(ctx context.Context, s string) (net.Conn, error) {
+							return lisMap[s].DialContext(ctx)
+						},
+					),
+					grpc.WithTransportCredentials(insecure.NewCredentials()),
+					grpc.WithUnaryInterceptor(gnc.ClientInterceptor(int(srv.Id))),
+				)
+				if err != nil {
+					panic(err)
+				}
 			}
 			return nodes
-		},
-		tmp,
-		func(srv *paxos.Server, lis net.Listener, dial runner.Dialer) {
-			go srv.StartServer(lis)
-
-			err := srv.DialNodes(
-				grpc.WithContextDialer(func(_ context.Context, addr string) (net.Conn, error) { return dial(addr) }),
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-				grpc.WithUnaryInterceptor(gnc.ClientInterceptor(int(srv.Id))),
-			)
-			if err != nil {
-				panic(err)
-			}
 		},
 		func(t *paxos.Server) any {
 			t.Lock.Lock()
