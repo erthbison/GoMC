@@ -44,7 +44,7 @@ func main() {
 	}
 
 	gnc := controller.NewGrpcNodeController(addr2id)
-	r := runner.NewRunner(time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
+	r := runner.NewRunner[paxos.Server, State](time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
 	r.Start(
 		func() map[int]*paxos.Server {
 			lisMap := map[string]*bufconn.Listener{}
@@ -79,7 +79,7 @@ func main() {
 			}
 			return nodes
 		},
-		func(t *paxos.Server) any {
+		func(t *paxos.Server) State {
 			t.Lock.Lock()
 			defer t.Lock.Unlock()
 			return State{

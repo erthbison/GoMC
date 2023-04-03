@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-type Runner[T any] struct {
+type Runner[T, S any] struct {
 	sync.Mutex
 
 	interval time.Duration
 
-	stateChannels []chan map[int]any
+	stateChannels []chan map[int]S
 
 	stopFunc func(*T) error
 
@@ -23,28 +23,28 @@ type Runner[T any] struct {
 	ctrl controller.NodeController
 	fm   *failureManager.FailureManager
 
-	stateSubscribe chan chan map[int]any
+	stateSubscribe chan chan map[int]S
 	cmd            chan interface{}
 	resp           chan error
 }
 
-func NewRunner[T any](pollingInterval time.Duration, ctrl controller.NodeController, rec recorder.MessageRecorder, stop func(*T) error) *Runner[T] {
-	return &Runner[T]{
+func NewRunner[T, S any](pollingInterval time.Duration, ctrl controller.NodeController, rec recorder.MessageRecorder, stop func(*T) error) *Runner[T, S] {
+	return &Runner[T, S]{
 		interval:      pollingInterval,
-		stateChannels: make([]chan map[int]any, 0),
+		stateChannels: make([]chan map[int]S, 0),
 		stopFunc:      stop,
 
 		rec:  rec,
 		ctrl: ctrl,
 		fm:   failureManager.New(),
 
-		stateSubscribe: make(chan chan map[int]any),
+		stateSubscribe: make(chan chan map[int]S),
 		cmd:            make(chan interface{}),
 		resp:           make(chan error),
 	}
 }
 
-func (r *Runner[T]) Start(initNodes func() map[int]*T, getState func(*T) any) {
+func (r *Runner[T, S]) Start(initNodes func() map[int]*T, getState func(*T) S) {
 	nodes := initNodes()
 	nodeIds := []int{}
 	for id := range nodes {
@@ -58,7 +58,7 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, getState func(*T) any) {
 		for run {
 			select {
 			case <-ticker.C:
-				states := make(map[int]any)
+				states := make(map[int]S)
 				for id, node := range nodes {
 					states[id] = getState(node)
 				}
@@ -90,23 +90,23 @@ func (r *Runner[T]) Start(initNodes func() map[int]*T, getState func(*T) any) {
 	}()
 }
 
-func (r *Runner[T]) SubscribeMessages() <-chan recorder.Message {
+func (r *Runner[T, S]) SubscribeMessages() <-chan recorder.Message {
 	return r.rec.Subscribe()
 }
 
 // Subscribe to state updates
-func (r *Runner[T]) SubscribeStateUpdates() chan map[int]any {
-	chn := make(chan map[int]any)
+func (r *Runner[T, S]) SubscribeStateUpdates() chan map[int]S {
+	chn := make(chan map[int]S)
 	r.stateSubscribe <- chn
 	return chn
 }
 
-func (r *Runner[T]) Stop() error {
+func (r *Runner[T, S]) Stop() error {
 	r.cmd <- stop{}
 	return <-r.resp
 }
 
-func (r *Runner[T]) stop(ticker *time.Ticker, nodes map[int]*T) error {
+func (r *Runner[T, S]) stop(ticker *time.Ticker, nodes map[int]*T) error {
 	ticker.Stop()
 	for _, n := range nodes {
 		r.stopFunc(n)
@@ -117,7 +117,7 @@ func (r *Runner[T]) stop(ticker *time.Ticker, nodes map[int]*T) error {
 	return nil
 }
 
-func (r *Runner[T]) Request(id int, requestType string, params ...any) error {
+func (r *Runner[T, S]) Request(id int, requestType string, params ...any) error {
 	reflectParams := make([]reflect.Value, len(params))
 	for i, val := range params {
 		reflectParams[i] = reflect.ValueOf(val)
@@ -130,7 +130,7 @@ func (r *Runner[T]) Request(id int, requestType string, params ...any) error {
 	return <-r.resp
 }
 
-func (r *Runner[T]) request(id int, method string, params []reflect.Value, nodes map[int]*T) error {
+func (r *Runner[T, S]) request(id int, method string, params []reflect.Value, nodes map[int]*T) error {
 	node, ok := nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid Node id")
@@ -140,14 +140,14 @@ func (r *Runner[T]) request(id int, method string, params []reflect.Value, nodes
 	return nil
 }
 
-func (r *Runner[T]) PauseNode(id int) error {
+func (r *Runner[T, S]) PauseNode(id int) error {
 	r.cmd <- pause{
 		id: id,
 	}
 	return <-r.resp
 }
 
-func (r *Runner[T]) pauseNode(id int, nodes map[int]*T) error {
+func (r *Runner[T, S]) pauseNode(id int, nodes map[int]*T) error {
 	_, ok := nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid Node id")
@@ -155,14 +155,14 @@ func (r *Runner[T]) pauseNode(id int, nodes map[int]*T) error {
 	return r.ctrl.Pause(id)
 }
 
-func (r *Runner[T]) ResumeNode(id int) error {
+func (r *Runner[T, S]) ResumeNode(id int) error {
 	r.cmd <- resume{
 		id: id,
 	}
 	return <-r.resp
 }
 
-func (r *Runner[T]) resumeNode(id int, nodes map[int]*T) error {
+func (r *Runner[T, S]) resumeNode(id int, nodes map[int]*T) error {
 	_, ok := nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid node Id")
@@ -170,14 +170,14 @@ func (r *Runner[T]) resumeNode(id int, nodes map[int]*T) error {
 	return r.ctrl.Resume(id)
 }
 
-func (r *Runner[T]) CrashNode(id int) error {
+func (r *Runner[T, S]) CrashNode(id int) error {
 	r.cmd <- crash{
 		id: id,
 	}
 	return <-r.resp
 }
 
-func (r *Runner[T]) crashNode(id int, nodes map[int]*T) error {
+func (r *Runner[T, S]) crashNode(id int, nodes map[int]*T) error {
 	n, ok := nodes[id]
 	if !ok {
 		return fmt.Errorf("Invalid node id")
@@ -189,6 +189,6 @@ func (r *Runner[T]) crashNode(id int, nodes map[int]*T) error {
 	return r.stopFunc(n)
 }
 
-func (r *Runner[T]) CrashSubscribe(callback func(int)) {
+func (r *Runner[T, S]) CrashSubscribe(callback func(int)) {
 	r.fm.Subscribe(callback)
 }
