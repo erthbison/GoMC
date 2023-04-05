@@ -2,22 +2,22 @@ package runner
 
 import "reflect"
 
-type pause struct {
-	id int
+type Pause struct {
+	Id int
 }
 
-type resume struct {
-	id int
+type Resume struct {
+	Id int
 }
 
-type crash struct {
-	id int
+type Crash struct {
+	Id int
 }
 
-type request struct {
-	id     int
-	method string
-	params []reflect.Value
+type Request struct {
+	Id     int
+	Method string
+	Params []reflect.Value
 }
 
-type stop struct{}
+type Stop struct{}

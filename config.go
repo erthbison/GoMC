@@ -1,10 +1,13 @@
 package gomc
 
 import (
+	"gomc/runner/controller"
+	"gomc/runner/recorder"
 	"gomc/scheduler"
 	"io"
 	"log"
 	"runtime"
+	"time"
 )
 
 func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) SimulationRunner[T, S] {
@@ -91,6 +94,56 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	// Check the predicates
 	checker := NewPredicateChecker(predicates...)
 	return checker.Check(state)
+}
+
+func Run[T, S any](ctrlOpt NodeControllerOption, recOpt MessageRecorderOption, initNodes InitNodeOption[T], opts ...RunnerOptions) *Runner[T, S] {
+	var (
+		pollingInterval = 5 * time.Second
+		stop            = func(*T) error { return nil }
+
+		getState func(*T) S
+	)
+
+	ctrl := ctrlOpt.ctrl
+	rec := recOpt.rec
+
+	for _, opt := range opts {
+		switch t := opt.(type) {
+		case pollingIntervalOption:
+			pollingInterval = t.pollingInterval
+		}
+	}
+
+	r := NewRunner[T, S](
+		pollingInterval,
+		ctrl,
+		rec,
+		stop,
+	)
+
+	r.Start(
+		initNodes.f,
+		getState,
+	)
+	return r
+}
+
+type NodeControllerOption struct {
+	ctrl controller.NodeController
+}
+
+type MessageRecorderOption struct {
+	rec recorder.MessageRecorder
+}
+
+type RunnerOptions interface{}
+
+type pollingIntervalOption struct {
+	pollingInterval time.Duration
+}
+
+func PollingInterval(interval time.Duration) RunnerOptions {
+	return pollingIntervalOption{pollingInterval: interval}
 }
 
 type SchedulerOption struct {

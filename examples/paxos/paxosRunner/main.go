@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"gomc"
 	"net"
 	"os"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"gomc/examples/paxos"
-	"gomc/runner"
 	"gomc/runner/controller"
 	"gomc/runner/recorder"
 
@@ -44,9 +44,9 @@ func main() {
 	}
 
 	gnc := controller.NewGrpcNodeController(addr2id)
-	r := runner.NewRunner[paxos.Server, State](time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
+	r := gomc.NewRunner[paxos.Server, State](time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
 	r.Start(
-		func() map[int]*paxos.Server {
+		func(sp gomc.SimulationParameters) map[int]*paxos.Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
@@ -55,7 +55,7 @@ func main() {
 			nodes := make(map[int]*paxos.Server)
 			for id, addr := range addrMap {
 				srv, err := paxos.NewServer(id, addrMap, func(int) {}, grpc.UnaryInterceptor(gnc.ServerInterceptor(int(id))))
-				r.CrashSubscribe(srv.NodeCrash)
+				sp.Fm.Subscribe(srv.NodeCrash)
 				if err != nil {
 					panic(err)
 				}

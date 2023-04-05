@@ -1,8 +1,9 @@
-package runner
+package gomc
 
 import (
 	"fmt"
 	"gomc/failureManager"
+	"gomc/runner"
 	"gomc/runner/controller"
 	"gomc/runner/recorder"
 	"reflect"
@@ -44,8 +45,10 @@ func NewRunner[T, S any](pollingInterval time.Duration, ctrl controller.NodeCont
 	}
 }
 
-func (r *Runner[T, S]) Start(initNodes func() map[int]*T, getState func(*T) S) {
-	nodes := initNodes()
+func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T, getState func(*T) S) {
+	nodes := initNodes(SimulationParameters{
+		Fm: r.fm,
+	})
 	nodeIds := []int{}
 	for id := range nodes {
 		nodeIds = append(nodeIds, id)
@@ -68,15 +71,15 @@ func (r *Runner[T, S]) Start(initNodes func() map[int]*T, getState func(*T) S) {
 			case cmd := <-r.cmd:
 				var err error
 				switch t := cmd.(type) {
-				case pause:
-					err = r.pauseNode(t.id, nodes)
-				case resume:
-					err = r.resumeNode(t.id, nodes)
-				case crash:
-					err = r.crashNode(t.id, nodes)
-				case request:
-					err = r.request(t.id, t.method, t.params, nodes)
-				case stop:
+				case runner.Pause:
+					err = r.pauseNode(t.Id, nodes)
+				case runner.Resume:
+					err = r.resumeNode(t.Id, nodes)
+				case runner.Crash:
+					err = r.crashNode(t.Id, nodes)
+				case runner.Request:
+					err = r.request(t.Id, t.Method, t.Params, nodes)
+				case runner.Stop:
 					err = r.stop(ticker, nodes)
 					if err == nil {
 						run = false
@@ -102,7 +105,7 @@ func (r *Runner[T, S]) SubscribeStateUpdates() chan map[int]S {
 }
 
 func (r *Runner[T, S]) Stop() error {
-	r.cmd <- stop{}
+	r.cmd <- runner.Stop{}
 	return <-r.resp
 }
 
@@ -122,10 +125,10 @@ func (r *Runner[T, S]) Request(id int, requestType string, params ...any) error 
 	for i, val := range params {
 		reflectParams[i] = reflect.ValueOf(val)
 	}
-	r.cmd <- request{
-		id:     id,
-		method: requestType,
-		params: reflectParams,
+	r.cmd <- runner.Request{
+		Id:     id,
+		Method: requestType,
+		Params: reflectParams,
 	}
 	return <-r.resp
 }
@@ -141,8 +144,8 @@ func (r *Runner[T, S]) request(id int, method string, params []reflect.Value, no
 }
 
 func (r *Runner[T, S]) PauseNode(id int) error {
-	r.cmd <- pause{
-		id: id,
+	r.cmd <- runner.Pause{
+		Id: id,
 	}
 	return <-r.resp
 }
@@ -156,8 +159,8 @@ func (r *Runner[T, S]) pauseNode(id int, nodes map[int]*T) error {
 }
 
 func (r *Runner[T, S]) ResumeNode(id int) error {
-	r.cmd <- resume{
-		id: id,
+	r.cmd <- runner.Resume{
+		Id: id,
 	}
 	return <-r.resp
 }
@@ -171,8 +174,8 @@ func (r *Runner[T, S]) resumeNode(id int, nodes map[int]*T) error {
 }
 
 func (r *Runner[T, S]) CrashNode(id int) error {
-	r.cmd <- crash{
-		id: id,
+	r.cmd <- runner.Crash{
+		Id: id,
 	}
 	return <-r.resp
 }
@@ -187,8 +190,4 @@ func (r *Runner[T, S]) crashNode(id int, nodes map[int]*T) error {
 		return err
 	}
 	return r.stopFunc(n)
-}
-
-func (r *Runner[T, S]) CrashSubscribe(callback func(int)) {
-	r.fm.Subscribe(callback)
 }
