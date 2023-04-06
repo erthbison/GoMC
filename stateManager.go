@@ -2,29 +2,12 @@ package gomc
 
 import (
 	"fmt"
-	"gomc/event"
 	"gomc/tree"
 	"io"
 	"sync"
 
 	"golang.org/x/exp/maps"
 )
-
-type GlobalState[S any] struct {
-	LocalStates map[int]S    // A map storing the local state of the nodes. The map stores (id, state) combination.
-	Correct     map[int]bool // A map storing the status of the node. The map stores (id, status) combination. If status is true, the node with id "id" is correct, otherwise the node is true. All nodes are represented in the map.
-	evt         event.Event  // A copy of the event that caused the transition into this state. It should not be changed.
-}
-
-func (gs GlobalState[S]) String() string {
-	crashed := []int{}
-	for id, status := range gs.Correct {
-		if !status {
-			crashed = append(crashed, id)
-		}
-	}
-	return fmt.Sprintf("Evt: %v\t States: %v\t Crashed: %v\t", gs.evt, gs.LocalStates, crashed)
-}
 
 // Manages the global state across several runs.
 type StateManager[T, S any] interface {
@@ -76,7 +59,7 @@ func (sm *TreeStateManager[T, S]) AddRun(run []GlobalState[S]) {
 // Initializes the state tree with the provided state as the initial state
 func (sm *TreeStateManager[T, S]) initStateTree(state GlobalState[S]) *tree.Tree[GlobalState[S]] {
 	cmp := func(a, b GlobalState[S]) bool {
-		if !event.EventsEquals(a.evt, b.evt) {
+		if a.Evt.Id != b.Evt.Id {
 			return false
 		}
 		if !maps.EqualFunc(a.LocalStates, b.LocalStates, sm.stateEq) {

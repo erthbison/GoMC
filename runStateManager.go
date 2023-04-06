@@ -28,7 +28,7 @@ func (rss *RunStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct ma
 	rss.run = append(rss.run, GlobalState[S]{
 		LocalStates: states,
 		Correct:     copiedCorrect,
-		evt:         evt,
+		Evt:         createEventRecord(evt),
 	})
 }
 
