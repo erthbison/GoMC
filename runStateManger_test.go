@@ -1,6 +1,7 @@
 package gomc
 
 import (
+	"gomc/state"
 	"os"
 	"sync"
 	"testing"
@@ -33,7 +34,7 @@ func TestStateMangerMerge(t *testing.T) {
 		}
 		wait.Wait()
 		close(inChan)
-		state := sm.State().(treeStateSpace[int])
+		state := sm.State().(state.TreeStateSpace[int])
 		size := state.Len()
 		if size != test.expectedLen {
 			state.Export(os.Stdout)

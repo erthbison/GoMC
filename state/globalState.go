@@ -1,4 +1,4 @@
-package gomc
+package state
 
 import "fmt"
 

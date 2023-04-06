@@ -3,6 +3,7 @@ package gomc
 import (
 	"gomc/event"
 	"gomc/scheduler"
+	"gomc/state"
 	"strconv"
 )
 
@@ -78,7 +79,7 @@ func (ms *MockRunScheduler) EndRun() {
 }
 
 type MockStateManager struct {
-	receivedRun []GlobalState[State]
+	receivedRun []state.GlobalState[State]
 }
 
 func NewMockStateManager() *MockStateManager {
@@ -89,11 +90,11 @@ func (ms *MockStateManager) GetRunStateManager() *RunStateManager[MockNode, Stat
 	return &RunStateManager[MockNode, State]{}
 }
 
-func (ms *MockStateManager) State() StateSpace[State] {
-	return treeStateSpace[State]{}
+func (ms *MockStateManager) State() state.StateSpace[State] {
+	return state.TreeStateSpace[State]{}
 }
 
-func (ms *MockStateManager) AddRun(run []GlobalState[State]) {
+func (ms *MockStateManager) AddRun(run []state.GlobalState[State]) {
 	ms.receivedRun = run
 }
 
