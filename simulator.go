@@ -91,6 +91,10 @@ func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(Simulati
 		// Send a signal to start processing runs
 		startedRuns++
 		nextRun <- true
+
+		if startedRuns >= s.maxRuns {
+			break
+		}
 	}
 
 	return s.mainLoop(ongoing, startedRuns, nextRun, status, closing)
