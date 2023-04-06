@@ -3,6 +3,7 @@ package gomc
 import (
 	"gomc/checking"
 	"gomc/scheduler"
+	"gomc/stateManager"
 	"io"
 	"log"
 	"runtime"
@@ -184,16 +185,18 @@ func IgnoreError() SimulatorOption {
 	return ignoreErrorOption{}
 }
 
-type StateManagerOption[T, S any] struct{ sm StateManager[T, S] }
+type StateManagerOption[T, S any] struct {
+	sm stateManager.StateManager[T, S]
+}
 
 // Use the provided state manger in the simulation.
-func WithStateManager[T, S any](sm StateManager[T, S]) StateManagerOption[T, S] {
+func WithStateManager[T, S any](sm stateManager.StateManager[T, S]) StateManagerOption[T, S] {
 	return StateManagerOption[T, S]{sm: sm}
 }
 
 // Use a TreeStateManager in the simulation.
 func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S, S) bool) StateManagerOption[T, S] {
-	sm := NewTreeStateManager(getLocalState, statesEqual)
+	sm := stateManager.NewTreeStateManager(getLocalState, statesEqual)
 	return StateManagerOption[T, S]{sm: sm}
 }
 

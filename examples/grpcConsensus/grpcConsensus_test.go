@@ -12,6 +12,7 @@ import (
 	"gomc"
 	"gomc/checking"
 	"gomc/gomcGrpc"
+	"gomc/stateManager"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -65,7 +66,7 @@ func TestGrpcConsensus(t *testing.T) {
 		gomc.MaxRuns(1000),
 	)
 
-	sm := gomc.NewTreeStateManager(
+	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
 			decided := make([]string, len(node.DecidedVal))
 			copy(decided, node.DecidedVal)
@@ -162,7 +163,7 @@ func TestReplayConsensus(t *testing.T) {
 	json.NewDecoder(buffer).Decode(&run)
 	sim := gomc.Prepare[GrpcConsensus, state](gomc.ReplayScheduler(run))
 
-	sm := gomc.NewTreeStateManager(
+	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
 			decided := make([]string, len(node.DecidedVal))
 			copy(decided, node.DecidedVal)

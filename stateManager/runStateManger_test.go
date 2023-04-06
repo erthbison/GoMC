@@ -1,4 +1,4 @@
-package gomc
+package stateManager
 
 import (
 	"gomc/state"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gomc/failureManager"
 	"gomc/scheduler"
+	"gomc/stateManager"
 )
 
 /*
@@ -57,7 +58,7 @@ func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, ignoreErrors bool
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(sm StateManager[T, S], initNodes func(SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
+func (s Simulator[T, S]) Simulate(sm stateManager.StateManager[T, S], initNodes func(SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) error {
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}

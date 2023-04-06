@@ -1,10 +1,9 @@
-package gomc
+package stateManager
 
 import (
 	"gomc/event"
 	"gomc/scheduler"
 	"gomc/state"
-	"gomc/stateManager"
 	"strconv"
 )
 
@@ -87,8 +86,8 @@ func NewMockStateManager() *MockStateManager {
 	return &MockStateManager{}
 }
 
-func (ms *MockStateManager) GetRunStateManager() *stateManager.RunStateManager[MockNode, State] {
-	return &stateManager.RunStateManager[MockNode, State]{}
+func (ms *MockStateManager) GetRunStateManager() *RunStateManager[MockNode, State] {
+	return &RunStateManager[MockNode, State]{}
 }
 
 func (ms *MockStateManager) State() state.StateSpace[State] {

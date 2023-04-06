@@ -6,12 +6,13 @@ import (
 	"gomc/event"
 	"gomc/failureManager"
 	"gomc/scheduler"
+	"gomc/stateManager"
 	"runtime/debug"
 )
 
 type runSimulator[T, S any] struct {
 	sch scheduler.RunScheduler
-	sm  *RunStateManager[T, S]
+	sm  *stateManager.RunStateManager[T, S]
 	fm  *failureManager.FailureManager
 
 	nextEvt chan error
@@ -20,7 +21,7 @@ type runSimulator[T, S any] struct {
 	ignorePanics bool
 }
 
-func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *RunStateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
+func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *stateManager.RunStateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
 		sch: sch,
 		sm:  sm,

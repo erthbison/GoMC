@@ -1,4 +1,4 @@
-package gomc
+package stateManager
 
 import (
 	"gomc/event"
@@ -14,6 +14,15 @@ type RunStateManager[T, S any] struct {
 	getLocalState func(*T) S
 
 	run []state.GlobalState[S]
+}
+
+func NewRunStateManager[T, S any](sm StateManager[T, S], getLocalState func(*T) S) *RunStateManager[T, S] {
+	return &RunStateManager[T, S]{
+		sm:            sm,
+		getLocalState: getLocalState,
+
+		run: make([]state.GlobalState[S], 0),
+	}
 }
 
 func (rss *RunStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[int]bool, evt event.Event) {

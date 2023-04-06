@@ -1,4 +1,4 @@
-package gomc
+package stateManager
 
 import (
 	"fmt"
@@ -74,11 +74,7 @@ func (sm *TreeStateManager[T, S]) initStateTree(s state.GlobalState[S]) *tree.Tr
 
 // Create a RunStateManager to be used to collect the state of the new run
 func (sm *TreeStateManager[T, S]) GetRunStateManager() *RunStateManager[T, S] {
-	return &RunStateManager[T, S]{
-		run:           make([]state.GlobalState[S], 0),
-		getLocalState: sm.getLocalState,
-		sm:            sm,
-	}
+	return NewRunStateManager[T, S](sm, sm.getLocalState)
 }
 
 // Write the Newick representation of the state tree to the writer
