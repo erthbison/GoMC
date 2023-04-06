@@ -44,9 +44,7 @@ func (pcr predicateCheckerResponse[S]) Export() []string {
 		return evtSequence
 	}
 	for _, state := range pcr.Sequence {
-		if state.evt != nil {
-			evtSequence = append(evtSequence, state.evt.Id())
-		}
+		evtSequence = append(evtSequence, state.Evt.Id)
 	}
 	return evtSequence
 }
