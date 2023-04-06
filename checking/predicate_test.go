@@ -1,14 +1,16 @@
-package predicate
+package checking
 
 import (
-	"gomc"
+	"gomc/state"
 	"testing"
 )
 
+var emptySeq = make([]state.GlobalState[bool], 0)
+
 func TestEventually(t *testing.T) {
-	emptySeq := make([]gomc.GlobalState[bool], 0)
-	eventuallyPred := func(gs gomc.GlobalState[bool], _ []gomc.GlobalState[bool]) bool {
-		for _, n := range gs.LocalStates {
+
+	eventuallyPred := func(s State[bool]) bool {
+		for _, n := range s.LocalStates {
 			if !n {
 				return false
 			}
@@ -17,7 +19,13 @@ func TestEventually(t *testing.T) {
 	}
 	for i, test := range eventuallyTest {
 		pred := Eventually(eventuallyPred)
-		out := pred(test.gs, test.terminal, emptySeq)
+		s := State[bool]{
+			LocalStates: test.gs.LocalStates,
+			Correct:     test.gs.Correct,
+			IsTerminal:  test.terminal,
+			Sequence:    emptySeq,
+		}
+		out := pred(s)
 		if out != test.expected {
 			t.Errorf("Received unexpected bool from predicate on test %v. Got %v", i, out)
 		}
@@ -29,7 +37,13 @@ func TestForAllNodes(t *testing.T) {
 		return s
 	}
 	for i, test := range forAllNodesTest {
-		out := ForAllNodes(cond, test.gs, test.checkCorrect)
+		s := State[bool]{
+			LocalStates: test.gs.LocalStates,
+			Correct:     test.gs.Correct,
+			IsTerminal:  false,
+			Sequence:    emptySeq,
+		}
+		out := ForAllNodes(cond, s, test.checkCorrect)
 		if out != test.expected {
 			t.Errorf("Received unexpected bool from predicate on test %v. Got %v", i, out)
 		}
@@ -39,38 +53,38 @@ func TestForAllNodes(t *testing.T) {
 
 var eventuallyTest = []struct {
 	terminal bool
-	gs       gomc.GlobalState[bool]
+	gs       state.GlobalState[bool]
 	expected bool
 }{
 	{
 		false,
-		gomc.GlobalState[bool]{},
+		state.GlobalState[bool]{},
 		true,
 	},
 	{
 		true,
-		gomc.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: true}},
+		state.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: true}},
 		true,
 	},
 	{
 		true,
-		gomc.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: false}},
+		state.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: false}},
 		false,
 	},
 	{
 		false,
-		gomc.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: false}},
+		state.GlobalState[bool]{LocalStates: map[int]bool{0: true, 1: false}},
 		true,
 	},
 }
 
 var forAllNodesTest = []struct {
-	gs           gomc.GlobalState[bool]
+	gs           state.GlobalState[bool]
 	checkCorrect bool
 	expected     bool
 }{
 	{
-		gs: gomc.GlobalState[bool]{
+		gs: state.GlobalState[bool]{
 			LocalStates: map[int]bool{0: true, 1: true, 2: true},
 			Correct:     map[int]bool{0: true, 1: true, 2: true},
 		},
@@ -78,7 +92,7 @@ var forAllNodesTest = []struct {
 		expected:     true,
 	},
 	{
-		gs: gomc.GlobalState[bool]{
+		gs: state.GlobalState[bool]{
 			LocalStates: map[int]bool{0: false, 1: true, 2: true},
 			Correct:     map[int]bool{0: true, 1: true, 2: true},
 		},
@@ -86,7 +100,7 @@ var forAllNodesTest = []struct {
 		expected:     false,
 	},
 	{
-		gs: gomc.GlobalState[bool]{
+		gs: state.GlobalState[bool]{
 			LocalStates: map[int]bool{0: false, 1: true, 2: true},
 			Correct:     map[int]bool{0: false, 1: true, 2: true},
 		},
@@ -94,7 +108,7 @@ var forAllNodesTest = []struct {
 		expected:     false,
 	},
 	{
-		gs: gomc.GlobalState[bool]{
+		gs: state.GlobalState[bool]{
 			LocalStates: map[int]bool{0: false, 1: true, 2: true},
 			Correct:     map[int]bool{0: false, 1: true, 2: true},
 		},

@@ -1,13 +1,16 @@
 package gomc
 
 import (
-	"gomc/runner/controller"
-	"gomc/runner/recorder"
-	"gomc/scheduler"
 	"io"
 	"log"
 	"runtime"
 	"time"
+
+	"gomc/checking"
+	"gomc/runner/controller"
+	"gomc/runner/recorder"
+	"gomc/scheduler"
+	"gomc/stateManager"
 )
 
 func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) SimulationRunner[T, S] {
@@ -52,11 +55,11 @@ type SimulationRunner[T, S any] struct {
 	sim *Simulator[T, S]
 }
 
-func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) CheckerResponse {
+func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
 		incorrectNodes = []int{}
-		predicates     = []Predicate[S]{}
+		predicates     = []checking.Predicate[S]{}
 		requests       = []Request{}
 		crashFunc      = func(*T) {}
 
@@ -92,7 +95,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	}
 
 	// Check the predicates
-	checker := NewPredicateChecker(predicates...)
+	checker := checking.NewPredicateChecker(predicates...)
 	return checker.Check(state)
 }
 
@@ -236,16 +239,18 @@ func IgnoreError() SimulatorOption {
 	return ignoreErrorOption{}
 }
 
-type StateManagerOption[T, S any] struct{ sm StateManager[T, S] }
+type StateManagerOption[T, S any] struct {
+	sm stateManager.StateManager[T, S]
+}
 
 // Use the provided state manger in the simulation.
-func WithStateManager[T, S any](sm StateManager[T, S]) StateManagerOption[T, S] {
+func WithStateManager[T, S any](sm stateManager.StateManager[T, S]) StateManagerOption[T, S] {
 	return StateManagerOption[T, S]{sm: sm}
 }
 
 // Use a TreeStateManager in the simulation.
 func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S, S) bool) StateManagerOption[T, S] {
-	sm := NewTreeStateManager(getLocalState, statesEqual)
+	sm := stateManager.NewTreeStateManager(getLocalState, statesEqual)
 	return StateManagerOption[T, S]{sm: sm}
 }
 
@@ -284,10 +289,10 @@ func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
 	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
 }
 
-type predicateOption[S any] struct{ pred []Predicate[S] }
+type predicateOption[S any] struct{ pred []checking.Predicate[S] }
 
 // Specify a list of predicates that will be used when verifying the implementation.
-func WithPredicate[S any](preds ...Predicate[S]) RunOptions {
+func WithPredicate[S any](preds ...checking.Predicate[S]) RunOptions {
 	return predicateOption[S]{pred: preds}
 }
 

@@ -1,8 +1,9 @@
-package gomc
+package checking
 
 import (
 	"bytes"
 	"fmt"
+	"gomc/state"
 	"text/tabwriter"
 )
 
@@ -12,9 +13,9 @@ type CheckerResponse interface {
 }
 
 type predicateCheckerResponse[S any] struct {
-	Result   bool             // True if all tests holds. False otherwise
-	Sequence []GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
-	Test     int              // The index of the failing test. -1 if Result is true
+	Result   bool                   // True if all tests holds. False otherwise
+	Sequence []state.GlobalState[S] // A sequence of states leading to the false test. nil if Result is true
+	Test     int                    // The index of the failing test. -1 if Result is true
 }
 
 // Generate a response
@@ -59,7 +60,7 @@ func (pcr predicateCheckerResponse[S]) Export() []string {
 // terminal: true if this is the last state in a run. False otherwise
 //
 // seq: the sequence of states that lead to the current state. If terminal is true, this represent the entire run.
-type Predicate[S any] func(gs GlobalState[S], terminal bool, seq []GlobalState[S]) bool
+type Predicate[S any] func(s State[S]) bool
 
 type PredicateChecker[S any] struct {
 	// A slice of predicates that returns true if the predicate holds.
@@ -74,9 +75,9 @@ func NewPredicateChecker[S any](predicates ...Predicate[S]) *PredicateChecker[S]
 	}
 }
 
-func (pc *PredicateChecker[S]) Check(root StateSpace[S]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) Check(root state.StateSpace[S]) *predicateCheckerResponse[S] {
 	// Checks that all predicates holds for all nodes. Nodes are searched depth first and the search is interrupted if some state that breaks the predicates are provided
-	if resp := pc.checkNode(root, []GlobalState[S]{}); resp != nil {
+	if resp := pc.checkNode(root, []state.GlobalState[S]{}); resp != nil {
 		return resp
 	}
 	return &predicateCheckerResponse[S]{
@@ -86,7 +87,7 @@ func (pc *PredicateChecker[S]) Check(root StateSpace[S]) *predicateCheckerRespon
 	}
 }
 
-func (pc *PredicateChecker[S]) checkNode(node StateSpace[S], sequence []GlobalState[S]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) checkNode(node state.StateSpace[S], sequence []state.GlobalState[S]) *predicateCheckerResponse[S] {
 	// Use a depth first search to search trough all nodes and check with predicates
 	// Immediately stops when finding a state that breaches the predicates
 	sequence = append(sequence, node.Payload())
@@ -106,10 +107,15 @@ func (pc *PredicateChecker[S]) checkNode(node StateSpace[S], sequence []GlobalSt
 	return nil
 }
 
-func (pc *PredicateChecker[S]) checkState(state GlobalState[S], terminalState bool, sequence []GlobalState[S]) (bool, int) {
+func (pc *PredicateChecker[S]) checkState(state state.GlobalState[S], terminalState bool, sequence []state.GlobalState[S]) (bool, int) {
 	// Check the state of a node on all predicates. The leafNode variable is true if this is a leaf node
 	for index, pred := range pc.predicates {
-		if !pred(state, terminalState, sequence) {
+		if !pred(State[S]{
+			LocalStates: state.LocalStates,
+			Correct:     state.Correct,
+			IsTerminal:  terminalState,
+			Sequence:    sequence,
+		}) {
 			return false, index
 		}
 	}

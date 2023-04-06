@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"gomc"
+	"gomc/checking"
 	"gomc/eventManager"
-	"gomc/predicate"
 	"os"
 	"testing"
 
@@ -17,42 +17,42 @@ type state struct {
 	decided  []Value[int]
 }
 
-var predicates = []gomc.Predicate[state]{
-	predicate.Eventually(
+var predicates = []checking.Predicate[state]{
+	checking.Eventually(
 		// C1: Termination
-		func(gs gomc.GlobalState[state], _ []gomc.GlobalState[state]) bool {
-			return predicate.ForAllNodes(func(s state) bool {
+		func(s checking.State[state]) bool {
+			return checking.ForAllNodes(func(s state) bool {
 				return len(s.decided) > 0
-			}, gs, true)
+			}, s, true)
 		},
 	),
-	func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C2: Validity
 		proposed := make(map[Value[int]]bool)
-		for _, node := range gs.LocalStates {
+		for _, node := range s.LocalStates {
 			proposed[node.proposed] = true
 		}
-		return predicate.ForAllNodes(func(s state) bool {
+		return checking.ForAllNodes(func(s state) bool {
 			if len(s.decided) < 1 {
 				// The process has not decided a value yet
 				return true
 			}
 			return proposed[s.decided[0]]
-		}, gs, false)
+		}, s, false)
 	},
-	func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C3: Integrity
-		return predicate.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, gs, false)
+		return checking.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, s, false)
 	},
-	func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C4: Agreement
 		decided := make(map[Value[int]]bool)
-		predicate.ForAllNodes(func(s state) bool {
+		checking.ForAllNodes(func(s state) bool {
 			for _, val := range s.decided {
 				decided[val] = true
 			}
 			return true
-		}, gs, true)
+		}, s, true)
 		return len(decided) <= 1
 	},
 }

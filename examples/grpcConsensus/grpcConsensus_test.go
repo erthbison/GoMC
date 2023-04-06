@@ -10,8 +10,9 @@ import (
 	"testing"
 
 	"gomc"
+	"gomc/checking"
 	"gomc/gomcGrpc"
-	"gomc/predicate"
+	"gomc/stateManager"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -19,42 +20,42 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-var predicates = []gomc.Predicate[state]{
-	predicate.Eventually(
+var predicates = []checking.Predicate[state]{
+	checking.Eventually(
 		// C1: Termination
-		func(gs gomc.GlobalState[state], _ []gomc.GlobalState[state]) bool {
-			return predicate.ForAllNodes(func(s state) bool {
+		func(s checking.State[state]) bool {
+			return checking.ForAllNodes(func(s state) bool {
 				return len(s.decided) > 0
-			}, gs, true)
+			}, s, true)
 		},
 	),
-	func(gs gomc.GlobalState[state], _ bool, _ []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C2: Validity
 		proposed := make(map[string]bool)
-		for _, node := range gs.LocalStates {
+		for _, node := range s.LocalStates {
 			proposed[node.proposed] = true
 		}
-		return predicate.ForAllNodes(func(s state) bool {
+		return checking.ForAllNodes(func(s state) bool {
 			if len(s.decided) < 1 {
 				// The process has not decided a value yet
 				return true
 			}
 			return proposed[s.decided[0]]
-		}, gs, false)
+		}, s, false)
 	},
-	func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C3: Integrity
-		return predicate.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, gs, false)
+		return checking.ForAllNodes(func(s state) bool { return len(s.decided) < 2 }, s, false)
 	},
-	func(gs gomc.GlobalState[state], _ bool, seq []gomc.GlobalState[state]) bool {
+	func(s checking.State[state]) bool {
 		// C4: Agreement
 		decided := make(map[string]bool)
-		predicate.ForAllNodes(func(s state) bool {
+		checking.ForAllNodes(func(s state) bool {
 			for _, val := range s.decided {
 				decided[val] = true
 			}
 			return true
-		}, gs, true)
+		}, s, true)
 		return len(decided) <= 1
 	},
 }
@@ -65,7 +66,7 @@ func TestGrpcConsensus(t *testing.T) {
 		gomc.MaxRuns(1000),
 	)
 
-	sm := gomc.NewTreeStateManager(
+	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
 			decided := make([]string, len(node.DecidedVal))
 			copy(decided, node.DecidedVal)
@@ -162,7 +163,7 @@ func TestReplayConsensus(t *testing.T) {
 	json.NewDecoder(buffer).Decode(&run)
 	sim := gomc.Prepare[GrpcConsensus, state](gomc.ReplayScheduler(run))
 
-	sm := gomc.NewTreeStateManager(
+	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
 			decided := make([]string, len(node.DecidedVal))
 			copy(decided, node.DecidedVal)

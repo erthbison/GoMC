@@ -1,7 +1,8 @@
-package gomc
+package stateManager
 
 import (
 	"gomc/event"
+	"gomc/state"
 )
 
 // A type that manages the state of a single run at a time.
@@ -12,7 +13,16 @@ type RunStateManager[T, S any] struct {
 	sm            StateManager[T, S]
 	getLocalState func(*T) S
 
-	run []GlobalState[S]
+	run []state.GlobalState[S]
+}
+
+func NewRunStateManager[T, S any](sm StateManager[T, S], getLocalState func(*T) S) *RunStateManager[T, S] {
+	return &RunStateManager[T, S]{
+		sm:            sm,
+		getLocalState: getLocalState,
+
+		run: make([]state.GlobalState[S], 0),
+	}
 }
 
 func (rss *RunStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct map[int]bool, evt event.Event) {
@@ -25,14 +35,14 @@ func (rss *RunStateManager[T, S]) UpdateGlobalState(nodes map[int]*T, correct ma
 	for id, status := range correct {
 		copiedCorrect[id] = status
 	}
-	rss.run = append(rss.run, GlobalState[S]{
+	rss.run = append(rss.run, state.GlobalState[S]{
 		LocalStates: states,
 		Correct:     copiedCorrect,
-		Evt:         createEventRecord(evt),
+		Evt:         state.CreateEventRecord(evt),
 	})
 }
 
 func (rss *RunStateManager[T, S]) EndRun() {
 	rss.sm.AddRun(rss.run)
-	rss.run = make([]GlobalState[S], 0)
+	rss.run = make([]state.GlobalState[S], 0)
 }

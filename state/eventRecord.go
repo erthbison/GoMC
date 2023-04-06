@@ -1,4 +1,4 @@
-package gomc
+package state
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func (er EventRecord) String() string {
 	return er.Repr
 }
 
-func createEventRecord(evt event.Event) EventRecord {
+func CreateEventRecord(evt event.Event) EventRecord {
 	if evt != nil {
 		return EventRecord{
 			Id:   evt.Id(),

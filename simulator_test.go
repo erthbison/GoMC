@@ -3,6 +3,7 @@ package gomc
 import (
 	"fmt"
 	"gomc/event"
+	"gomc/stateManager"
 	"reflect"
 	"testing"
 
@@ -42,9 +43,10 @@ func TestSimulatorNoEvents(t *testing.T) {
 
 func TestAddRequests(t *testing.T) {
 	sch := NewMockRunScheduler()
+	gsm := NewMockStateManager()
 	sim := newRunSimulator(
 		sch,
-		&RunStateManager[MockNode, State]{},
+		stateManager.NewRunStateManager[MockNode, State](gsm, GetState),
 		1000,
 		false,
 	)
@@ -138,7 +140,7 @@ func TestExecuteRun(t *testing.T) {
 	for i, test := range executeRunTest {
 		sch := NewMockRunScheduler(test.events...)
 		gsm := NewMockStateManager()
-		sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+		sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
 		sim := newRunSimulator(
 			sch,
 			sm,
@@ -241,7 +243,7 @@ var executeRunTest = []struct {
 func TestExecuteEventDontIgnorePanics(t *testing.T) {
 	sch := NewMockRunScheduler()
 	gsm := NewMockStateManager()
-	sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+	sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
 	sim := newRunSimulator(
 		sch,
 		sm,
@@ -268,7 +270,7 @@ func TestInitRun(t *testing.T) {
 	for i, test := range initRunTest {
 		sch := NewMockRunScheduler()
 		gsm := NewMockStateManager()
-		sm := &RunStateManager[MockNode, State]{sm: gsm, getLocalState: GetState}
+		sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
 		sim := newRunSimulator(
 			sch,
 			sm,
