@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"gomc"
-	"gomc/gomcGrpc"
-	"gomc/predicate"
 	"net"
 	"os"
 	"testing"
@@ -14,6 +11,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+
+	"gomc"
+	"gomc/checking"
+	"gomc/gomcGrpc"
 )
 
 type State struct {
@@ -102,18 +103,18 @@ func TestPaxosSim(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(
-			func(gs gomc.GlobalState[State], terminal bool, seq []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// Only a value that has been proposed may be chosen
 				proposedVal := map[string]bool{}
-				for _, state := range gs.LocalStates {
+				for _, state := range s.LocalStates {
 					proposedVal[state.proposed] = true
 				}
-				return predicate.ForAllNodes(func(s State) bool { return !(s.decided != zeroVal && !proposedVal[s.decided]) }, gs, false)
+				return checking.ForAllNodes(func(s State) bool { return !(s.decided != zeroVal && !proposedVal[s.decided]) }, s, false)
 			},
-			func(gs gomc.GlobalState[State], terminal bool, seq []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// Only a single value is chosen
 				decidedVal := map[string]bool{}
-				for _, state := range gs.LocalStates {
+				for _, state := range s.LocalStates {
 					if state.decided != zeroVal {
 						decidedVal[state.decided] = true
 					}
@@ -123,10 +124,10 @@ func TestPaxosSim(t *testing.T) {
 				}
 				return true
 			},
-			predicate.Eventually(
-				func(gs gomc.GlobalState[State], seq []gomc.GlobalState[State]) bool {
+			checking.Eventually(
+				func(s checking.State[State]) bool {
 					// All correct node should eventually learn the decided value
-					return predicate.ForAllNodes(func(s State) bool { return s.decided != zeroVal }, gs, true)
+					return checking.ForAllNodes(func(s State) bool { return s.decided != zeroVal }, s, true)
 				},
 			),
 		),
@@ -214,23 +215,23 @@ func TestPaxosReplay(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(
-			func(gs gomc.GlobalState[State], terminal bool, seq []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// Only a value that has been proposed may be chosen
 				proposedVal := map[string]bool{}
-				for _, state := range gs.LocalStates {
+				for _, state := range s.LocalStates {
 					proposedVal[state.proposed] = true
 				}
-				for _, state := range gs.LocalStates {
+				for _, state := range s.LocalStates {
 					if state.decided != zeroVal && !proposedVal[state.decided] {
 						return false
 					}
 				}
 				return true
 			},
-			func(gs gomc.GlobalState[State], terminal bool, seq []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// Only a single value is chosen
 				decidedVal := map[string]bool{}
-				for _, state := range gs.LocalStates {
+				for _, state := range s.LocalStates {
 					if state.decided != zeroVal {
 						decidedVal[state.decided] = true
 					}
@@ -240,11 +241,11 @@ func TestPaxosReplay(t *testing.T) {
 				}
 				return true
 			},
-			predicate.Eventually(
-				func(gs gomc.GlobalState[State], seq []gomc.GlobalState[State]) bool {
+			checking.Eventually(
+				func(s checking.State[State]) bool {
 					// All correct node should eventually learn the decided value
-					for id, state := range gs.LocalStates {
-						if gs.Correct[id] {
+					for id, state := range s.LocalStates {
+						if s.Correct[id] {
 							if state.decided == zeroVal {
 								return false
 							}

@@ -1,6 +1,7 @@
 package gomc
 
 import (
+	"gomc/checking"
 	"gomc/scheduler"
 	"io"
 	"log"
@@ -49,11 +50,11 @@ type SimulationRunner[T, S any] struct {
 	sim *Simulator[T, S]
 }
 
-func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) CheckerResponse {
+func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
 		incorrectNodes = []int{}
-		predicates     = []Predicate[S]{}
+		predicates     = []checking.Predicate[S]{}
 		requests       = []Request{}
 		crashFunc      = func(*T) {}
 
@@ -89,7 +90,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	}
 
 	// Check the predicates
-	checker := NewPredicateChecker(predicates...)
+	checker := checking.NewPredicateChecker(predicates...)
 	return checker.Check(state)
 }
 
@@ -231,10 +232,10 @@ func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
 	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
 }
 
-type predicateOption[S any] struct{ pred []Predicate[S] }
+type predicateOption[S any] struct{ pred []checking.Predicate[S] }
 
 // Specify a list of predicates that will be used when verifying the implementation.
-func WithPredicate[S any](preds ...Predicate[S]) RunOptions {
+func WithPredicate[S any](preds ...checking.Predicate[S]) RunOptions {
 	return predicateOption[S]{pred: preds}
 }
 

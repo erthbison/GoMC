@@ -2,8 +2,8 @@ package main
 
 import (
 	"gomc"
+	"gomc/checking"
 	"gomc/eventManager"
-	"gomc/predicate"
 	"math"
 	"testing"
 
@@ -94,16 +94,16 @@ func TestOnrr(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(
-			predicate.Eventually(
-				func(states gomc.GlobalState[State], _ []gomc.GlobalState[State]) bool {
+			checking.Eventually(
+				func(s checking.State[State]) bool {
 					// Check that all correct nodes have no ongoing reads or writes
-					return predicate.ForAllNodes(func(a State) bool { return !(a.ongoingRead || a.ongoingWrite) }, states, true)
+					return checking.ForAllNodes(func(a State) bool { return !(a.ongoingRead || a.ongoingWrite) }, s, true)
 				},
 			),
-			func(state gomc.GlobalState[State], _ bool, seq []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				writer := 0
-				possibleReadSlice := make([][]int, len(seq))
-				for i, elem := range seq {
+				possibleReadSlice := make([][]int, len(s.Sequence))
+				for i, elem := range s.Sequence {
 					possibleReadSlice[i] = elem.LocalStates[writer].possibleReads
 				}
 
@@ -121,9 +121,9 @@ func TestOnrr(t *testing.T) {
 
 				// For each node in. Go trough the sequence and find ReadEvents.
 				// Find possible values for the read event and check that it matches the returned value
-				for id := range state.LocalStates {
+				for id := range s.LocalStates {
 					readStart := math.MaxInt
-					for i, elem := range seq {
+					for i, elem := range s.Sequence {
 
 						node := elem.LocalStates[id]
 						if node.ongoingRead && i < readStart {

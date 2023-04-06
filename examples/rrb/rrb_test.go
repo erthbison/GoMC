@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
-	"gomc"
-	"gomc/eventManager"
-	"gomc/predicate"
+
 	"strings"
 	"testing"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+
+	"gomc"
+	"gomc/checking"
+	"gomc/eventManager"
 )
 
 type State struct {
@@ -86,21 +88,21 @@ func TestRrb(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(
-			predicate.Eventually(
-				func(states gomc.GlobalState[State], _ []gomc.GlobalState[State]) bool {
+			checking.Eventually(
+				func(s checking.State[State]) bool {
 					// RB1: Validity
-					return predicate.ForAllNodes(func(a State) bool {
+					return checking.ForAllNodes(func(a State) bool {
 						for sentMsg := range a.sent {
 							if !a.delivered[sentMsg] {
 								return false
 							}
 						}
 						return true
-					}, states, true)
+					}, s, true)
 				}),
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// RB2: No duplication
-				for _, node := range states.LocalStates {
+				for _, node := range s.LocalStates {
 					delivered := make(map[message]bool)
 					for _, msg := range node.deliveredSlice {
 						if delivered[msg] {
@@ -111,15 +113,15 @@ func TestRrb(t *testing.T) {
 				}
 				return true
 			},
-			func(states gomc.GlobalState[State], terminal bool, _ []gomc.GlobalState[State]) bool {
+			func(s checking.State[State]) bool {
 				// RB3: No creation
 				sentMessages := map[message]bool{}
-				for _, node := range states.LocalStates {
+				for _, node := range s.LocalStates {
 					for sent := range node.sent {
 						sentMessages[sent] = true
 					}
 				}
-				for _, state := range states.LocalStates {
+				for _, state := range s.LocalStates {
 					for delivered := range state.delivered {
 						if !sentMessages[delivered] {
 							return false
@@ -128,20 +130,20 @@ func TestRrb(t *testing.T) {
 				}
 				return true
 			},
-			predicate.Eventually(
-				func(states gomc.GlobalState[State], _ []gomc.GlobalState[State]) bool {
+			checking.Eventually(
+				func(s checking.State[State]) bool {
 					// RB4 Agreement
 
 					// Use leaf nodes to check for liveness properties
 					// Can not say that the predicate has been broken for non-leaf nodes
 					delivered := map[message]bool{}
-					for _, node := range states.LocalStates {
+					for _, node := range s.LocalStates {
 						for msg := range node.delivered {
 							delivered[msg] = true
 						}
 					}
 					for msg := range delivered {
-						for _, node := range states.LocalStates {
+						for _, node := range s.LocalStates {
 							if !node.delivered[msg] {
 								return false
 							}
