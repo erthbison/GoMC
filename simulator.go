@@ -2,7 +2,6 @@ package gomc
 
 import (
 	"fmt"
-	"gomc/failureManager"
 	"gomc/scheduler"
 	"gomc/stateManager"
 )
@@ -154,8 +153,3 @@ func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bo
 	return out
 }
 
-type SimulationParameters struct {
-	NextEvt chan error
-	Fm      failureManager.FailureManager
-	Sch     scheduler.RunScheduler
-}
