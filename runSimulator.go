@@ -60,16 +60,13 @@ func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 		return err
 	}
 
+	// Always teardown the run.
+	defer rs.teardownRun(nodes, cfg.crashFunc)
+
 	err = rs.executeRun(nodes)
-	// End the run
-
-	rs.sch.EndRun()
-	rs.sm.EndRun()
-
 	if err != nil {
 		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
 	}
-
 	return nil
 }
 
@@ -174,6 +171,24 @@ func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
 	return nil
+}
+
+// Teardown the current run
+// This includes indicating to the scheduler and state manager that the run has ended
+// Also ensure that all nodes are no longer running
+func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, crashFunc func(*T)) {
+	// Call end run on scheduler and state manager
+	rs.sch.EndRun()
+	rs.sm.EndRun()
+
+	// Stop all currently running nodes
+	// Nodes that have already crashed will not be running, so we dont want to call the crash function again
+	correct := rs.fm.CorrectNodes()
+	for id, node := range nodes {
+		if correct[id] {
+			crashFunc(node)
+		}
+	}
 }
 
 // Stores the parameters used to start a run.
