@@ -8,13 +8,13 @@ import "errors"
 // All provided callback functions are called immediately upon the crash of a node
 type PerfectFailureManager struct {
 	correct         map[int]bool
-	failureCallback []func(int)
+	failureCallback []func(int, bool)
 }
 
 func New() *PerfectFailureManager {
 	return &PerfectFailureManager{
 		correct:         make(map[int]bool),
-		failureCallback: make([]func(int), 0),
+		failureCallback: make([]func(int, bool), 0),
 	}
 }
 
@@ -41,12 +41,12 @@ func (fm *PerfectFailureManager) NodeCrash(nodeId int) error {
 
 	// Call all provided crash callbacks
 	for _, f := range fm.failureCallback {
-		f(nodeId)
+		f(nodeId, false)
 	}
 	return nil
 }
 
 // Register a callback function to be called when a node crashes.
-func (fm *PerfectFailureManager) Subscribe(callback func(int)) {
+func (fm *PerfectFailureManager) Subscribe(callback func(int, bool)) {
 	fm.failureCallback = append(fm.failureCallback, callback)
 }

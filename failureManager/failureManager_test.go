@@ -14,10 +14,13 @@ func TestPerfectFailureManager(t *testing.T) {
 		}
 	}
 	called := false
-	callbackFunc := func(nodeId int) {
+	callbackFunc := func(nodeId int, status bool) {
 		called = true
 		if nodeId != 4 {
 			t.Errorf("Expected node 4 to fail")
+		}
+		if status {
+			t.Errorf("Expected status to be false")
 		}
 	}
 	fm.Subscribe(callbackFunc)
@@ -55,10 +58,13 @@ func TestRandomId(t *testing.T) {
 		}
 	}
 	called := false
-	callbackFunc := func(nodeId int) {
+	callbackFunc := func(nodeId int, status bool) {
 		called = true
 		if nodeId != 354 {
 			t.Errorf("Expected node 354 to fail. %v failed instead.", nodeId)
+		}
+		if status {
+			t.Errorf("Expected status to be false")
 		}
 	}
 	fm.Subscribe(callbackFunc)
