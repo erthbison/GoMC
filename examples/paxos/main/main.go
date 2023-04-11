@@ -78,7 +78,7 @@ func main() {
 	nodes[5].Stop()
 	go func() {
 		for _, n := range nodes {
-			n.NodeCrash(5)
+			n.NodeCrash(5, false)
 		}
 	}()
 

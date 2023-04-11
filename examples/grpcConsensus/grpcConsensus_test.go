@@ -108,7 +108,7 @@ func TestGrpcConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Fm.Subscribe(gc.Crash)
+					sp.Subscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 
@@ -208,7 +208,7 @@ func TestReplayConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Fm.Subscribe(gc.Crash)
+					sp.Subscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 

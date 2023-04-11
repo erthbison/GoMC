@@ -46,7 +46,7 @@ func NewHierarchicalConsensus[T any](id int, nodes []int, send func(int, string,
 	}
 }
 
-func (hc *HierarchicalConsensus[T]) Crash(id int) {
+func (hc *HierarchicalConsensus[T]) Crash(id int, _ bool) {
 	if hc.crashed {
 		return
 	}

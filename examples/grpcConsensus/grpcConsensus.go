@@ -81,7 +81,7 @@ func (gc *GrpcConsensus) DialServers(ids []int32, addrMap map[int32]string, dial
 	}
 }
 
-func (gc *GrpcConsensus) Crash(id int) {
+func (gc *GrpcConsensus) Crash(id int, _ bool) {
 	gc.detectedRanks[int32(id)] = true
 	for gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
 		gc.round++

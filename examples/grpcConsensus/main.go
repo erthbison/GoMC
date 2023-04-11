@@ -58,7 +58,7 @@ func main() {
 	nodes[2].Stop()
 	for _, node := range nodes {
 		go func(n *GrpcConsensus) {
-			n.Crash(2)
+			n.Crash(2, false)
 			n.Propose(addrMap[n.id])
 		}(node)
 	}
