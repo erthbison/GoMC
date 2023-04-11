@@ -72,9 +72,9 @@ func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 
 func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) (map[int]*T, error) {
 	nodes := initNodes(SimulationParameters{
-		NextEvt: rs.nextEvt,
-		Fm:      rs.fm,
-		Sch:     rs.sch,
+		NextEvt:   rs.nextEvt,
+		Subscribe: rs.fm.Subscribe,
+		Sch:       rs.sch,
 	})
 	nodeSlice := []int{}
 	for id := range nodes {
