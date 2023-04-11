@@ -13,7 +13,7 @@ import (
 type runSimulator[T, S any] struct {
 	sch scheduler.RunScheduler
 	sm  *stateManager.RunStateManager[T, S]
-	fm  *failureManager.FailureManager
+	fm  failureManager.FailureManager
 
 	nextEvt chan error
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestFailureManager(t *testing.T) {
+func TestPerfectFailureManager(t *testing.T) {
 	fm := New()
 	nodes := []int{0, 1, 2, 3, 4}
 	fm.Init(nodes)

@@ -156,6 +156,6 @@ func (s *Simulator[T, S]) mainLoop(ongoing int, startedRuns int, nextRun chan bo
 
 type SimulationParameters struct {
 	NextEvt chan error
-	Fm      *failureManager.FailureManager
+	Fm      failureManager.FailureManager
 	Sch     scheduler.RunScheduler
 }
