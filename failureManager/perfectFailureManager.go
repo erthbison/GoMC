@@ -21,7 +21,7 @@ func New() *PerfectFailureManager {
 // Init the failure manager with the provided nodes.
 // Set all the provided nodes to correct
 func (fm *PerfectFailureManager) Init(nodes []int) {
-	for id := range nodes {
+	for _, id := range nodes {
 		fm.correct[id] = true
 	}
 }
