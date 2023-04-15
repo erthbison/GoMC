@@ -7,11 +7,11 @@ import (
 )
 
 type Replay struct {
-	run  []string
+	run  []uint64
 	done bool
 }
 
-func NewReplay(run []string) *Replay {
+func NewReplay(run []uint64) *Replay {
 	return &Replay{
 		run: run,
 	}
@@ -28,14 +28,14 @@ func (r *Replay) GetRunScheduler() RunScheduler {
 type runReplay struct {
 	sync.Mutex
 	// A slice of the run to be replayed with event ids in order
-	run []string
+	run []uint64
 	// The index of the current event
 	index int
 
 	pendingEvents []event.Event
 }
 
-func newRunReplay(run []string) *runReplay {
+func newRunReplay(run []uint64) *runReplay {
 	return &runReplay{
 		index: 0,
 		run:   run,
@@ -62,7 +62,7 @@ func (rr *runReplay) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
-func (rr *runReplay) popEvent(id string) event.Event {
+func (rr *runReplay) popEvent(id uint64) event.Event {
 	for i, evt := range rr.pendingEvents {
 		if evt.Id() == id {
 			// Remove the event from the pending events and return the event

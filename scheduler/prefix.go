@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type run []string
+type run []uint64
 
 type Prefix struct {
 	// Explores the state space by maintaining a stack of unexplored prefixes.
@@ -93,7 +93,7 @@ func newRunQueue(p *Prefix) *runPrefix {
 		p: p,
 
 		currentIndex:  0,
-		currentRun:    make([]string, 0),
+		currentRun:    make(run, 0),
 		pendingEvents: make([]event.Event, 0),
 		pendingRuns:   make([]run, 0),
 	}
@@ -125,10 +125,10 @@ func (rp *runPrefix) GetEvent() (event.Event, error) {
 		// For all pending events we create a new run and add it to the pending runs queue
 		for _, pendingEvt := range rp.pendingEvents {
 			// Add these runs to the pending run slice
-			run := make([]string, len(rp.currentRun))
-			copy(run, rp.currentRun)
-			run = append(run, pendingEvt.Id())
-			rp.p.addRun(run)
+			newRun := make(run, len(rp.currentRun))
+			copy(newRun, rp.currentRun)
+			newRun = append(newRun, pendingEvt.Id())
+			rp.p.addRun(newRun)
 			// rss.pendingRuns = append(rss.pendingRuns, run)
 		}
 		rp.currentRun = append(rp.currentRun, evt.Id())
@@ -137,7 +137,7 @@ func (rp *runPrefix) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
-func (rp *runPrefix) popEvent(evtId string) event.Event {
+func (rp *runPrefix) popEvent(evtId uint64) event.Event {
 	// Remove the message from the message queue
 	for i, pendingEvt := range rp.pendingEvents {
 		if evtId == pendingEvt.Id() {

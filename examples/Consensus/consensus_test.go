@@ -122,7 +122,7 @@ func TestConsensusReplay(t *testing.T) {
 		t.Errorf("Error while setting up test: %v", err)
 	}
 	buffer := bytes.NewBuffer(in)
-	var run []string
+	var run []uint64
 	json.NewDecoder(buffer).Decode(&run)
 
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](

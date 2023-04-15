@@ -51,7 +51,7 @@ func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEve
 		nodes[id] = &MockNode{Id: i}
 		correct[id] = true
 	}
-	evt := MockEvent{i, 0, false, 0}
+	evt := MockEvent{uint64(i), 0, false, 0}
 	return nodes, correct, evt
 }
 

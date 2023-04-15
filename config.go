@@ -122,7 +122,7 @@ func PrefixScheduler() SchedulerOption {
 //
 // The replay scheduler replays the provided run, returning an error if it is unable to reproduce it
 // The provided run is represented as a slice of event ids, and can be exported using the CheckerResponse.Export()
-func ReplayScheduler(run []string) SchedulerOption {
+func ReplayScheduler(run []uint64) SchedulerOption {
 	return SchedulerOption{sch: scheduler.NewReplay(run)}
 }
 

@@ -18,7 +18,7 @@ func TestReplayScheduler(t *testing.T) {
 		for _, evt := range test.events {
 			sch.AddEvent(evt)
 		}
-		actualRun := []string{}
+		actualRun := []uint64{}
 		for {
 			evt, err := sch.GetEvent()
 			if err == NoRunsError {
@@ -42,7 +42,7 @@ func TestReplayScheduler(t *testing.T) {
 }
 
 func TestReplaySchedulerEndRun(t *testing.T) {
-	run := []string{"1", "3", "4", "6", "7"}
+	run := []uint64{1, 3, 4, 6, 7}
 	events := []MockEvent{
 		{id: 4, target: 0},
 		{id: 5, target: 1},
@@ -61,7 +61,7 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 	for _, evt := range events {
 		sch.AddEvent(evt)
 	}
-	actualRun := []string{}
+	actualRun := []uint64{}
 	for {
 		evt, err := sch.GetEvent()
 		if errors.Is(err, NoRunsError) {
@@ -80,33 +80,33 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 }
 
 var replaySchedulerTest = []struct {
-	run         []string
+	run         []uint64
 	events      []MockEvent
 	expectedErr bool
 }{
 	{
-		run:         []string{},
+		run:         []uint64{},
 		events:      []MockEvent{},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2"},
+		run:         []uint64{1, 2},
 		events:      []MockEvent{{id: 2}, {id: 1}},
 		expectedErr: false,
 	},
 	{
 		// The provided run contains an event that is not added. Expect an error
-		run:         []string{"1", "3"},
+		run:         []uint64{1, 3},
 		events:      []MockEvent{{id: 2}, {id: 1}},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2", "2"},
+		run:         []uint64{1, 2, 2},
 		events:      []MockEvent{{id: 2}, {id: 1}, {id: 3}},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2", "2"},
+		run:         []uint64{1, 2, 2},
 		events:      []MockEvent{{id: 2}, {id: 1}, {id: 2}},
 		expectedErr: false,
 	},

@@ -7,7 +7,7 @@ import (
 
 // A type providing a record of some event
 type EventRecord struct {
-	Id   string
+	Id   uint64
 	Repr string
 }
 
@@ -23,7 +23,7 @@ func CreateEventRecord(evt event.Event) EventRecord {
 		}
 	}
 	return EventRecord{
-		Id:   "",
+		Id:   0,
 		Repr: "",
 	}
 }

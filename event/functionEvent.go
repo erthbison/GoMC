@@ -2,6 +2,7 @@ package event
 
 import (
 	"fmt"
+	"hash/maphash"
 	"reflect"
 )
 
@@ -14,6 +15,8 @@ type FunctionEvent struct {
 	target int
 	method string
 	params []reflect.Value
+
+	id uint64
 }
 
 func NewFunctionEvent(i int, target int, method string, params ...reflect.Value) FunctionEvent {
@@ -22,11 +25,13 @@ func NewFunctionEvent(i int, target int, method string, params ...reflect.Value)
 		target: target,
 		method: method,
 		params: params,
+
+		id: maphash.String(EventHash, fmt.Sprint("Function", i)),
 	}
 }
 
-func (fe FunctionEvent) Id() string {
-	return fmt.Sprintf("Function %v", fe.index)
+func (fe FunctionEvent) Id() uint64 {
+	return fe.id
 }
 
 func (fe FunctionEvent) String() string {

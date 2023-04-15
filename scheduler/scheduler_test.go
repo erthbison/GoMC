@@ -3,7 +3,6 @@ package scheduler
 import (
 	"errors"
 	"gomc/event"
-	"strconv"
 	"testing"
 )
 
@@ -13,7 +12,7 @@ func benchmarkRunScheduler(sch RunScheduler, numEvents int) error {
 		if errors.Is(err, RunEndedError) {
 			sch.EndRun()
 			for i := 0; i < numEvents; i++ {
-				sch.AddEvent(MockEvent{i, 0, false})
+				sch.AddEvent(MockEvent{uint64(i), 0, false})
 			}
 		} else if errors.Is(err, NoRunsError) {
 			return nil
@@ -100,7 +99,7 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Expected no error. Got: %v", err)
 	}
-	if evt.Id() != "0" {
+	if evt.Id() != 0 {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
 
@@ -132,7 +131,7 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Expected no error. Got: %v", err)
 	}
-	if evt.Id() != "0" {
+	if evt.Id() != 0 {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
 	sch.AddEvent(MockEvent{1, 0, false})
@@ -185,7 +184,7 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 				if err != nil {
 					t.Errorf("Expected no error. Got: %v", err)
 				}
-				if evt.Id() != "0" {
+				if evt.Id() != 0 {
 					t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 				}
 
@@ -226,13 +225,13 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 }
 
 type MockEvent struct {
-	id       int
+	id       uint64
 	target   int
 	executed bool
 }
 
-func (me MockEvent) Id() string {
-	return strconv.Itoa(me.id)
+func (me MockEvent) Id() uint64 {
+	return me.id
 }
 
 func (me MockEvent) Execute(_ any, chn chan error) {

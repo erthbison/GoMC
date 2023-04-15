@@ -31,7 +31,7 @@ func TestRandomScheduler(t *testing.T) {
 		t.Errorf("Expected to get a RunEndedError. Got: %v", err)
 	}
 
-	events := map[string]int{"0": 0, "1": 0}
+	events := map[uint64]int{0: 0, 1: 0}
 	for _, evt := range run {
 		if events[evt.Id()] > 1 {
 			t.Errorf("Event occurred more times than it was scheduled: %v", evt.Id())

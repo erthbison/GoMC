@@ -2,6 +2,7 @@ package event
 
 import (
 	"fmt"
+	"hash/maphash"
 )
 
 type Stopper interface {
@@ -13,6 +14,8 @@ type CrashEvent struct {
 	target    int
 	crash     func(int) error
 	crashFunc func()
+
+	id uint64
 }
 
 func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEvent {
@@ -20,12 +23,14 @@ func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEve
 		target:    target,
 		crash:     crash,
 		crashFunc: crashFunc,
+
+		id: maphash.String(EventHash, fmt.Sprint("Crash", target)),
 	}
 }
 
 // An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
-func (ce CrashEvent) Id() string {
-	return fmt.Sprintf("Crash Target %v", ce.target)
+func (ce CrashEvent) Id() uint64 {
+	return ce.id
 }
 
 // A method executing the event. The event will be executed on a separate goroutine.

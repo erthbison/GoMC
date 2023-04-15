@@ -4,7 +4,6 @@ import (
 	"gomc/event"
 	"gomc/scheduler"
 	"gomc/state"
-	"strconv"
 )
 
 // Create some dummy types and states for use when testing
@@ -99,14 +98,14 @@ func (ms *MockStateManager) AddRun(run []state.GlobalState[State]) {
 }
 
 type MockEvent struct {
-	id       int
+	id       uint64
 	target   int
 	executed bool
 	val      int
 }
 
-func (me MockEvent) Id() string {
-	return strconv.Itoa(me.id)
+func (me MockEvent) Id() uint64 {
+	return me.id
 }
 
 func (me MockEvent) Execute(n any, chn chan error) {

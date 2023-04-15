@@ -9,7 +9,7 @@ import (
 
 type CheckerResponse interface {
 	Response() (bool, string)
-	Export() []string
+	Export() []uint64
 }
 
 type predicateCheckerResponse[S any] struct {
@@ -39,8 +39,8 @@ func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 }
 
 // Export the failing event sequence to a slice of strings to be replayed by the ReplayScheduler
-func (pcr predicateCheckerResponse[S]) Export() []string {
-	evtSequence := []string{}
+func (pcr predicateCheckerResponse[S]) Export() []uint64 {
+	evtSequence := []uint64{}
 	if pcr.Sequence == nil {
 		return evtSequence
 	}
