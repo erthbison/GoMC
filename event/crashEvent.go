@@ -24,7 +24,7 @@ func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEve
 		crash:     crash,
 		crashFunc: crashFunc,
 
-		id: maphash.String(EventHash, fmt.Sprint("Crash", target)),
+		id: maphash.String(EventHashSeed, fmt.Sprint("Crash", target)),
 	}
 }
 

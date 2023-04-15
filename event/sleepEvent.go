@@ -22,7 +22,7 @@ func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepE
 		target:      target,
 		timeoutChan: timeoutChan,
 
-		id: maphash.String(EventHash, fmt.Sprint("Sleep ", target, caller)),
+		id: maphash.String(EventHashSeed, fmt.Sprint("Sleep ", target, caller)),
 	}
 	return evt
 }

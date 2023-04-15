@@ -28,7 +28,7 @@ func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
 		Type:   msgType,
 		Params: valueParams,
 
-		id: maphash.String(EventHash, fmt.Sprint("Message ", from, to, msgType, params)),
+		id: maphash.String(EventHashSeed, fmt.Sprint("Message ", from, to, msgType, params)),
 	}
 }
 

@@ -26,7 +26,7 @@ func NewFunctionEvent(i int, target int, method string, params ...reflect.Value)
 		method: method,
 		params: params,
 
-		id: maphash.String(EventHash, fmt.Sprint("Function", i)),
+		id: maphash.String(EventHashSeed, fmt.Sprint("Function", i)),
 	}
 }
 

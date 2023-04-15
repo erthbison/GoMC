@@ -22,7 +22,7 @@ func NewGrpcEvent(from int, to int, method string, msg interface{}, wait chan bo
 		method: method,
 		wait:   wait,
 
-		id: maphash.String(event.EventHash, fmt.Sprint("GrpcEvent", from, to, method, msg)),
+		id: maphash.String(event.EventHashSeed, fmt.Sprint("GrpcEvent", from, to, method, msg)),
 	}
 }
 
