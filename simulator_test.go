@@ -3,6 +3,7 @@ package gomc
 import (
 	"fmt"
 	"gomc/event"
+	"gomc/failureManager"
 	"gomc/stateManager"
 	"reflect"
 	"testing"
@@ -14,14 +15,14 @@ import (
 func TestSimulatorNoEvents(t *testing.T) {
 	sch := NewMockGlobalScheduler()
 	sm := NewMockStateManager()
-	simulator := NewSimulator[MockNode, State](sch, false, false, 10000, 1000, 1)
+	fm := NewMockFailureManager([]int{}, func(*MockNode) {})
+	simulator := NewSimulator[MockNode, State](sch, fm, false, false, 10000, 1000, 1)
 	err := simulator.Simulate(
 		sm,
 		func(sp SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
-		[]int{},
-		func(*MockNode) {},
+		func(t *MockNode) {},
 	)
 	if err == nil {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")
@@ -33,8 +34,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 		func(sp SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
-		[]int{},
-		func(*MockNode) {},
+		func(t *MockNode) {},
 	)
 	if err == nil {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")
@@ -44,9 +44,11 @@ func TestSimulatorNoEvents(t *testing.T) {
 func TestAddRequests(t *testing.T) {
 	sch := NewMockRunScheduler()
 	gsm := NewMockStateManager()
-	sim := newRunSimulator(
+	fm := NewMockRunFailureManager(sch, []int{}, func(mn *MockNode) {})
+	sim := newRunSimulator[MockNode](
 		sch,
 		stateManager.NewRunStateManager[MockNode, State](gsm, GetState),
+		fm,
 		1000,
 		false,
 	)
@@ -140,10 +142,12 @@ func TestExecuteRun(t *testing.T) {
 	for i, test := range executeRunTest {
 		sch := NewMockRunScheduler(test.events...)
 		gsm := NewMockStateManager()
+		fm := NewMockRunFailureManager(sch, []int{}, func(mn *MockNode) {})
 		sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
-		sim := newRunSimulator(
+		sim := newRunSimulator[MockNode](
 			sch,
 			sm,
+			fm,
 			1000,
 			false,
 		)
@@ -243,10 +247,12 @@ var executeRunTest = []struct {
 func TestExecuteEventDontIgnorePanics(t *testing.T) {
 	sch := NewMockRunScheduler()
 	gsm := NewMockStateManager()
+	fm := NewMockRunFailureManager(sch, []int{}, func(mn *MockNode) {})
 	sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
-	sim := newRunSimulator(
+	sim := newRunSimulator[MockNode](
 		sch,
 		sm,
+		fm,
 		1000,
 		false,
 	)
@@ -271,16 +277,18 @@ func TestInitRun(t *testing.T) {
 		sch := NewMockRunScheduler()
 		gsm := NewMockStateManager()
 		sm := stateManager.NewRunStateManager[MockNode, State](gsm, GetState)
+		fm := failureManager.NewPerfectFailureManager(func(t *MockNode) { t.crashed = true }, test.failingNodes)
 		sim := newRunSimulator(
 			sch,
 			sm,
+			fm.GetRunFailureManager(sch),
 			1000,
 			false,
 		)
 
 		sch.runEnded = test.runEnded
 
-		nodes, err := sim.initRun(test.initNodes, test.failingNodes, func(t *MockNode) { t.crashed = true }, test.requests...)
+		nodes, err := sim.initRun(test.initNodes, test.requests...)
 		isErr := (err != nil)
 		if isErr != test.expectedError {
 			if isErr {
@@ -376,8 +384,8 @@ var initRunTest = []struct {
 		map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}},
 		[]event.Event{
 			event.NewFunctionEvent(0, 0, "Foo"),
-			event.NewCrashEvent(3, func(i int) error { return nil }, func() {}),
-			event.NewCrashEvent(5, func(i int) error { return nil }, func() {}),
+			event.NewCrashEvent(3, func(i int) error { return nil }),
+			event.NewCrashEvent(5, func(i int) error { return nil }),
 		},
 	},
 	{
@@ -392,8 +400,8 @@ var initRunTest = []struct {
 		map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}},
 		[]event.Event{
 			event.NewFunctionEvent(0, 0, "Foo"),
-			event.NewCrashEvent(3, func(i int) error { return nil }, func() {}),
-			event.NewCrashEvent(5, func(i int) error { return nil }, func() {}),
+			event.NewCrashEvent(3, func(i int) error { return nil }),
+			event.NewCrashEvent(5, func(i int) error { return nil }),
 		},
 	},
 	{
@@ -425,7 +433,8 @@ var initRunTest = []struct {
 func TestMainLoop(t *testing.T) {
 	for i, test := range mainLoopTest {
 		sch := NewMockGlobalScheduler()
-		sim := NewSimulator[MockNode, State](sch, test.ignoreError, false, test.maxRuns, 1000, 10)
+		fm := NewMockFailureManager([]int{}, func(*MockNode) {})
+		sim := NewSimulator[MockNode, State](sch, fm, test.ignoreError, false, test.maxRuns, 1000, 10)
 
 		nextRun := make(chan bool)
 		status := make(chan error)

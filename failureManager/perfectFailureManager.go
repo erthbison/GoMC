@@ -1,18 +1,47 @@
 package failureManager
 
-import "errors"
+import (
+	"errors"
+	"gomc/event"
+	"gomc/scheduler"
+)
 
 // The failureManager keeps track of which nodes has crashed and which has not.
 // It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
 // The subscribe function replicates the functionality of a perfect failure detectors.
 // All provided callback functions are called immediately upon the crash of a node
-type PerfectFailureManager struct {
+type PerfectFailureManager[T any] struct {
+	crashFunc    func(*T)
+	failingNodes []int
+}
+
+func NewPerfectFailureManager[T any](crashFunc func(*T), failingNodes []int) *PerfectFailureManager[T] {
+	return &PerfectFailureManager[T]{
+		crashFunc:    crashFunc,
+		failingNodes: failingNodes,
+	}
+}
+
+func (pfm PerfectFailureManager[T]) GetRunFailureManager(sch scheduler.RunScheduler) RunFailureManager[T] {
+	return newPerfectRunFailureManager(sch, pfm.crashFunc, pfm.failingNodes)
+}
+
+type PerfectRunFailureManager[T any] struct {
+	sch          scheduler.RunScheduler
+	crashFunc    func(*T)
+	failingNodes []int
+
 	correct         map[int]bool
+	nodes           map[int]*T
 	failureCallback []func(int, bool)
 }
 
-func New() *PerfectFailureManager {
-	return &PerfectFailureManager{
+func newPerfectRunFailureManager[T any](sch scheduler.RunScheduler, crashFunc func(*T), failingNodes []int) *PerfectRunFailureManager[T] {
+	return &PerfectRunFailureManager[T]{
+		sch:          sch,
+		crashFunc:    crashFunc,
+		failingNodes: failingNodes,
+
 		correct:         make(map[int]bool),
 		failureCallback: make([]func(int, bool), 0),
 	}
@@ -20,24 +49,44 @@ func New() *PerfectFailureManager {
 
 // Init the failure manager with the provided nodes.
 // Set all the provided nodes to correct
-func (fm *PerfectFailureManager) Init(nodes []int) {
-	for _, id := range nodes {
+func (fm *PerfectRunFailureManager[T]) Init(nodes map[int]*T) {
+	for id := range nodes {
 		fm.correct[id] = true
+	}
+
+	fm.nodes = nodes
+
+	// Schedule crash events
+	for _, id := range fm.failingNodes {
+		if _, ok := nodes[id]; !ok {
+			continue
+		}
+		fm.sch.AddEvent(
+			event.NewCrashEvent(id, fm.NodeCrash),
+		)
 	}
 }
 
 // Return a map of the status of the nodes
-func (fm *PerfectFailureManager) CorrectNodes() map[int]bool {
+func (fm *PerfectRunFailureManager[T]) CorrectNodes() map[int]bool {
 	return fm.correct
 }
 
 // register that the node with the provided id has crashed
-func (fm *PerfectFailureManager) NodeCrash(nodeId int) error {
-	if _, ok := fm.correct[nodeId]; !ok {
+func (fm *PerfectRunFailureManager[T]) NodeCrash(nodeId int) error {
+	node, ok := fm.nodes[nodeId]
+	if !ok {
 		return errors.New("FailureManager: Received NodeCrash for node that is not added to the system")
+	}
+
+	if status := fm.correct[nodeId]; !status {
+		return errors.New("FailureManager: Received NodeCrash for node that has already crashed. Is failStop abstraction so node can not crash again.")
 	}
 	// Set node as crashed
 	fm.correct[nodeId] = false
+
+	// Call the provided crash function with the node
+	fm.crashFunc(node)
 
 	// Call all provided crash callbacks
 	for _, f := range fm.failureCallback {
@@ -47,6 +96,6 @@ func (fm *PerfectFailureManager) NodeCrash(nodeId int) error {
 }
 
 // Register a callback function to be called when a node crashes.
-func (fm *PerfectFailureManager) Subscribe(callback func(int, bool)) {
+func (fm *PerfectRunFailureManager[T]) Subscribe(callback func(int, bool)) {
 	fm.failureCallback = append(fm.failureCallback, callback)
 }

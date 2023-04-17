@@ -2,6 +2,7 @@ package gomc
 
 import (
 	"gomc/event"
+	"gomc/failureManager"
 	"gomc/scheduler"
 	"gomc/state"
 	"gomc/stateManager"
@@ -122,4 +123,57 @@ func (me MockEvent) Execute(n any, chn chan error) {
 
 func (me MockEvent) Target() int {
 	return me.target
+}
+
+type MockFailureManager struct {
+	failingNodes []int
+	crashFunc    func(*MockNode)
+}
+
+func (mfm *MockFailureManager) GetRunFailureManager(sch scheduler.RunScheduler) failureManager.RunFailureManager[MockNode] {
+	return NewMockRunFailureManager(
+		sch, mfm.failingNodes, mfm.crashFunc,
+	)
+}
+
+func NewMockFailureManager(failingNodes []int, crashFunc func(*MockNode)) *MockFailureManager {
+	return &MockFailureManager{
+		failingNodes: failingNodes,
+		crashFunc:    crashFunc,
+	}
+}
+
+type MockRunFailureManager[T any] struct {
+	sch          scheduler.RunScheduler
+	failingNodes []int
+	crashFunc    func(*T)
+
+	correct map[int]bool
+}
+
+func NewMockRunFailureManager(sch scheduler.RunScheduler, failingNodes []int, crashFunc func(*MockNode)) *MockRunFailureManager[MockNode] {
+	return &MockRunFailureManager[MockNode]{
+		sch:          sch,
+		failingNodes: failingNodes,
+		crashFunc:    crashFunc,
+	}
+}
+
+func (mrfm *MockRunFailureManager[MockNode]) Init(nodes map[int]*MockNode) {
+	for _, id := range mrfm.failingNodes {
+		mrfm.sch.AddEvent(event.NewCrashEvent(id, mrfm.nodeCrash))
+	}
+}
+
+func (mrfm *MockRunFailureManager[MockNode]) CorrectNodes() map[int]bool {
+	return mrfm.correct
+}
+
+func (mrfm *MockRunFailureManager[MockNode]) Subscribe(callback func(id int, status bool)) {
+
+}
+
+func (mrfm *MockRunFailureManager[T]) nodeCrash(id int) error {
+	mrfm.correct[id] = false
+	return nil
 }

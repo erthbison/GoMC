@@ -61,6 +61,9 @@ func TestConsensus(t *testing.T) {
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
+		gomc.WithPerfectFailureManager(
+			func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5,
+		),
 	)
 
 	nodeIds := []int{1, 2, 3, 4, 5}
@@ -100,11 +103,7 @@ func TestConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.IncorrectNodes(func(t *HierarchicalConsensus[int]) {
-			t.crashed = true
-		}, 1, 2),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5),
 		gomc.Export(os.Stdout),
 	)
 	if ok, out := resp.Response(); !ok {
@@ -127,6 +126,9 @@ func TestConsensusReplay(t *testing.T) {
 
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
 		gomc.ReplayScheduler(run),
+		gomc.WithPerfectFailureManager(
+			func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5,
+		),
 	)
 
 	nodeIds := []int{1, 2, 3, 4, 5}
@@ -167,7 +169,6 @@ func TestConsensusReplay(t *testing.T) {
 			},
 		),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5),
 		gomc.Export(os.Stdout),
 	)
 

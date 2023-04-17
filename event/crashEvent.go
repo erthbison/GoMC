@@ -11,18 +11,16 @@ type Stopper interface {
 }
 
 type CrashEvent struct {
-	target    int
-	crash     func(int) error
-	crashFunc func()
+	target int
+	crash  func(int) error
 
 	id uint64
 }
 
-func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEvent {
+func NewCrashEvent(target int, crash func(int) error) CrashEvent {
 	return CrashEvent{
-		target:    target,
-		crash:     crash,
-		crashFunc: crashFunc,
+		target: target,
+		crash:  crash,
 
 		id: maphash.String(EventHashSeed, fmt.Sprint("Crash", target)),
 	}
@@ -39,7 +37,6 @@ func (ce CrashEvent) Id() uint64 {
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
 func (ce CrashEvent) Execute(_ any, evtChan chan error) {
-	ce.crashFunc()
 	evtChan <- ce.crash(ce.target)
 }
 

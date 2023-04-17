@@ -64,6 +64,9 @@ func TestGrpcConsensus(t *testing.T) {
 	sim := gomc.Prepare[GrpcConsensus, state](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+		),
 	)
 
 	sm := stateManager.NewTreeStateManager(
@@ -138,7 +141,7 @@ func TestGrpcConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
+		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
 
@@ -161,7 +164,12 @@ func TestReplayConsensus(t *testing.T) {
 	buffer := bytes.NewBuffer(in)
 	var run []uint64
 	json.NewDecoder(buffer).Decode(&run)
-	sim := gomc.Prepare[GrpcConsensus, state](gomc.ReplayScheduler(run))
+	sim := gomc.Prepare[GrpcConsensus, state](
+		gomc.ReplayScheduler(run),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+		),
+	)
 
 	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
@@ -238,7 +246,7 @@ func TestReplayConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
+		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
 
