@@ -60,7 +60,7 @@ var predicates = []checking.Predicate[State]{
 			return true
 		},
 	),
-	// No liveness properties. 
+	// No liveness properties.
 }
 
 type State struct {
@@ -74,8 +74,6 @@ var (
 		1: ":50000",
 		2: ":50001",
 		3: ":50002",
-		// 4: ":50003",
-		// 5: ":50004",
 	}
 	addrToIdMap = map[string]int{}
 
@@ -89,8 +87,7 @@ func TestMultiPaxosSim(t *testing.T) {
 
 	sim := gomc.Prepare[MultiPaxos, State](
 		gomc.RandomWalkScheduler(1),
-		gomc.MaxDepth(100000),
-		gomc.MaxRuns(1000),
+		gomc.MaxRuns(10000),
 		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 	)
 	w, err := os.Create("export.txt")
