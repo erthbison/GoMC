@@ -76,8 +76,6 @@ var (
 		3: ":50002",
 	}
 	addrToIdMap = map[string]int{}
-
-	zeroVal string
 )
 
 func TestMultiPaxosSim(t *testing.T) {
