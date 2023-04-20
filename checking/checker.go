@@ -1,6 +1,9 @@
 package checking
 
-import "gomc/state"
+import (
+	"gomc/event"
+	"gomc/state"
+)
 
 type Checker[S any] interface {
 	Check(state.StateSpace[S]) CheckerResponse
@@ -8,5 +11,5 @@ type Checker[S any] interface {
 
 type CheckerResponse interface {
 	Response() (bool, string)
-	Export() []uint64
+	Export() []event.EventId
 }

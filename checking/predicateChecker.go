@@ -3,6 +3,7 @@ package checking
 import (
 	"bytes"
 	"fmt"
+	"gomc/event"
 	"gomc/state"
 	"text/tabwriter"
 )
@@ -34,8 +35,8 @@ func (pcr predicateCheckerResponse[S]) Response() (bool, string) {
 }
 
 // Export the failing event sequence to a slice of strings to be replayed by the ReplayScheduler
-func (pcr predicateCheckerResponse[S]) Export() []uint64 {
-	evtSequence := []uint64{}
+func (pcr predicateCheckerResponse[S]) Export() []event.EventId {
+	evtSequence := []event.EventId{}
 	if pcr.Sequence == nil {
 		return evtSequence
 	}
@@ -44,7 +45,6 @@ func (pcr predicateCheckerResponse[S]) Export() []uint64 {
 	}
 	return evtSequence
 }
-
 
 // A function to be evaluated on the states
 // It returns true if the predicate holds for the state and false otherwise
