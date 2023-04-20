@@ -14,6 +14,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
+	"gomc/event"
 	"gomc/gomcGrpc"
 )
 
@@ -154,7 +155,7 @@ func TestPaxosReplay(t *testing.T) {
 		t.Errorf("Error while setting up test: %v", err)
 	}
 	buffer := bytes.NewBuffer(in)
-	var run []uint64
+	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
 	sim := gomc.Prepare[Server, State](

@@ -11,6 +11,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
+	"gomc/event"
 	"gomc/gomcGrpc"
 	"gomc/stateManager"
 
@@ -162,7 +163,7 @@ func TestReplayConsensus(t *testing.T) {
 		t.Errorf("Error while setting up test: %v", err)
 	}
 	buffer := bytes.NewBuffer(in)
-	var run []uint64
+	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 	sim := gomc.Prepare[GrpcConsensus, state](
 		gomc.ReplayScheduler(run),
