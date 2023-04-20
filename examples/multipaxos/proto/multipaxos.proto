@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package proto;
+import "google/protobuf/empty.proto";
+option go_package = "gomc/examples/multipaxos/proto";
+
+service Proposer {
+  rpc Propose(ProposeRequest) returns (google.protobuf.Empty);
+  rpc Promise(PromiseRequest) returns (google.protobuf.Empty);
+}
+
+service Acceptor {
+  rpc Prepare(PrepareRequest) returns (google.protobuf.Empty);
+  rpc Accept(AcceptRequest) returns (google.protobuf.Empty);
+}
+
+service Learner {
+  rpc Learn(LearnRequest) returns (google.protobuf.Empty);
+}
+
+message Value {
+  int64 rnd = 1;
+  string val = 2;
+}
+
+message PromiseSlot {
+  int64 slot = 1;
+  Value val = 2;
+}
+
+message ProposeRequest {
+  string val = 1;
+}
+
+message PromiseRequest {
+  int64 rnd = 1;
+  repeated PromiseSlot slots = 2;
+  int64 from = 3;
+}
+
+message PrepareRequest {
+  int64 crnd = 1;
+  int64 slot = 2;
+  int64 from = 3;
+}
+
+message AcceptRequest {
+  Value val = 1;
+  int64 slot = 2;
+  int64 from = 3;
+}
+
+message LearnRequest {
+  Value val = 1;
+  int64 slot = 2;
+  int64 from = 3;
+}
