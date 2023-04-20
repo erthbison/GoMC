@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type run []uint64
+type run []event.EventId
 
 type Prefix struct {
 	// Explores the state space by maintaining a stack of unexplored prefixes.
@@ -137,7 +137,7 @@ func (rp *runPrefix) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
-func (rp *runPrefix) popEvent(evtId uint64) event.Event {
+func (rp *runPrefix) popEvent(evtId event.EventId) event.Event {
 	// Remove the message from the message queue
 	for i, pendingEvt := range rp.pendingEvents {
 		if evtId == pendingEvt.Id() {

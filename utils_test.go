@@ -100,13 +100,13 @@ func (ms *MockStateManager) AddRun(run []state.GlobalState[State]) {
 }
 
 type MockEvent struct {
-	id       uint64
+	id       event.EventId
 	target   int
 	executed bool
 	val      int
 }
 
-func (me MockEvent) Id() uint64 {
+func (me MockEvent) Id() event.EventId {
 	return me.id
 }
 

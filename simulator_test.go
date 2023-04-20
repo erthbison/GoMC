@@ -190,7 +190,7 @@ var executeRunTest = []struct {
 		// Execute 1 event
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		[]event.Event{
-			MockEvent{0, 0, false, 1},
+			MockEvent{"0", 0, false, 1},
 		},
 		false,
 		[]map[int]State{
@@ -201,7 +201,7 @@ var executeRunTest = []struct {
 		// Execute event on non-existing process
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		[]event.Event{
-			MockEvent{0, 5, false, 1},
+			MockEvent{"0", 5, false, 1},
 		},
 		true,
 		[]map[int]State{},
@@ -210,11 +210,11 @@ var executeRunTest = []struct {
 		// Execute 5 correct events on different nodes event
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		[]event.Event{
-			MockEvent{0, 0, false, 1},
-			MockEvent{1, 1, false, 1},
-			MockEvent{2, 2, false, 1},
-			MockEvent{3, 0, false, 3},
-			MockEvent{4, 0, false, 5},
+			MockEvent{"0", 0, false, 1},
+			MockEvent{"1", 1, false, 1},
+			MockEvent{"2", 2, false, 1},
+			MockEvent{"3", 0, false, 3},
+			MockEvent{"4", 0, false, 5},
 		},
 		false,
 		[]map[int]State{
@@ -229,11 +229,11 @@ var executeRunTest = []struct {
 		// Execute 5 correct events on different nodes event
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		[]event.Event{
-			MockEvent{0, 0, false, 1},
-			MockEvent{1, 1, false, 1},
-			MockEvent{2, 2, false, 1},
-			MockEvent{3, 4, false, 3},
-			MockEvent{4, 0, false, 5},
+			MockEvent{"0", 0, false, 1},
+			MockEvent{"1", 1, false, 1},
+			MockEvent{"2", 2, false, 1},
+			MockEvent{"3", 4, false, 3},
+			MockEvent{"4", 0, false, 5},
 		},
 		true,
 		[]map[int]State{
@@ -257,8 +257,8 @@ func TestExecuteEventDontIgnorePanics(t *testing.T) {
 		false,
 	)
 
-	// The value -1 is hard coded to trigger a panic
-	evt := MockEvent{0, 0, false, -1}
+	// The value -1 is hardcoded to trigger a panic
+	evt := MockEvent{"0", 0, false, -1}
 	n := &MockNode{}
 	defer func() {
 		if r := recover(); r != nil {

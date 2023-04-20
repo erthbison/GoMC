@@ -2,7 +2,6 @@ package event
 
 import (
 	"fmt"
-	"hash/maphash"
 	"reflect"
 )
 
@@ -14,7 +13,7 @@ type MessageEvent struct {
 	Type   string
 	Params []reflect.Value
 
-	id uint64
+	id EventId
 }
 
 func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
@@ -28,11 +27,11 @@ func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
 		Type:   msgType,
 		Params: valueParams,
 
-		id: maphash.String(EventHashSeed, fmt.Sprint("Message ", from, to, msgType, params)),
+		id: EventId(fmt.Sprint("Message ", from, to, msgType, params)),
 	}
 }
 
-func (me MessageEvent) Id() uint64 {
+func (me MessageEvent) Id() EventId {
 	return me.id
 }
 

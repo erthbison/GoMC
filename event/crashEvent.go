@@ -2,7 +2,6 @@ package event
 
 import (
 	"fmt"
-	"hash/maphash"
 )
 
 type Stopper interface {
@@ -14,7 +13,7 @@ type CrashEvent struct {
 	target int
 	crash  func(int) error
 
-	id uint64
+	id EventId
 }
 
 func NewCrashEvent(target int, crash func(int) error) CrashEvent {
@@ -22,12 +21,12 @@ func NewCrashEvent(target int, crash func(int) error) CrashEvent {
 		target: target,
 		crash:  crash,
 
-		id: maphash.String(EventHashSeed, fmt.Sprint("Crash", target)),
+		id: EventId(fmt.Sprint("Crash", target)),
 	}
 }
 
 // An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
-func (ce CrashEvent) Id() uint64 {
+func (ce CrashEvent) Id() EventId {
 	return ce.id
 }
 

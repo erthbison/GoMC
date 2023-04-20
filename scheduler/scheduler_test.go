@@ -3,6 +3,7 @@ package scheduler
 import (
 	"errors"
 	"gomc/event"
+	"strconv"
 	"testing"
 )
 
@@ -12,7 +13,7 @@ func benchmarkRunScheduler(sch RunScheduler, numEvents int) error {
 		if errors.Is(err, RunEndedError) {
 			sch.EndRun()
 			for i := 0; i < numEvents; i++ {
-				sch.AddEvent(MockEvent{uint64(i), 0, false})
+				sch.AddEvent(MockEvent{event.EventId(strconv.Itoa(i)), 0, false})
 			}
 		} else if errors.Is(err, NoRunsError) {
 			return nil
@@ -29,8 +30,8 @@ func testDeterministicExplore2Events(t *testing.T, gsch GlobalScheduler) {
 	if err != nil {
 		t.Errorf("Did not expect to receive an error. Got %v", err)
 	}
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 0, false})
+	sch.AddEvent(MockEvent{"0", 0, false})
+	sch.AddEvent(MockEvent{"1", 0, false})
 
 	// This should cause two possible interleavings. Either event 1 first and Event 2 afterwards or Event 2 then Event 1.
 	run1 := []event.Event{}
@@ -51,8 +52,8 @@ func testDeterministicExplore2Events(t *testing.T, gsch GlobalScheduler) {
 	if err != nil {
 		t.Errorf("Did not expect to receive an error. Got %v", err)
 	}
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 0, false})
+	sch.AddEvent(MockEvent{"0", 0, false})
+	sch.AddEvent(MockEvent{"1", 0, false})
 
 	run2 := []event.Event{}
 	for i := 0; i < 2; i++ {
@@ -91,7 +92,7 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Did not expect to receive an error. Got %v", err)
 	}
-	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{"0", 0, false})
 
 	run1 := []event.Event{}
 	evt, err := sch.GetEvent()
@@ -99,12 +100,12 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Expected no error. Got: %v", err)
 	}
-	if evt.Id() != 0 {
+	if evt.Id() != "0" {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
 
-	sch.AddEvent(MockEvent{1, 0, false})
-	sch.AddEvent(MockEvent{2, 0, false})
+	sch.AddEvent(MockEvent{"1", 0, false})
+	sch.AddEvent(MockEvent{"2", 0, false})
 
 	for i := 0; i < 2; i++ {
 		evt, err = sch.GetEvent()
@@ -123,7 +124,7 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Did not expect to receive an error. Got %v", err)
 	}
-	sch.AddEvent(MockEvent{0, 0, false})
+	sch.AddEvent(MockEvent{"0", 0, false})
 
 	run2 := []event.Event{}
 	evt, err = sch.GetEvent()
@@ -131,11 +132,11 @@ func testDeterministicExploreBranchingEvents(t *testing.T, gsch GlobalScheduler)
 	if err != nil {
 		t.Errorf("Expected no error. Got: %v", err)
 	}
-	if evt.Id() != 0 {
+	if evt.Id() != "0" {
 		t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 	}
-	sch.AddEvent(MockEvent{1, 0, false})
-	sch.AddEvent(MockEvent{2, 0, false})
+	sch.AddEvent(MockEvent{"1", 0, false})
+	sch.AddEvent(MockEvent{"2", 0, false})
 
 	for i := 0; i < 2; i++ {
 		evt, err = sch.GetEvent()
@@ -176,7 +177,7 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 				if errors.Is(err, NoRunsError) {
 					break
 				}
-				sch.AddEvent(MockEvent{0, 0, false})
+				sch.AddEvent(MockEvent{"0", 0, false})
 
 				run := []event.Event{}
 				evt, err := sch.GetEvent()
@@ -184,12 +185,12 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 				if err != nil {
 					t.Errorf("Expected no error. Got: %v", err)
 				}
-				if evt.Id() != 0 {
+				if evt.Id() != "0" {
 					t.Errorf("Expected to be returned Event 0. Got: %v", evt)
 				}
 
-				sch.AddEvent(MockEvent{1, 0, false})
-				sch.AddEvent(MockEvent{2, 0, false})
+				sch.AddEvent(MockEvent{"1", 0, false})
+				sch.AddEvent(MockEvent{"2", 0, false})
 
 				for i := 0; i < 2; i++ {
 					evt, err = sch.GetEvent()
@@ -225,12 +226,12 @@ func testConcurrentDeterministic(t *testing.T, gsch GlobalScheduler) {
 }
 
 type MockEvent struct {
-	id       uint64
+	id       event.EventId
 	target   int
 	executed bool
 }
 
-func (me MockEvent) Id() uint64 {
+func (me MockEvent) Id() event.EventId {
 	return me.id
 }
 

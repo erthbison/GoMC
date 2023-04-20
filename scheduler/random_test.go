@@ -14,8 +14,8 @@ func TestRandomScheduler(t *testing.T) {
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
-	sch.AddEvent(MockEvent{0, 0, false})
-	sch.AddEvent(MockEvent{1, 0, false})
+	sch.AddEvent(MockEvent{"0", 0, false})
+	sch.AddEvent(MockEvent{"1", 0, false})
 
 	// This should cause two possible interleavings. Either event 1 first and Event 2 afterwards or Event 2 then Event 1.
 	run := []event.Event{}
@@ -31,7 +31,7 @@ func TestRandomScheduler(t *testing.T) {
 		t.Errorf("Expected to get a RunEndedError. Got: %v", err)
 	}
 
-	events := map[uint64]int{0: 0, 1: 0}
+	events := map[event.EventId]int{"0": 0, "1": 0}
 	for _, evt := range run {
 		if events[evt.Id()] > 1 {
 			t.Errorf("Event occurred more times than it was scheduled: %v", evt.Id())

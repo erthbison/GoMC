@@ -7,11 +7,11 @@ import (
 
 // A scheduler that initially will follow a provided run before it begin searching the state space.
 type GuidedSearch struct {
-	run    []uint64
+	run    []event.EventId
 	search GlobalScheduler
 }
 
-func NewGuidedSearch(search GlobalScheduler, run []uint64) *GuidedSearch {
+func NewGuidedSearch(search GlobalScheduler, run []event.EventId) *GuidedSearch {
 	return &GuidedSearch{
 		run:    run,
 		search: search,
@@ -29,14 +29,14 @@ type runGuidedSearch struct {
 	search RunScheduler
 
 	// The provided run
-	run    []uint64
+	run    []event.EventId
 	guided *runReplay
 
 	useGuided bool
 }
 
 // Create a new GuidedSearch scheduler using the provided search scheduler for searching the state space after it hasa followed the provided run
-func newRunGuidedSearch(search RunScheduler, run []uint64) *runGuidedSearch {
+func newRunGuidedSearch(search RunScheduler, run []event.EventId) *runGuidedSearch {
 	return &runGuidedSearch{
 		search: search,
 

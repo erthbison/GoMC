@@ -3,7 +3,6 @@ package gomcGrpc
 import (
 	"fmt"
 	"gomc/event"
-	"hash/maphash"
 )
 
 type GrpcEvent struct {
@@ -12,7 +11,7 @@ type GrpcEvent struct {
 	method string
 	wait   chan bool
 
-	id uint64
+	id event.EventId
 }
 
 func NewGrpcEvent(from int, to int, method string, msg interface{}, wait chan bool) GrpcEvent {
@@ -22,12 +21,12 @@ func NewGrpcEvent(from int, to int, method string, msg interface{}, wait chan bo
 		method: method,
 		wait:   wait,
 
-		id: maphash.String(event.EventHashSeed, fmt.Sprint("GrpcEvent", from, to, method, msg)),
+		id: event.EventId(fmt.Sprint("GrpcEvent", from, to, method, msg)),
 	}
 }
 
 // An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
-func (ge GrpcEvent) Id() uint64 {
+func (ge GrpcEvent) Id() event.EventId {
 	return ge.id
 }
 

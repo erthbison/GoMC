@@ -2,7 +2,6 @@ package event
 
 import (
 	"fmt"
-	"hash/maphash"
 	"time"
 )
 
@@ -13,7 +12,7 @@ type SleepEvent struct {
 	target      int // The id of the target node
 	timeoutChan chan time.Time
 
-	id uint64
+	id EventId
 }
 
 func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepEvent {
@@ -22,12 +21,12 @@ func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepE
 		target:      target,
 		timeoutChan: timeoutChan,
 
-		id: maphash.String(EventHashSeed, fmt.Sprint("Sleep ", target, caller)),
+		id: EventId(fmt.Sprint("Sleep ", target, caller)),
 	}
 	return evt
 }
 
-func (se SleepEvent) Id() uint64 {
+func (se SleepEvent) Id() EventId {
 	return se.id
 }
 

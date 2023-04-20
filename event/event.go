@@ -1,7 +1,5 @@
 package event
 
-import "hash/maphash"
-
 // An event represents some kind of action that will be scheduled and interleaved by the simulator
 // They contain the information to execute themselves on some generic node and contain an identifier
 type Event interface {
@@ -11,7 +9,7 @@ type Event interface {
 	// EventHashSeed can be used as seed, but this is not required
 	//
 	// New event implementations should include a identifier of the event type to prevent accidental collisions with other implementations
-	Id() uint64
+	Id() EventId
 
 	// A method executing the event.
 	// The event will be executed on a separate goroutine.
@@ -31,5 +29,4 @@ func EventsEquals(a, b Event) bool {
 	return a.Id() == b.Id()
 }
 
-// Seed that can be used when generating hashes for events.
-var EventHashSeed = maphash.MakeSeed()
+type EventId string
