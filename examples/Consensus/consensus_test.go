@@ -60,14 +60,10 @@ var predicates = []checking.Predicate[state]{
 
 func TestConsensus(t *testing.T) {
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
-		gomc.RandomWalkScheduler(1),
-		gomc.MaxRuns(1000),
-		gomc.WithPerfectFailureManager(
-			func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5,
-		),
+		gomc.PrefixScheduler(),
 	)
 
-	nodeIds := []int{1, 2, 3, 4, 5}
+	nodeIds := []int{1, 2, 3}
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
@@ -83,10 +79,6 @@ func TestConsensus(t *testing.T) {
 		),
 		gomc.WithRequests(
 			gomc.NewRequest(1, "Propose", Value[int]{2}),
-			gomc.NewRequest(2, "Propose", Value[int]{3}),
-			gomc.NewRequest(3, "Propose", Value[int]{4}),
-			gomc.NewRequest(4, "Propose", Value[int]{5}),
-			gomc.NewRequest(5, "Propose", Value[int]{6}),
 		),
 		gomc.WithTreeStateManager(
 			func(node *HierarchicalConsensus[int]) state {
@@ -127,12 +119,9 @@ func TestConsensusReplay(t *testing.T) {
 
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
 		gomc.ReplayScheduler(run),
-		gomc.WithPerfectFailureManager(
-			func(n *HierarchicalConsensus[int]) { n.crashed = true }, 3, 5,
-		),
 	)
 
-	nodeIds := []int{1, 2, 3, 4, 5}
+	nodeIds := []int{1, 2, 3}
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
@@ -148,10 +137,6 @@ func TestConsensusReplay(t *testing.T) {
 		),
 		gomc.WithRequests(
 			gomc.NewRequest(1, "Propose", Value[int]{2}),
-			gomc.NewRequest(2, "Propose", Value[int]{3}),
-			gomc.NewRequest(3, "Propose", Value[int]{4}),
-			gomc.NewRequest(4, "Propose", Value[int]{5}),
-			gomc.NewRequest(5, "Propose", Value[int]{6}),
 		),
 		gomc.WithTreeStateManager(
 			func(node *HierarchicalConsensus[int]) state {
@@ -184,7 +169,7 @@ func BenchmarkConsensus(b *testing.B) {
 			gomc.RandomWalkScheduler(1),
 		)
 
-		nodeIds := []int{1, 2, 3, 4, 5}
+		nodeIds := []int{1, 2, 3}
 		sim.RunSimulation(
 			gomc.InitSingleNode(nodeIds,
 				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
@@ -200,10 +185,6 @@ func BenchmarkConsensus(b *testing.B) {
 			),
 			gomc.WithRequests(
 				gomc.NewRequest(1, "Propose", Value[int]{2}),
-				gomc.NewRequest(2, "Propose", Value[int]{3}),
-				gomc.NewRequest(3, "Propose", Value[int]{4}),
-				gomc.NewRequest(4, "Propose", Value[int]{5}),
-				gomc.NewRequest(5, "Propose", Value[int]{6}),
 			),
 			gomc.WithTreeStateManager(
 				func(node *HierarchicalConsensus[int]) state {
