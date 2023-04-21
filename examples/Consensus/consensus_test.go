@@ -61,6 +61,10 @@ var predicates = []checking.Predicate[state]{
 func TestConsensus(t *testing.T) {
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
 		gomc.PrefixScheduler(),
+		gomc.WithPerfectFailureManager(
+			func(t *HierarchicalConsensus[int]) { t.crashed = true },
+			2,
+		),
 	)
 
 	nodeIds := []int{1, 2, 3}
@@ -119,6 +123,10 @@ func TestConsensusReplay(t *testing.T) {
 
 	sim := gomc.Prepare[HierarchicalConsensus[int], state](
 		gomc.ReplayScheduler(run),
+		gomc.WithPerfectFailureManager(
+			func(t *HierarchicalConsensus[int]) { t.crashed = true },
+			2,
+		),
 	)
 
 	nodeIds := []int{1, 2, 3}
