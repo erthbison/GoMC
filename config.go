@@ -65,7 +65,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 
 		export []io.Writer
 
-		stopFunc func(*T)
+		stopFunc = func(*T) {}
 	)
 
 	for _, opt := range opts {
