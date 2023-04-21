@@ -16,6 +16,9 @@ type State struct {
 func TestFd(t *testing.T) {
 	sim := gomc.Prepare[fd, State](
 		gomc.RandomWalkScheduler(500),
+		gomc.WithPerfectFailureManager(
+			func(t *fd) { t.stopped = true }, 2,
+		),
 	)
 
 	nodeIds := []int{0, 1, 2}
@@ -45,6 +48,5 @@ func TestFd(t *testing.T) {
 				return slices.Equal(s1.crashed, s2.crashed)
 			},
 		),
-		gomc.IncorrectNodes(func(t *fd) { t.stopped = true }, 2),
 	)
 }

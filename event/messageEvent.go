@@ -5,7 +5,6 @@ import (
 	"reflect"
 )
 
-
 // An event representing the arrival of a message on a node.
 // Calls the function specified with the Type parameter when executed
 type MessageEvent struct {
@@ -14,7 +13,7 @@ type MessageEvent struct {
 	Type   string
 	Params []reflect.Value
 
-	id string
+	id EventId
 }
 
 func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
@@ -28,11 +27,11 @@ func NewMessageEvent(from, to int, msgType string, params ...any) MessageEvent {
 		Type:   msgType,
 		Params: valueParams,
 
-		id: fmt.Sprintf("Message From: %v, To: %v, Type: %v, Params: %v", from, to, msgType, params),
+		id: EventId(fmt.Sprint("Message ", from, to, msgType, params)),
 	}
 }
 
-func (me MessageEvent) Id() string {
+func (me MessageEvent) Id() EventId {
 	return me.id
 }
 

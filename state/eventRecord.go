@@ -7,7 +7,7 @@ import (
 
 // A type providing a record of some event
 type EventRecord struct {
-	Id   string
+	Id   event.EventId
 	Repr string
 }
 

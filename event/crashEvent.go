@@ -10,22 +10,24 @@ type Stopper interface {
 }
 
 type CrashEvent struct {
-	target    int
-	crash     func(int) error
-	crashFunc func()
+	target int
+	crash  func(int) error
+
+	id EventId
 }
 
-func NewCrashEvent(target int, crash func(int) error, crashFunc func()) CrashEvent {
+func NewCrashEvent(target int, crash func(int) error) CrashEvent {
 	return CrashEvent{
-		target:    target,
-		crash:     crash,
-		crashFunc: crashFunc,
+		target: target,
+		crash:  crash,
+
+		id: EventId(fmt.Sprint("Crash", target)),
 	}
 }
 
 // An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
-func (ce CrashEvent) Id() string {
-	return fmt.Sprintf("Crash Target %v", ce.target)
+func (ce CrashEvent) Id() EventId {
+	return ce.id
 }
 
 // A method executing the event. The event will be executed on a separate goroutine.
@@ -34,7 +36,6 @@ func (ce CrashEvent) Id() string {
 // I.e. it does not matter which of the events you call the Execute method on. The results should be the same
 // Panics raised while executing the event is recovered by the simulator and returned as errors
 func (ce CrashEvent) Execute(_ any, evtChan chan error) {
-	ce.crashFunc()
 	evtChan <- ce.crash(ce.target)
 }
 

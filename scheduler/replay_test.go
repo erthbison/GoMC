@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"gomc/event"
 	"testing"
 
 	"golang.org/x/exp/slices"
@@ -18,7 +19,7 @@ func TestReplayScheduler(t *testing.T) {
 		for _, evt := range test.events {
 			sch.AddEvent(evt)
 		}
-		actualRun := []string{}
+		actualRun := []event.EventId{}
 		for {
 			evt, err := sch.GetEvent()
 			if err == NoRunsError {
@@ -42,15 +43,15 @@ func TestReplayScheduler(t *testing.T) {
 }
 
 func TestReplaySchedulerEndRun(t *testing.T) {
-	run := []string{"1", "3", "4", "6", "7"}
+	run := []event.EventId{"1", "3", "4", "6", "7"}
 	events := []MockEvent{
-		{id: 4, target: 0},
-		{id: 5, target: 1},
-		{id: 1, target: 0},
-		{id: 3, target: 0},
-		{id: 7, target: 0},
-		{id: 2, target: 1},
-		{id: 6, target: 0},
+		{id: "4", target: 0},
+		{id: "5", target: 1},
+		{id: "1", target: 0},
+		{id: "3", target: 0},
+		{id: "7", target: 0},
+		{id: "2", target: 1},
+		{id: "6", target: 0},
 	}
 	gsch := NewReplay(run)
 	sch := gsch.GetRunScheduler()
@@ -61,7 +62,7 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 	for _, evt := range events {
 		sch.AddEvent(evt)
 	}
-	actualRun := []string{}
+	actualRun := []event.EventId{}
 	for {
 		evt, err := sch.GetEvent()
 		if errors.Is(err, NoRunsError) {
@@ -80,34 +81,34 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 }
 
 var replaySchedulerTest = []struct {
-	run         []string
+	run         []event.EventId
 	events      []MockEvent
 	expectedErr bool
 }{
 	{
-		run:         []string{},
+		run:         []event.EventId{},
 		events:      []MockEvent{},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2"},
-		events:      []MockEvent{{id: 2}, {id: 1}},
+		run:         []event.EventId{"1", "2"},
+		events:      []MockEvent{{id: "2"}, {id: "1"}},
 		expectedErr: false,
 	},
 	{
 		// The provided run contains an event that is not added. Expect an error
-		run:         []string{"1", "3"},
-		events:      []MockEvent{{id: 2}, {id: 1}},
+		run:         []event.EventId{"1", "3"},
+		events:      []MockEvent{{id: "2"}, {id: "1"}},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2", "2"},
-		events:      []MockEvent{{id: 2}, {id: 1}, {id: 3}},
+		run:         []event.EventId{"1", "2", "2"},
+		events:      []MockEvent{{id: "2"}, {id: "1"}, {id: "3"}},
 		expectedErr: true,
 	},
 	{
-		run:         []string{"1", "2", "2"},
-		events:      []MockEvent{{id: 2}, {id: 1}, {id: 2}},
+		run:         []event.EventId{"1", "2", "2"},
+		events:      []MockEvent{{id: "2"}, {id: "1"}, {id: "2"}},
 		expectedErr: false,
 	},
 }

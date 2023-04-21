@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"gomc/checking"
+	"gomc/event"
+	"gomc/failureManager"
 	"gomc/runner/controller"
 	"gomc/runner/recorder"
 	"gomc/scheduler"
@@ -14,7 +16,6 @@ import (
 )
 
 func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) SimulationRunner[T, S] {
-	// Default values:
 	var (
 		maxRuns  = 1000
 		maxDepth = 1000
@@ -25,7 +26,10 @@ func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulati
 		// If true will ignore panics that occur during the simulation and let them execute as normal, stopping the simulation. If false will catch the panic and return it as an error.
 		// ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
 		ignorePanics = false
+
+		fm failureManager.FailureManger[T]
 	)
+	fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
 
 	// Use the simulator options to configure
 	for _, opt := range opts {
@@ -40,10 +44,12 @@ func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulati
 			ignoreErrors = true
 		case ignorePanicOption:
 			ignorePanics = true
+		case failureManagerOption[T]:
+			fm = t.fm
 		}
 	}
 	sch := schOpt.sch
-	sim := NewSimulator[T, S](sch, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
+	sim := NewSimulator[T, S](sch, fm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return SimulationRunner[T, S]{
 		sch: sch,
 		sim: sim,
@@ -58,19 +64,18 @@ type SimulationRunner[T, S any] struct {
 func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
-		incorrectNodes = []int{}
-		predicates     = []checking.Predicate[S]{}
-		requests       = []Request{}
-		crashFunc      = func(*T) {}
+		predicates = []checking.Predicate[S]{}
+		requests   = []Request{}
 
 		export []io.Writer
+
+		stopFunc = func(*T) {}
 	)
 
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case incorrectNodesOption[T]:
-			incorrectNodes = append(incorrectNodes, t.nodes...)
-			crashFunc = t.crashFunc
+		case stopOption[T]:
+			stopFunc = t.stop
 		case predicateOption[S]:
 			predicates = append(predicates, t.pred...)
 		case exportOption:
@@ -84,7 +89,7 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	}
 
 	sm := smOpts.sm
-	err := sr.sim.Simulate(sm, InitNodes.f, incorrectNodes, crashFunc, requests...)
+	err := sr.sim.Simulate(sm, InitNodes.f, stopFunc, requests...)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
@@ -176,7 +181,7 @@ func PrefixScheduler() SchedulerOption {
 //
 // The replay scheduler replays the provided run, returning an error if it is unable to reproduce it
 // The provided run is represented as a slice of event ids, and can be exported using the CheckerResponse.Export()
-func ReplayScheduler(run []string) SchedulerOption {
+func ReplayScheduler(run []event.EventId) SchedulerOption {
 	return SchedulerOption{sch: scheduler.NewReplay(run)}
 }
 
@@ -239,6 +244,22 @@ func IgnoreError() SimulatorOption {
 	return ignoreErrorOption{}
 }
 
+type failureManagerOption[T any] struct {
+	fm failureManager.FailureManger[T]
+}
+
+func WithFailureManager[T any](fm failureManager.FailureManger[T]) failureManagerOption[T] {
+	return failureManagerOption[T]{fm: fm}
+}
+
+func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) failureManagerOption[T] {
+	fm := failureManager.NewPerfectFailureManager(
+		crashFunc,
+		failingNodes,
+	)
+	return failureManagerOption[T]{fm: fm}
+}
+
 type StateManagerOption[T, S any] struct {
 	sm stateManager.StateManager[T, S]
 }
@@ -278,16 +299,16 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 
 type RunOptions interface{}
 
-type incorrectNodesOption[T any] struct {
-	crashFunc func(*T)
-	nodes     []int
-}
+// type incorrectNodesOption[T any] struct {
+// 	crashFunc func(*T)
+// 	nodes     []int
+// }
 
-// Configure the provided nodes to crash during the simulation.
-// The crash function specifies how to represent the node crash.
-func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
-	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
-}
+// // Configure the provided nodes to crash during the simulation.
+// // The crash function specifies how to represent the node crash.
+// func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
+// 	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
+// }
 
 type predicateOption[S any] struct{ pred []checking.Predicate[S] }
 
@@ -311,4 +332,14 @@ type exportOption struct {
 // Write the state to the writer
 func Export(w io.Writer) RunOptions {
 	return exportOption{w: w}
+}
+
+// Configure a function to shut down a node after the execution of a run.
+// Default value is an empty function.
+type stopOption[T any] struct {
+	stop func(*T)
+}
+
+func WithStopFunction[T any](stop func(*T)) RunOptions {
+	return stopOption[T]{stop: stop}
 }

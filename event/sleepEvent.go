@@ -11,6 +11,8 @@ type SleepEvent struct {
 	caller      string
 	target      int // The id of the target node
 	timeoutChan chan time.Time
+
+	id EventId
 }
 
 func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepEvent {
@@ -18,12 +20,14 @@ func NewSleepEvent(caller string, target int, timeoutChan chan time.Time) SleepE
 		caller:      caller,
 		target:      target,
 		timeoutChan: timeoutChan,
+
+		id: EventId(fmt.Sprint("Sleep ", target, caller)),
 	}
 	return evt
 }
 
-func (se SleepEvent) Id() string {
-	return fmt.Sprintf("Sleep Target: %v Caller: %v", se.target, se.caller)
+func (se SleepEvent) Id() EventId {
+	return se.id
 }
 
 func (se SleepEvent) String() string {

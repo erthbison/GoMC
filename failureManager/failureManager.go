@@ -1,49 +1,27 @@
 package failureManager
 
-import "errors"
+import "gomc/scheduler"
 
-// The failureManager keeps track of which nodes has crashed and which has not.
-// It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
-// The subscribe function replicates the functionality of a perfect failure detectors.
-// All provided callback functions are called immediately upon the crash of a node
-type FailureManager struct {
-	correct         map[int]bool
-	failureCallback []func(int)
+// Used to manage the correctness of nodes
+type FailureManger[T any] interface {
+	GetRunFailureManager(sch scheduler.RunScheduler) RunFailureManager[T]
 }
 
-func New() *FailureManager {
-	return &FailureManager{
-		correct:         make(map[int]bool),
-		failureCallback: make([]func(int), 0),
-	}
+type RunFailureManager[T any] interface {
+	Init(nodes map[int]*T)                        // Initialize the FailureManager with a set of nodes for this run
+	CorrectNodes() map[int]bool                   // Return a map of the node ids and the status of the corresponding node
+	Subscribe(callback func(id int, status bool)) // Subscribe to updates about node status. Calls the callback function with the node id and the new status of the node when the status of a node changes
 }
 
-// Init the failure manager with the provided nodes.
-// Set all the provided nodes to correct
-func (fm *FailureManager) Init(nodes []int) {
-	for _, id := range nodes {
-		fm.correct[id] = true
-	}
-}
+/*
+	Failure Manager Should:
+		- Keep track of which nodes has crashed and which has not
+		- Provide mechanism that allows nodes to learn which nodes have crashed and which have not.
+			- Specific should vary depending on abstraction
+			- Should at least be able to support perfect FD
+			- Should be able to support delayed information and node specific(i.e. not all nodes are informed at the same time)
+				- This should probably be handled by using events.
+		- Perform crashing, since the failure manager can interact with the nodes
 
-// Return a map of the status of the nodes
-func (fm *FailureManager) CorrectNodes() map[int]bool {
-	return fm.correct
-}
 
-// register that the node with the provided id has crashed
-func (fm *FailureManager) NodeCrash(nodeId int) error {
-	if _, ok := fm.correct[nodeId]; !ok {
-		return errors.New("FailureManager: Received NodeCrash for node that is not added to the system")
-	}
-	fm.correct[nodeId] = false
-	for _, f := range fm.failureCallback {
-		f(nodeId)
-	}
-	return nil
-}
-
-// Register a callback function to be called when a node crashes.
-func (fm *FailureManager) Subscribe(callback func(int)) {
-	fm.failureCallback = append(fm.failureCallback, callback)
-}
+*/

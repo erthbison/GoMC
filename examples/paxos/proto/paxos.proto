@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 import "google/protobuf/empty.proto";
-option go_package = "gomc/examples/grpcConsensus/proto";
+option go_package = "gomc/examples/paxos/proto";
 
 service Proposer {
   rpc Promise(PromiseRequest) returns (google.protobuf.Empty);

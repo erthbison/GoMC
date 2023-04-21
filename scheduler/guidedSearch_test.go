@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"gomc/event"
 	"testing"
 
 	"golang.org/x/exp/slices"
@@ -19,7 +20,7 @@ func TestGuidedSearch(t *testing.T) {
 		}
 
 		numRuns := 0
-		actualRun := []string{}
+		actualRun := []event.EventId{}
 		numEvent := 0
 		for {
 			if events, ok := test.events[numEvent]; ok {
@@ -40,7 +41,7 @@ func TestGuidedSearch(t *testing.T) {
 				if errors.Is(err, NoRunsError) {
 					break
 				}
-				actualRun = []string{}
+				actualRun = []event.EventId{}
 				numEvent = 0
 				continue
 			}
@@ -54,7 +55,7 @@ func TestGuidedSearch(t *testing.T) {
 }
 
 var GuidedSearchTests = []struct {
-	run    []string
+	run    []event.EventId
 	events map[int][]MockEvent
 	// Specify the number of events in the provided run that the scheduler is expected to follow before it begins searching
 	// This is generally the length of the run, but can be shorter if for instance the replayScheduler is unable to find the next event in the run
@@ -62,40 +63,40 @@ var GuidedSearchTests = []struct {
 	numRuns      int
 }{
 	{
-		run: []string{"1", "2", "3"},
+		run: []event.EventId{"1", "2", "3"},
 		events: map[int][]MockEvent{
-			0: {{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}},
+			0: {{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}, {id: "5"}},
 		},
 		lengthReplay: 3,
 		numRuns:      2,
 	},
 	{
-		run: []string{},
+		run: []event.EventId{},
 		events: map[int][]MockEvent{
-			0: {{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}},
+			0: {{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}, {id: "5"}},
 		},
 		lengthReplay: 0,
 		numRuns:      120,
 	},
 	{
-		run: []string{"1", "2", "3", "4", "5"},
+		run: []event.EventId{"1", "2", "3", "4", "5"},
 		events: map[int][]MockEvent{
-			0: {{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}},
+			0: {{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}, {id: "5"}},
 		},
 		lengthReplay: 5,
 		numRuns:      1,
 	},
 	{
-		run:          []string{"1", "2", "3", "4", "5"},
-		events:       map[int][]MockEvent{0: {{id: 1}, {id: 2}, {id: 4}, {id: 5}}},
+		run:          []event.EventId{"1", "2", "3", "4", "5"},
+		events:       map[int][]MockEvent{0: {{id: "1"}, {id: "2"}, {id: "4"}, {id: "5"}}},
 		lengthReplay: 2,
 		numRuns:      2,
 	},
 	{
-		run: []string{"1", "2"},
+		run: []event.EventId{"1", "2"},
 		events: map[int][]MockEvent{
-			0: {{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 5}},
-			2: {{id: 6}, {id: 7}},
+			0: {{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}, {id: "5"}},
+			2: {{id: "6"}, {id: "7"}},
 		},
 		lengthReplay: 2,
 		numRuns:      120,

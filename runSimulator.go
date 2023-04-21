@@ -13,7 +13,7 @@ import (
 type runSimulator[T, S any] struct {
 	sch scheduler.RunScheduler
 	sm  *stateManager.RunStateManager[T, S]
-	fm  *failureManager.FailureManager
+	fm  failureManager.RunFailureManager[T]
 
 	nextEvt chan error
 
@@ -21,11 +21,11 @@ type runSimulator[T, S any] struct {
 	ignorePanics bool
 }
 
-func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *stateManager.RunStateManager[T, S], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
+func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *stateManager.RunStateManager[T, S], fm failureManager.RunFailureManager[T], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
 		sch: sch,
 		sm:  sm,
-		fm:  failureManager.New(),
+		fm:  fm,
 
 		nextEvt: make(chan error),
 
@@ -55,35 +55,27 @@ func (rs *runSimulator[T, S]) SimulateRuns(nextRun chan bool, status chan error,
 }
 
 func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
-	nodes, err := rs.initRun(cfg.initNodes, cfg.failingNodes, cfg.crashFunc, cfg.requests...)
+	nodes, err := rs.initRun(cfg.initNodes, cfg.requests...)
 	if err != nil {
 		return err
 	}
 
+	// Always teardown the run.
+	defer rs.teardownRun(nodes, cfg.stopNode)
+
 	err = rs.executeRun(nodes)
-	// End the run
-
-	rs.sch.EndRun()
-	rs.sm.EndRun()
-
 	if err != nil {
 		return fmt.Errorf("Simulator: An error occurred while simulating a run: %v", err)
 	}
-
 	return nil
 }
 
-func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, failingNodes []int, crashFunc func(*T), requests ...Request) (map[int]*T, error) {
+func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, requests ...Request) (map[int]*T, error) {
 	nodes := initNodes(SimulationParameters{
-		NextEvt: rs.nextEvt,
-		Fm:      rs.fm,
-		Sch:     rs.sch,
+		NextEvt:   rs.nextEvt,
+		Subscribe: rs.fm.Subscribe,
+		Sch:       rs.sch,
 	})
-	nodeSlice := []int{}
-	for id := range nodes {
-		nodeSlice = append(nodeSlice, id)
-	}
-	rs.fm.Init(nodeSlice)
 
 	rs.sm.UpdateGlobalState(nodes, rs.fm.CorrectNodes(), nil)
 
@@ -97,15 +89,8 @@ func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) ma
 		return nil, err
 	}
 
-	// Add crash events to simulation.
-	for _, id := range failingNodes {
-		if _, ok := nodes[id]; !ok {
-			continue
-		}
-		rs.sch.AddEvent(
-			event.NewCrashEvent(id, rs.fm.NodeCrash, func() { crashFunc(nodes[id]) }),
-		)
-	}
+	// Init nodes and schedule crash requests
+	rs.fm.Init(nodes)
 
 	return nodes, nil
 }
@@ -176,11 +161,24 @@ func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int
 	return nil
 }
 
+// Teardown the current run
+// This includes indicating to the scheduler and state manager that the run has ended
+// Also ensure that all nodes are no longer running
+func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, stopFunc func(*T)) {
+	// Call end run on scheduler and state manager
+	rs.sch.EndRun()
+	rs.sm.EndRun()
+
+	// Stop all  nodes
+	for _, node := range nodes {
+		stopFunc(node)
+	}
+}
+
 // Stores the parameters used to start a run.
 // Should be read only.
 type runParameters[T any] struct {
-	initNodes    func(sp SimulationParameters) map[int]*T
-	failingNodes []int
-	crashFunc    func(*T)
-	requests     []Request
+	initNodes func(sp SimulationParameters) map[int]*T
+	stopNode  func(*T)
+	requests  []Request
 }

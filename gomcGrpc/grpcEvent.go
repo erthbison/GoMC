@@ -1,18 +1,33 @@
 package gomcGrpc
 
-import "fmt"
+import (
+	"fmt"
+	"gomc/event"
+)
 
 type GrpcEvent struct {
 	from   int
 	target int
 	method string
-	msg    any
 	wait   chan bool
+
+	id event.EventId
+}
+
+func NewGrpcEvent(from int, to int, method string, msg interface{}, wait chan bool) GrpcEvent {
+	return GrpcEvent{
+		target: to,
+		from:   from,
+		method: method,
+		wait:   wait,
+
+		id: event.EventId(fmt.Sprint("GrpcEvent", from, to, method, msg)),
+	}
 }
 
 // An id that identifies the event. Two events that provided the same input state results in the same output state should have the same id
-func (ge GrpcEvent) Id() string {
-	return fmt.Sprintf("GrpcEvent From: %v To: %v Method: %v Msg %v", ge.from, ge.target, ge.method, ge.msg)
+func (ge GrpcEvent) Id() event.EventId {
+	return ge.id
 }
 
 // A method executing the event. The event will be executed on a separate goroutine.

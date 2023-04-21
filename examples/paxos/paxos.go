@@ -64,7 +64,7 @@ func newPaxos(id int64, nodes map[int64]string, waitForSend func(int)) *paxos {
 	}
 }
 
-func (p *paxos) NodeCrash(id int) {
+func (p *paxos) NodeCrash(id int, _ bool) {
 	if p.stopped {
 		return
 	}

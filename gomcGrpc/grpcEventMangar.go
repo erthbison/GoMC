@@ -37,13 +37,13 @@ func NewGrpcEventManager(addr map[string]int, sch scheduler.RunScheduler, nextEv
 
 // Add an grpcEvent to the scheduler.
 func (gem *grpcEventManager) addEvent(from, to int, msg interface{}, method string, wait chan bool) {
-	gem.sch.AddEvent(GrpcEvent{
-		target: to,
-		from:   from,
-		method: method,
-		msg:    msg,
-		wait:   wait,
-	})
+	gem.sch.AddEvent(NewGrpcEvent(
+		to,
+		from,
+		method,
+		msg,
+		wait,
+	))
 }
 
 // Wait until all messages has been processed and an event has been created for all of them.

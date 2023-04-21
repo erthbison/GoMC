@@ -11,6 +11,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
+	"gomc/event"
 	"gomc/gomcGrpc"
 	"gomc/stateManager"
 
@@ -64,6 +65,9 @@ func TestGrpcConsensus(t *testing.T) {
 	sim := gomc.Prepare[GrpcConsensus, state](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+		),
 	)
 
 	sm := stateManager.NewTreeStateManager(
@@ -108,7 +112,7 @@ func TestGrpcConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Fm.Subscribe(gc.Crash)
+					sp.Subscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 
@@ -138,7 +142,7 @@ func TestGrpcConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
+		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
 
@@ -159,9 +163,14 @@ func TestReplayConsensus(t *testing.T) {
 		t.Errorf("Error while setting up test: %v", err)
 	}
 	buffer := bytes.NewBuffer(in)
-	var run []string
+	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
-	sim := gomc.Prepare[GrpcConsensus, state](gomc.ReplayScheduler(run))
+	sim := gomc.Prepare[GrpcConsensus, state](
+		gomc.ReplayScheduler(run),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+		),
+	)
 
 	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
@@ -208,7 +217,7 @@ func TestReplayConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Fm.Subscribe(gc.Crash)
+					sp.Subscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 
@@ -238,7 +247,7 @@ func TestReplayConsensus(t *testing.T) {
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicate(predicates...),
-		gomc.IncorrectNodes(func(t *GrpcConsensus) { t.Stop() }, 3, 5),
+		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
 

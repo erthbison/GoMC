@@ -14,6 +14,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
+	"gomc/event"
 	"gomc/gomcGrpc"
 )
 
@@ -45,6 +46,7 @@ func TestPaxosSim(t *testing.T) {
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxDepth(100000),
 		gomc.MaxRuns(1000),
+		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 	)
 	w, err := os.Create("export.txt")
 	if err != nil {
@@ -66,7 +68,7 @@ func TestPaxosSim(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.Fm.Subscribe(srv.NodeCrash)
+				sp.Subscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -131,7 +133,7 @@ func TestPaxosSim(t *testing.T) {
 				},
 			),
 		),
-		gomc.IncorrectNodes(func(t *Server) { t.Stop() }, 5, 1),
+		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)
 	if ok, text := resp.Response(); !ok {
@@ -153,10 +155,14 @@ func TestPaxosReplay(t *testing.T) {
 		t.Errorf("Error while setting up test: %v", err)
 	}
 	buffer := bytes.NewBuffer(in)
-	var run []string
+	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.Prepare[Server, State](gomc.ReplayScheduler(run), gomc.MaxDepth(100000))
+	sim := gomc.Prepare[Server, State](
+		gomc.ReplayScheduler(run),
+		gomc.MaxDepth(100000),
+		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
+	)
 	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
 	w, err := os.Create("export.txt")
 	if err != nil {
@@ -178,7 +184,7 @@ func TestPaxosReplay(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.Fm.Subscribe(srv.NodeCrash)
+				sp.Subscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -255,7 +261,7 @@ func TestPaxosReplay(t *testing.T) {
 				},
 			),
 		),
-		gomc.IncorrectNodes(func(t *Server) { t.Stop() }, 5, 1),
+		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)
 	if ok, text := resp.Response(); !ok {

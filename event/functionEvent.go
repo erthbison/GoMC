@@ -14,6 +14,8 @@ type FunctionEvent struct {
 	target int
 	method string
 	params []reflect.Value
+
+	id EventId
 }
 
 func NewFunctionEvent(i int, target int, method string, params ...reflect.Value) FunctionEvent {
@@ -22,11 +24,13 @@ func NewFunctionEvent(i int, target int, method string, params ...reflect.Value)
 		target: target,
 		method: method,
 		params: params,
+
+		id: EventId(fmt.Sprint("Function", i)),
 	}
 }
 
-func (fe FunctionEvent) Id() string {
-	return fmt.Sprintf("Function %v", fe.index)
+func (fe FunctionEvent) Id() EventId {
+	return fe.id
 }
 
 func (fe FunctionEvent) String() string {

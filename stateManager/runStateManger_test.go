@@ -1,8 +1,10 @@
 package stateManager
 
 import (
+	"gomc/event"
 	"gomc/state"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 )
@@ -51,7 +53,7 @@ func generateMockData(numNodes, i int) (map[int]*MockNode, map[int]bool, MockEve
 		nodes[id] = &MockNode{Id: i}
 		correct[id] = true
 	}
-	evt := MockEvent{i, 0, false, 0}
+	evt := MockEvent{event.EventId(strconv.Itoa(i)), 0, false, 0}
 	return nodes, correct, evt
 }
 
