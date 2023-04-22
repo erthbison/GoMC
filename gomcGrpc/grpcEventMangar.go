@@ -3,7 +3,6 @@ package gomcGrpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"gomc/eventManager"
 	"time"
 
@@ -85,7 +84,7 @@ func (gem *grpcEventManager) UnaryClientControllerInterceptor(id int) grpc.Unary
 
 		err := invoker(ctx, method, req, reply, cc, opts...)
 
-		// Signal that the message event has been completely processed by the server	
+		// Signal that the message event has been completely processed by the server
 		gem.nextEvt(nil, target)
 
 		return err
