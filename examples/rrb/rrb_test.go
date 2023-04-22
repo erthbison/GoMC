@@ -43,7 +43,7 @@ func TestRrb(t *testing.T) {
 
 	resp := sim.RunSimulation(gomc.InitNodeFunc(
 		func(sp gomc.SimulationParameters) map[int]*Rrb {
-			send := eventManager.NewSender(sp.Sch)
+			send := eventManager.NewSender(sp.EventAdder)
 			nodeIds := []int{}
 			for i := 0; i < numNodes; i++ {
 				nodeIds = append(nodeIds, i)
