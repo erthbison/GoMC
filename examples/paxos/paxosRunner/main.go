@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"gomc/examples/paxos"
 	"gomc/gomcGrpc"
@@ -44,7 +43,7 @@ func main() {
 		addr2id[addr] = int(id)
 	}
 
-	r := gomc.NewRunner[paxos.Server, State](time.Second, func(t *paxos.Server) error { t.Stop(); return nil })
+	r := gomc.NewRunner[paxos.Server, State](func(t *paxos.Server) { t.Stop() })
 	r.Start(
 		func(sp gomc.SimulationParameters) map[int]*paxos.Server {
 			lisMap := map[string]*bufconn.Listener{}

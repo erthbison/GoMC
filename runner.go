@@ -13,7 +13,7 @@ type Runner[T, S any] struct {
 
 	stateChannels []chan map[int]S
 
-	stopFunc func(*T) error
+	stopFunc func(*T)
 
 	requestSeq int
 	ec         *runner.EventController[T, S]
@@ -25,7 +25,7 @@ type Runner[T, S any] struct {
 	crashSubscribes []func(id int, status bool)
 }
 
-func NewRunner[T, S any](stop func(*T) error) *Runner[T, S] {
+func NewRunner[T, S any](stop func(*T)) *Runner[T, S] {
 	return &Runner[T, S]{
 		stateChannels: make([]chan map[int]S, 0),
 		stopFunc:      stop,
@@ -165,5 +165,6 @@ func (r *Runner[T, S]) crashNode(id int, nodes map[int]*T) error {
 	}
 
 	r.ec.CrashNode(id)
-	return r.stopFunc(n)
+	r.stopFunc(n)
+	return nil
 }

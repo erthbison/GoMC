@@ -28,7 +28,7 @@ func (ec *EventController[T, S]) NextEvent(err error, id int) {
 	ec.nodes[id].nextEvent(err)
 }
 
-func (ec *EventController[T, S]) MainLoop(nodes map[int]*T, crashFunc func(*T) error, getState func(*T) S) {
+func (ec *EventController[T, S]) MainLoop(nodes map[int]*T, crashFunc func(*T), getState func(*T) S) {
 	ec.nodes = make(map[int]*nodeController[T, S])
 	for id, node := range nodes {
 		nc := NewNodeController(id, node, getState, crashFunc, ec.msgChan)

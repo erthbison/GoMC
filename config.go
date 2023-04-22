@@ -101,12 +101,18 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	return checker.Check(state)
 }
 
-func Run[T, S any](initNodes InitNodeOption[T], opts ...RunnerOptions) *Runner[T, S] {
+func Run[T, S any](initNodes InitNodeOption[T], opts ...RunOptions) *Runner[T, S] {
 	var (
-		stop = func(*T) error { return nil }
-
+		stop     = func(*T)  { }
 		getState func(*T) S
 	)
+
+	for _, opt := range opts {
+		switch t := opt.(type) {
+		case stopOption[T]:
+			stop = t.stop
+		}
+	}
 
 	r := NewRunner[T, S](
 		stop,
@@ -118,8 +124,6 @@ func Run[T, S any](initNodes InitNodeOption[T], opts ...RunnerOptions) *Runner[T
 	)
 	return r
 }
-
-type RunnerOptions interface{}
 
 type SchedulerOption struct {
 	sch scheduler.GlobalScheduler
