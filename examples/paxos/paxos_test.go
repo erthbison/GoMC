@@ -59,7 +59,7 @@ func TestPaxosSim(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
@@ -68,7 +68,7 @@ func TestPaxosSim(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.Subscribe(srv.NodeCrash)
+				sp.CrashSubscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -175,7 +175,7 @@ func TestPaxosReplay(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
@@ -184,7 +184,7 @@ func TestPaxosReplay(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.Subscribe(srv.NodeCrash)
+				sp.CrashSubscribe(srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
