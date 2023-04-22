@@ -3,6 +3,7 @@ package scheduler
 import (
 	"errors"
 	"gomc/event"
+	"gomc/eventManager"
 )
 
 type GlobalScheduler interface {
@@ -23,14 +24,15 @@ type RunScheduler interface {
 	// Get the next event in the run. Will return RunEndedError if there are no more events in the run.
 	// The event returned must be an event that has been added during the current run.
 	GetEvent() (event.Event, error)
-	// Add an event to the list of possible events
-	AddEvent(event.Event)
 
 	// Prepare for starting a new run. Returns a NoRunsError if all possible runs have been completed. May block until new runs are available.
 	StartRun() error
 	// Finish the current run and prepare for the next one.
 	// Will always be called after a run has been completely executed, even if an error occurred during execution of the run.
 	EndRun()
+
+	// Implements the event adder interface
+	eventManager.EventAdder
 }
 
 var (

@@ -16,7 +16,7 @@ func Benchmark(b *testing.B) {
 		sim.RunSimulation(
 			gomc.InitNodeFunc(
 				func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
-					send := eventManager.NewSender(sp.Sch)
+					send := eventManager.NewSender(sp.EventAdder)
 					nodes := map[int]*BroadcastNode{}
 					nodeIds := []int{}
 					for i := 0; i < numNodes; i++ {

@@ -3,7 +3,7 @@ package failureManager
 import (
 	"errors"
 	"gomc/event"
-	"gomc/scheduler"
+	"gomc/eventManager"
 )
 
 // The failureManager keeps track of which nodes has crashed and which has not.
@@ -22,12 +22,12 @@ func NewPerfectFailureManager[T any](crashFunc func(*T), failingNodes []int) *Pe
 	}
 }
 
-func (pfm PerfectFailureManager[T]) GetRunFailureManager(sch scheduler.RunScheduler) RunFailureManager[T] {
-	return newPerfectRunFailureManager(sch, pfm.crashFunc, pfm.failingNodes)
+func (pfm PerfectFailureManager[T]) GetRunFailureManager(ea eventManager.EventAdder) RunFailureManager[T] {
+	return newPerfectRunFailureManager(ea, pfm.crashFunc, pfm.failingNodes)
 }
 
 type PerfectRunFailureManager[T any] struct {
-	sch          scheduler.RunScheduler
+	ea           eventManager.EventAdder
 	crashFunc    func(*T)
 	failingNodes []int
 
@@ -36,9 +36,9 @@ type PerfectRunFailureManager[T any] struct {
 	failureCallback []func(int, bool)
 }
 
-func newPerfectRunFailureManager[T any](sch scheduler.RunScheduler, crashFunc func(*T), failingNodes []int) *PerfectRunFailureManager[T] {
+func newPerfectRunFailureManager[T any](ea eventManager.EventAdder, crashFunc func(*T), failingNodes []int) *PerfectRunFailureManager[T] {
 	return &PerfectRunFailureManager[T]{
-		sch:          sch,
+		ea:           ea,
 		crashFunc:    crashFunc,
 		failingNodes: failingNodes,
 
@@ -61,7 +61,7 @@ func (fm *PerfectRunFailureManager[T]) Init(nodes map[int]*T) {
 		if _, ok := nodes[id]; !ok {
 			continue
 		}
-		fm.sch.AddEvent(
+		fm.ea.AddEvent(
 			event.NewCrashEvent(id, fm.NodeCrash),
 		)
 	}

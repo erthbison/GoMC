@@ -72,9 +72,9 @@ func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 
 func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, requests ...Request) (map[int]*T, error) {
 	nodes := initNodes(SimulationParameters{
-		NextEvt:   rs.nextEvt,
-		Subscribe: rs.fm.Subscribe,
-		Sch:       rs.sch,
+		NextEvt:        rs.nextEvent,
+		CrashSubscribe: rs.fm.Subscribe,
+		EventAdder:     rs.sch,
 	})
 
 	rs.sm.UpdateGlobalState(nodes, rs.fm.CorrectNodes(), nil)
@@ -93,6 +93,10 @@ func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) ma
 	rs.fm.Init(nodes)
 
 	return nodes, nil
+}
+
+func (rs *runSimulator[T, S]) nextEvent(err error, _ int) {
+	rs.nextEvt <- err
 }
 
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.

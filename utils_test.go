@@ -2,6 +2,7 @@ package gomc
 
 import (
 	"gomc/event"
+	"gomc/eventManager"
 	"gomc/failureManager"
 	"gomc/scheduler"
 	"gomc/state"
@@ -130,9 +131,9 @@ type MockFailureManager struct {
 	crashFunc    func(*MockNode)
 }
 
-func (mfm *MockFailureManager) GetRunFailureManager(sch scheduler.RunScheduler) failureManager.RunFailureManager[MockNode] {
+func (mfm *MockFailureManager) GetRunFailureManager(ea eventManager.EventAdder) failureManager.RunFailureManager[MockNode] {
 	return NewMockRunFailureManager(
-		sch, mfm.failingNodes, mfm.crashFunc,
+		ea, mfm.failingNodes, mfm.crashFunc,
 	)
 }
 
@@ -144,16 +145,16 @@ func NewMockFailureManager(failingNodes []int, crashFunc func(*MockNode)) *MockF
 }
 
 type MockRunFailureManager[T any] struct {
-	sch          scheduler.RunScheduler
+	ea           eventManager.EventAdder
 	failingNodes []int
 	crashFunc    func(*T)
 
 	correct map[int]bool
 }
 
-func NewMockRunFailureManager(sch scheduler.RunScheduler, failingNodes []int, crashFunc func(*MockNode)) *MockRunFailureManager[MockNode] {
+func NewMockRunFailureManager(ea eventManager.EventAdder, failingNodes []int, crashFunc func(*MockNode)) *MockRunFailureManager[MockNode] {
 	return &MockRunFailureManager[MockNode]{
-		sch:          sch,
+		ea:           ea,
 		failingNodes: failingNodes,
 		crashFunc:    crashFunc,
 	}
@@ -161,7 +162,7 @@ func NewMockRunFailureManager(sch scheduler.RunScheduler, failingNodes []int, cr
 
 func (mrfm *MockRunFailureManager[MockNode]) Init(nodes map[int]*MockNode) {
 	for _, id := range mrfm.failingNodes {
-		mrfm.sch.AddEvent(event.NewCrashEvent(id, mrfm.nodeCrash))
+		mrfm.ea.AddEvent(event.NewCrashEvent(id, mrfm.nodeCrash))
 	}
 }
 

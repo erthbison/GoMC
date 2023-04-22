@@ -30,7 +30,7 @@ func TestOnrr(t *testing.T) {
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*onrr {
 				numNodes := 5
-				send := eventManager.NewSender(sp.Sch)
+				send := eventManager.NewSender(sp.EventAdder)
 
 				nodeIds := []int{}
 				for i := 0; i < numNodes; i++ {

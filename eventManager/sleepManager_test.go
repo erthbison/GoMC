@@ -39,7 +39,10 @@ func (n *Node) Bar(from, to int, msg []byte) {}
 
 func TestSleepManager(t *testing.T) {
 	sch := NewMockScheduler()
-	nextEvent := make(chan error)
+	nextEventChan := make(chan error)
+	nextEvent := func(err error, id int) {
+		nextEventChan <- err
+	}
 	sm := NewSleepManager(sch, nextEvent)
 	sleep := sm.SleepFunc(0)
 	notBlockedChan := make(chan bool)
@@ -52,9 +55,9 @@ func TestSleepManager(t *testing.T) {
 	// Wait until the nextEvent signal is received than execute the event.
 	// Like the simulator would
 	select {
-	case <-nextEvent:
+	case <-nextEventChan:
 		evt, _ := sch.GetEvent()
-		evt.Execute(&Node{}, nextEvent)
+		evt.Execute(&Node{}, nextEventChan)
 	case <-notBlockedChan:
 		t.Fatalf("Sleep returned before the event was executed")
 	}

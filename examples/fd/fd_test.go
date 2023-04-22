@@ -26,8 +26,8 @@ func TestFd(t *testing.T) {
 		gomc.InitSingleNode(
 			nodeIds,
 			func(id int, sp gomc.SimulationParameters) *fd {
-				send := eventManager.NewSender(sp.Sch)
-				sleep := eventManager.NewSleepManager(sp.Sch, sp.NextEvt)
+				send := eventManager.NewSender(sp.EventAdder)
+				sleep := eventManager.NewSleepManager(sp.EventAdder, sp.NextEvt)
 				return NewFd(
 					id, nodeIds, 5*time.Second, send.SendFunc(id), sleep.SleepFunc(id),
 				)

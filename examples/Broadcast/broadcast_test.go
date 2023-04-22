@@ -19,8 +19,8 @@ func TestBroadcast(t *testing.T) {
 	)
 	resp := sim.RunSimulation(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Node {
-			send := eventManager.NewSender(sp.Sch)
-			sleep := eventManager.NewSleepManager(sp.Sch, sp.NextEvt)
+			send := eventManager.NewSender(sp.EventAdder)
+			sleep := eventManager.NewSleepManager(sp.EventAdder, sp.NextEvt)
 			nodeMap := map[int]*Node{}
 			nodes := []int{}
 			for i := 0; i < numNodes; i++ {

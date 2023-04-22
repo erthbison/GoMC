@@ -99,13 +99,13 @@ func TestMultiPaxosSim(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 			nodes := make(map[int]*MultiPaxos)
 			for id, addr := range addrMap {
 				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
 				go srv.Start(lisMap[addr])
-				sp.Subscribe(srv.proposer.leader.NodeCrash)
+				sp.CrashSubscribe(srv.proposer.leader.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -186,13 +186,13 @@ func TestPaxosReplay(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 			nodes := make(map[int]*MultiPaxos)
 			for id, addr := range addrMap {
 				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
 				go srv.Start(lisMap[addr])
-				sp.Subscribe(srv.proposer.leader.NodeCrash)
+				sp.CrashSubscribe(srv.proposer.leader.NodeCrash)
 				nodes[int(id)] = srv
 			}
 

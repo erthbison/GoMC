@@ -46,3 +46,11 @@ func (ge GrpcEvent) Target() int {
 func (ge GrpcEvent) String() string {
 	return fmt.Sprintf("GrpcEvent From: %v To: %v Method: %v", ge.from, ge.target, ge.method)
 }
+
+func (ge GrpcEvent) To() int {
+	return ge.target
+}
+
+func (ge GrpcEvent) From() int {
+	return ge.from
+}

@@ -1,9 +1,11 @@
 package gomc
 
-import "gomc/scheduler"
+import (
+	"gomc/eventManager"
+)
 
 type SimulationParameters struct {
-	NextEvt   chan error
-	Subscribe func(func(id int, status bool))
-	Sch       scheduler.RunScheduler
+	NextEvt        func(error, int)
+	CrashSubscribe func(func(id int, status bool))
+	EventAdder     eventManager.EventAdder
 }

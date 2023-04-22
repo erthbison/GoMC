@@ -3,7 +3,7 @@ package gomcGrpc
 import (
 	"context"
 	"errors"
-	"gomc/scheduler"
+	"gomc/eventManager"
 	"time"
 
 	"google.golang.org/grpc"
@@ -12,8 +12,8 @@ import (
 type grpcEventManager struct {
 	AddrIdMap map[string]int
 
-	sch     scheduler.RunScheduler
-	nextEvt chan error
+	ea      eventManager.EventAdder
+	nextEvt func(error, int)
 
 	msgChan map[int]chan bool
 }
@@ -22,14 +22,14 @@ type grpcEventManager struct {
 // Grpc async calls are called in a separate goroutine without handling the response.
 // A context with a deadline should not be used when simulating since real time does not make sense during simulations.
 // addr is a map from address to node id, shc is the scheduler used and nextEvent is the NextEvent channel from the simulator
-func NewGrpcEventManager(addr map[string]int, sch scheduler.RunScheduler, nextEvent chan error) *grpcEventManager {
+func NewGrpcEventManager(addr map[string]int, ea eventManager.EventAdder, nextEvent func(error, int)) *grpcEventManager {
 	msgChan := make(map[int]chan bool)
 	for _, id := range addr {
 		msgChan[id] = make(chan bool)
 	}
 	return &grpcEventManager{
 		AddrIdMap: addr,
-		sch:       sch,
+		ea:        ea,
 		nextEvt:   nextEvent,
 		msgChan:   msgChan,
 	}
@@ -37,9 +37,9 @@ func NewGrpcEventManager(addr map[string]int, sch scheduler.RunScheduler, nextEv
 
 // Add an grpcEvent to the scheduler.
 func (gem *grpcEventManager) addEvent(from, to int, msg interface{}, method string, wait chan bool) {
-	gem.sch.AddEvent(NewGrpcEvent(
-		to,
+	gem.ea.AddEvent(NewGrpcEvent(
 		from,
+		to,
 		method,
 		msg,
 		wait,
@@ -85,7 +85,7 @@ func (gem *grpcEventManager) UnaryClientControllerInterceptor(id int) grpc.Unary
 		err := invoker(ctx, method, req, reply, cc, opts...)
 
 		// Signal that the message event has been completely processed by the server
-		gem.nextEvt <- nil
+		gem.nextEvt(nil, id)
 
 		return err
 	}

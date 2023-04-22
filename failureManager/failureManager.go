@@ -1,10 +1,10 @@
 package failureManager
 
-import "gomc/scheduler"
+import "gomc/eventManager"
 
 // Used to manage the correctness of nodes
 type FailureManger[T any] interface {
-	GetRunFailureManager(sch scheduler.RunScheduler) RunFailureManager[T]
+	GetRunFailureManager(eventManager.EventAdder) RunFailureManager[T]
 }
 
 type RunFailureManager[T any] interface {

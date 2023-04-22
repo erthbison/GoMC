@@ -3,19 +3,18 @@ package eventManager
 import (
 	"fmt"
 	"gomc/event"
-	"gomc/scheduler"
 	"runtime"
 	"time"
 )
 
 type SleepManager struct {
-	sch     scheduler.RunScheduler
-	nextEvt chan error
+	ea      EventAdder
+	nextEvt func(error, int)
 }
 
-func NewSleepManager(sch scheduler.RunScheduler, nextEvent chan error) *SleepManager {
+func NewSleepManager(ea EventAdder, nextEvent func(error, int)) *SleepManager {
 	return &SleepManager{
-		sch:     sch,
+		ea:      ea,
 		nextEvt: nextEvent,
 	}
 }
@@ -25,10 +24,10 @@ func (sm *SleepManager) SleepFunc(id int) func(time.Duration) {
 		sleepChan := make(chan time.Time)
 		_, file, line, _ := runtime.Caller(1)
 		evt := event.NewSleepEvent(fmt.Sprintf("File: %v, Line: %v", file, line), id, sleepChan)
-		sm.sch.AddEvent(evt)
+		sm.ea.AddEvent(evt)
 		// Inform the simulator that the process is currently waiting for a scheduled timeout
 		// The simulator can now proceed with scheduling events
-		sm.nextEvt <- nil
+		sm.nextEvt(nil, id)
 
 		// Wait until the event is executed before returning
 		<-sleepChan

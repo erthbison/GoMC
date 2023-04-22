@@ -19,7 +19,7 @@ func TestFifo(t *testing.T) {
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*fifo {
 				nodes := map[int]*fifo{}
-				send := eventManager.NewSender(sp.Sch)
+				send := eventManager.NewSender(sp.EventAdder)
 				for i := 0; i < numNodes; i++ {
 					nodes[i] = &fifo{
 						send: send.SendFunc(i),

@@ -103,7 +103,7 @@ func TestGrpcConsensus(t *testing.T) {
 	resp := sim.RunSimulation(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 				lisMap := map[string]*bufconn.Listener{}
 				for _, addr := range addrMap {
 					lisMap[addr] = bufconn.Listen(bufSize)
@@ -112,7 +112,7 @@ func TestGrpcConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Subscribe(gc.Crash)
+					sp.CrashSubscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 
@@ -207,7 +207,7 @@ func TestReplayConsensus(t *testing.T) {
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
 
-				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.Sch, sp.NextEvt)
+				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 				lisMap := map[string]*bufconn.Listener{}
 				for _, addr := range addrMap {
@@ -217,7 +217,7 @@ func TestReplayConsensus(t *testing.T) {
 				nodes := map[int]*GrpcConsensus{}
 				for id, addr := range addrMap {
 					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.Subscribe(gc.Crash)
+					sp.CrashSubscribe(gc.Crash)
 					nodes[int(id)] = gc
 				}
 

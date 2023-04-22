@@ -71,13 +71,13 @@ func TestConsensus(t *testing.T) {
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
-				send := eventManager.NewSender(sp.Sch)
+				send := eventManager.NewSender(sp.EventAdder)
 				node := NewHierarchicalConsensus[int](
 					id,
 					nodeIds,
 					send.SendFunc(id),
 				)
-				sp.Subscribe(node.Crash)
+				sp.CrashSubscribe(node.Crash)
 				return node
 			},
 		),
@@ -133,13 +133,13 @@ func TestConsensusReplay(t *testing.T) {
 	resp := sim.RunSimulation(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
-				send := eventManager.NewSender(sp.Sch)
+				send := eventManager.NewSender(sp.EventAdder)
 				node := NewHierarchicalConsensus[int](
 					id,
 					nodeIds,
 					send.SendFunc(id),
 				)
-				sp.Subscribe(node.Crash)
+				sp.CrashSubscribe(node.Crash)
 				return node
 			},
 		),
@@ -181,13 +181,13 @@ func BenchmarkConsensus(b *testing.B) {
 		sim.RunSimulation(
 			gomc.InitSingleNode(nodeIds,
 				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
-					send := eventManager.NewSender(sp.Sch)
+					send := eventManager.NewSender(sp.EventAdder)
 					node := NewHierarchicalConsensus[int](
 						id,
 						nodeIds,
 						send.SendFunc(id),
 					)
-					sp.Subscribe(node.Crash)
+					sp.CrashSubscribe(node.Crash)
 					return node
 				},
 			),
