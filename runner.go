@@ -6,13 +6,11 @@ import (
 	"gomc/runner"
 	"reflect"
 	"sync"
-	"time"
 )
 
 type Runner[T, S any] struct {
 	sync.Mutex
 
-	interval      time.Duration
 	stateChannels []chan map[int]S
 
 	stopFunc func(*T) error
@@ -27,9 +25,8 @@ type Runner[T, S any] struct {
 	crashSubscribes []func(id int, status bool)
 }
 
-func NewRunner[T, S any](pollingInterval time.Duration, stop func(*T) error) *Runner[T, S] {
+func NewRunner[T, S any](stop func(*T) error) *Runner[T, S] {
 	return &Runner[T, S]{
-		interval:      pollingInterval,
 		stateChannels: make([]chan map[int]S, 0),
 		stopFunc:      stop,
 
@@ -58,7 +55,6 @@ func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T,
 	r.ec.MainLoop(nodes, r.stopFunc, getState)
 
 	go func() {
-		ticker := time.NewTicker(r.interval)
 		for cmd := range r.cmd {
 			var err error
 			switch t := cmd.(type) {
@@ -71,7 +67,7 @@ func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T,
 			case runner.Request:
 				err = r.request(t.Id, t.Method, t.Params, nodes)
 			case runner.Stop:
-				err = r.stop(ticker, nodes)
+				err = r.stop(nodes)
 			}
 			r.resp <- err
 		}
@@ -87,8 +83,7 @@ func (r *Runner[T, S]) Stop() error {
 	return <-r.resp
 }
 
-func (r *Runner[T, S]) stop(ticker *time.Ticker, nodes map[int]*T) error {
-	ticker.Stop()
+func (r *Runner[T, S]) stop(nodes map[int]*T) error {
 	for _, n := range nodes {
 		r.stopFunc(n)
 	}

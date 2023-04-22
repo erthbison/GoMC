@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"runtime"
-	"time"
 
 	"gomc/checking"
 	"gomc/event"
@@ -104,21 +103,12 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 
 func Run[T, S any](initNodes InitNodeOption[T], opts ...RunnerOptions) *Runner[T, S] {
 	var (
-		pollingInterval = 5 * time.Second
-		stop            = func(*T) error { return nil }
+		stop = func(*T) error { return nil }
 
 		getState func(*T) S
 	)
 
-	for _, opt := range opts {
-		switch t := opt.(type) {
-		case pollingIntervalOption:
-			pollingInterval = t.pollingInterval
-		}
-	}
-
 	r := NewRunner[T, S](
-		pollingInterval,
 		stop,
 	)
 
@@ -130,14 +120,6 @@ func Run[T, S any](initNodes InitNodeOption[T], opts ...RunnerOptions) *Runner[T
 }
 
 type RunnerOptions interface{}
-
-type pollingIntervalOption struct {
-	pollingInterval time.Duration
-}
-
-func PollingInterval(interval time.Duration) RunnerOptions {
-	return pollingIntervalOption{pollingInterval: interval}
-}
 
 type SchedulerOption struct {
 	sch scheduler.GlobalScheduler
