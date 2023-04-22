@@ -45,7 +45,7 @@ func TestFunctionEvent(t *testing.T) {
 }
 
 func TestMessageEvent(t *testing.T) {
-	evt := NewMessageEvent(0, 1, "Bar", 0, []byte("Bar"))
+	evt := NewMessageHandlerEvent(0, 1, "Bar", 0, []byte("Bar"))
 	n := &node{}
 	errChan := make(chan error)
 	go func() {

@@ -5,8 +5,6 @@ package event
 type Event interface {
 	// An id that identifies the event.
 	// Two events that provided the same input state results in the same output state should have the same id
-	// hash/maphash(https://pkg.go.dev/hash/maphash) can be used to generate collision resistant hashes of events.
-	// EventHashSeed can be used as seed, but this is not required
 	//
 	// New event implementations should include a identifier of the event type to prevent accidental collisions with other implementations
 	Id() EventId
@@ -22,6 +20,14 @@ type Event interface {
 	Target() int
 }
 
+// An event that is used to represent some kind of message between two nodes.
+type MessageEvent interface {
+	Event
+
+	To() int
+	From() int
+}
+
 func EventsEquals(a, b Event) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -29,4 +35,6 @@ func EventsEquals(a, b Event) bool {
 	return a.Id() == b.Id()
 }
 
+// An id that identifies the event.
+// Two events that provided the same input state results in the same output state should have the same id
 type EventId string
