@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"fmt"
 	"gomc/event"
 )
 
@@ -11,7 +10,7 @@ type nodeController[T, S any] struct {
 	crashed bool
 
 	getState  func(*T) S
-	crashFunc func(*T) error
+	crashFunc func(*T)
 
 	recordChan chan Record
 
@@ -20,11 +19,9 @@ type nodeController[T, S any] struct {
 
 	eventQueue  chan event.Event
 	nextEvtChan chan error
-
-	TMP int
 }
 
-func NewNodeController[T, S any](id int, node *T, getState func(*T) S, crashFunc func(*T) error, evtChan chan Record) *nodeController[T, S] {
+func NewNodeController[T, S any](id int, node *T, getState func(*T) S, crashFunc func(*T), evtChan chan Record) *nodeController[T, S] {
 	return &nodeController[T, S]{
 		id:   id,
 		node: node,
@@ -52,15 +49,10 @@ func (nc *nodeController[T, S]) Main() {
 			if !ok {
 				return
 			}
-			fmt.Println("RECORDING", evt)
 			nc.recordEvent(evt, true)
-			nc.TMP++
-			fmt.Println("STARTED EXECUTING", evt, nc.TMP)
 			go evt.Execute(nc.node, nc.nextEvtChan)
 			<-nc.nextEvtChan
-			fmt.Println("ENDED EXECUTING", evt)
 			nc.recordState()
-			fmt.Println("RECORDING STATE", evt)
 		}
 	}
 }
@@ -107,8 +99,6 @@ func (nc *nodeController[T, S]) addEvent(evt event.Event) {
 }
 
 func (nc *nodeController[T, S]) nextEvent(err error) {
-	nc.TMP--
-	fmt.Println("NODE", nc.id, "GOT NEXT EVENT", nc.TMP)
 	nc.nextEvtChan <- err
 }
 
