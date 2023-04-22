@@ -2,7 +2,6 @@ package gomc
 
 import (
 	"fmt"
-	"gomc/failureManager"
 	"gomc/runner"
 	"gomc/runner/controller"
 	"gomc/runner/recorder"
@@ -22,7 +21,8 @@ type Runner[T, S any] struct {
 
 	rec  recorder.MessageRecorder
 	ctrl controller.NodeController
-	fm   *failureManager.FailureManager
+
+	crashSubscribe []func(int, bool)
 
 	stateSubscribe chan chan map[int]S
 	cmd            chan interface{}
@@ -37,7 +37,6 @@ func NewRunner[T, S any](pollingInterval time.Duration, ctrl controller.NodeCont
 
 		rec:  rec,
 		ctrl: ctrl,
-		fm:   failureManager.New(),
 
 		stateSubscribe: make(chan chan map[int]S),
 		cmd:            make(chan interface{}),
@@ -45,15 +44,14 @@ func NewRunner[T, S any](pollingInterval time.Duration, ctrl controller.NodeCont
 	}
 }
 
+func (r *Runner[T, S]) nodeCrash(f func(int, bool)) {
+	r.crashSubscribe = append(r.crashSubscribe, f)
+}
+
 func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T, getState func(*T) S) {
 	nodes := initNodes(SimulationParameters{
-		Fm: r.fm,
+		CrashSubscribe: r.nodeCrash,
 	})
-	nodeIds := []int{}
-	for id := range nodes {
-		nodeIds = append(nodeIds, id)
-	}
-	r.fm.Init(nodeIds)
 
 	go func() {
 		ticker := time.NewTicker(r.interval)
@@ -185,9 +183,8 @@ func (r *Runner[T, S]) crashNode(id int, nodes map[int]*T) error {
 	if !ok {
 		return fmt.Errorf("Invalid node id")
 	}
-	err := r.fm.NodeCrash(id)
-	if err != nil {
-		return err
+	for _, f := range r.crashSubscribe {
+		f(id, false)
 	}
 	return r.stopFunc(n)
 }
