@@ -42,51 +42,51 @@ func main() {
 	for id, addr := range addrMap {
 		addr2id[addr] = int(id)
 	}
-
-	r := gomc.NewRunner[paxos.Server, State](func(t *paxos.Server) { t.Stop() })
-	r.Start(
-		func(sp gomc.SimulationParameters) map[int]*paxos.Server {
-			lisMap := map[string]*bufconn.Listener{}
-			for _, addr := range addrMap {
-				lisMap[addr] = bufconn.Listen(bufSize)
-			}
-
-			gem := gomcGrpc.NewGrpcEventManager(addr2id, sp.EventAdder, sp.NextEvt)
-			nodes := make(map[int]*paxos.Server)
-			for id, addr := range addrMap {
-				srv, err := paxos.NewServer(id, addrMap, gem.WaitForSend(int(id)))
-				sp.CrashSubscribe(srv.NodeCrash)
-				if err != nil {
-					panic(err)
+	r := gomc.Run(
+		gomc.InitNodeFunc(
+			func(sp gomc.SimulationParameters) map[int]*paxos.Server {
+				lisMap := map[string]*bufconn.Listener{}
+				for _, addr := range addrMap {
+					lisMap[addr] = bufconn.Listen(bufSize)
 				}
-				nodes[int(id)] = srv
-				go srv.StartServer(lisMap[addr])
-			}
 
-			for id, srv := range nodes {
-				err := srv.DialNodes(
-					grpc.WithContextDialer(
-						func(ctx context.Context, s string) (net.Conn, error) {
-							return lisMap[s].DialContext(ctx)
-						},
-					),
-					grpc.WithTransportCredentials(insecure.NewCredentials()),
-					grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
-				)
-				if err != nil {
-					panic(err)
+				gem := gomcGrpc.NewGrpcEventManager(addr2id, sp.EventAdder, sp.NextEvt)
+				nodes := make(map[int]*paxos.Server)
+				for id, addr := range addrMap {
+					srv, err := paxos.NewServer(id, addrMap, gem.WaitForSend(int(id)))
+					sp.CrashSubscribe(srv.NodeCrash)
+					if err != nil {
+						panic(err)
+					}
+					nodes[int(id)] = srv
+					go srv.StartServer(lisMap[addr])
 				}
-			}
-			return nodes
-		},
-		func(t *paxos.Server) State {
+
+				for id, srv := range nodes {
+					err := srv.DialNodes(
+						grpc.WithContextDialer(
+							func(ctx context.Context, s string) (net.Conn, error) {
+								return lisMap[s].DialContext(ctx)
+							},
+						),
+						grpc.WithTransportCredentials(insecure.NewCredentials()),
+						grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
+					)
+					if err != nil {
+						panic(err)
+					}
+				}
+				return nodes
+			},
+		),
+		gomc.WithStateFunction(func(t *paxos.Server) State {
 			t.Lock()
 			defer t.Unlock()
 			return State{
 				proposed: t.Proposal,
 				decided:  t.Decided,
 			}
-		},
+		}),
 	)
 
 	wait := new(sync.WaitGroup)
