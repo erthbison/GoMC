@@ -65,12 +65,9 @@ func main() {
 	for _, node := range nodes {
 		wait.Add(1)
 		go func(n *paxos.Server) {
-			val, ok := <-n.Subscribe()
-			if !ok {
-				fmt.Println("Node", n.Id, "Crashed")
-			} else {
+			n.Subscribe(func(val string) {
 				fmt.Println("Node", n.Id, "Decided: ", val)
-			}
+			})
 			wait.Done()
 		}(node)
 	}

@@ -25,19 +25,20 @@ func newPaxosClient(conn *grpc.ClientConn) *paxosClient {
 }
 
 type paxos struct {
+	sync.Mutex
+
 	*Proposer
 	*Acceptor
 	*Learner
 
 	Proposal string
+	Decided  string
 
 	stopped bool
 
 	Id      int64
 	correct map[int64]bool
 	leader  int64
-
-	Lock *sync.Mutex
 }
 
 func newPaxos(id int64, nodes map[int64]string, waitForSend func(int)) *paxos {
@@ -50,18 +51,19 @@ func newPaxos(id int64, nodes map[int64]string, waitForSend func(int)) *paxos {
 		}
 		correct[nodeId] = true
 	}
-	lock := new(sync.Mutex)
-	return &paxos{
+	l := NewLearner(nodeId, len(nodes))
+	p := &paxos{
 		Proposer: NewProposer(nodeId, waitForSend),
 		Acceptor: NewAcceptor(nodeId, waitForSend),
-		Learner:  NewLearner(nodeId, len(nodes), lock),
+		Learner:  l,
 
 		Id:      id,
 		leader:  leader,
 		correct: correct,
-
-		Lock: lock,
 	}
+
+	l.Subscribe(p.decided)
+	return p
 }
 
 func (p *paxos) NodeCrash(id int, _ bool) {
@@ -95,6 +97,8 @@ func (p *paxos) nextLeader() int64 {
 }
 
 func (p *paxos) Propose(val string) {
+	// p.Lock()
+	// defer p.Unlock()
 	if p.stopped {
 		return
 	}
@@ -102,6 +106,12 @@ func (p *paxos) Propose(val string) {
 	if p.leader == p.Id {
 		p.performPrepare(p.Proposal)
 	}
+}
+
+func (p *paxos) decided(val string) {
+	// p.Lock()
+	// defer p.Unlock()
+	p.Decided = val
 }
 
 type Server struct {
@@ -134,13 +144,12 @@ func (p *Server) Stop() {
 	for _, c := range p.connections {
 		c.Close()
 	}
-	p.Close()
 	p.stopped = true
 }
 
 func (p *Server) DialNodes(dialOpts ...grpc.DialOption) error {
-	p.Lock.Lock()
-	defer p.Lock.Unlock()
+	// p.Lock()
+	// defer p.Unlock()
 	nodes := make(map[int64]*paxosClient)
 	for id, addr := range p.addrMap {
 		conn, err := grpc.Dial(addr, dialOpts...)

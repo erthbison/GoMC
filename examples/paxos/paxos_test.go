@@ -97,7 +97,7 @@ func TestPaxosSim(t *testing.T) {
 			func(t *Server) State {
 				return State{
 					proposed: t.Proposal,
-					decided:  t.Learner.Val.GetVal(),
+					decided:  t.Decided,
 				}
 			},
 			func(s1, s2 State) bool {
@@ -213,7 +213,7 @@ func TestPaxosReplay(t *testing.T) {
 			func(t *Server) State {
 				return State{
 					proposed: t.Proposal,
-					decided:  t.Learner.Val.GetVal(),
+					decided:  t.Decided,
 				}
 			},
 			func(s1, s2 State) bool {

@@ -9,11 +9,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gomc/examples/paxos"
-	"gomc/runner/controller"
-	"gomc/runner/recorder"
+	"gomc/gomcGrpc"
+	"gomc/runner"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -43,8 +44,7 @@ func main() {
 		addr2id[addr] = int(id)
 	}
 
-	gnc := controller.NewGrpcNodeController(addr2id)
-	r := gomc.NewRunner[paxos.Server, State](time.Second, gnc, gnc, func(t *paxos.Server) error { t.Stop(); return nil })
+	r := gomc.NewRunner[paxos.Server, State](time.Second, func(t *paxos.Server) error { t.Stop(); return nil })
 	r.Start(
 		func(sp gomc.SimulationParameters) map[int]*paxos.Server {
 			lisMap := map[string]*bufconn.Listener{}
@@ -52,9 +52,10 @@ func main() {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
 
+			gem := gomcGrpc.NewGrpcEventManager(addr2id, sp.EventAdder, sp.NextEvt)
 			nodes := make(map[int]*paxos.Server)
 			for id, addr := range addrMap {
-				srv, err := paxos.NewServer(id, addrMap, func(int) {}, grpc.UnaryInterceptor(gnc.ServerInterceptor(int(id))))
+				srv, err := paxos.NewServer(id, addrMap, gem.WaitForSend(int(id)))
 				sp.CrashSubscribe(srv.NodeCrash)
 				if err != nil {
 					panic(err)
@@ -63,7 +64,7 @@ func main() {
 				go srv.StartServer(lisMap[addr])
 			}
 
-			for _, srv := range nodes {
+			for id, srv := range nodes {
 				err := srv.DialNodes(
 					grpc.WithContextDialer(
 						func(ctx context.Context, s string) (net.Conn, error) {
@@ -71,7 +72,7 @@ func main() {
 						},
 					),
 					grpc.WithTransportCredentials(insecure.NewCredentials()),
-					grpc.WithUnaryInterceptor(gnc.ClientInterceptor(int(srv.Id))),
+					grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
 				)
 				if err != nil {
 					panic(err)
@@ -80,51 +81,42 @@ func main() {
 			return nodes
 		},
 		func(t *paxos.Server) State {
-			t.Lock.Lock()
-			defer t.Lock.Unlock()
+			t.Lock()
+			defer t.Unlock()
 			return State{
 				proposed: t.Proposal,
-				decided:  t.Learner.Val.GetVal(),
+				decided:  t.Decided,
 			}
 		},
 	)
 
-	go func() {
-		f, err := os.Create("TMP.txt")
-		if err != nil {
-			panic(err)
-		}
-		chn := r.SubscribeStateUpdates()
-		for state := range chn {
-			// fmt.Println(state)
-			fmt.Fprintln(f, state)
-		}
-	}()
+	wait := new(sync.WaitGroup)
+	wait.Add(1)
 
-	go func(c <-chan recorder.Message) {
-		messages := map[int][]recorder.Message{}
+	// Store records by node id and write them to file
+	go func(c <-chan runner.Record) {
+		messages := map[int][]runner.Record{}
 		for _, id := range addr2id {
-			messages[id] = make([]recorder.Message, 0)
+			messages[id] = make([]runner.Record, 0)
 		}
-		m, err := os.Create("MESSAGES.txt")
+		m, err := os.Create("Messages.txt")
 		if err != nil {
 			panic(err)
 		}
-		for msg := range c {
-			var id int
-			if msg.Sent {
-				id = msg.From
-			} else {
-				id = msg.To
-			}
-			m := messages[id]
-			m = append(m, msg)
-			messages[id] = m
+		for rec := range c {
+			m := messages[rec.Target()]
+			m = append(m, rec)
+			messages[rec.Target()] = m
 		}
 
-		for id, msg := range messages {
-			fmt.Fprintf(m, "Node %v: \n%v \n", id, msg)
+		for id, msgSlice := range messages {
+			fmt.Fprintf(m, "Node %v: [\n", id)
+			for _, msg := range msgSlice {
+				fmt.Fprintf(m, "\t%v \n", msg)
+			}
+			fmt.Fprint(m, "]\n")
 		}
+		wait.Done()
 	}(r.SubscribeMessages())
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -138,7 +130,6 @@ func main() {
 		case "stop":
 			r.Stop()
 			ok = false
-			gnc.Stop()
 		case "propose":
 			if len(params) < 2 {
 				panic("To few parameters")
@@ -182,5 +173,8 @@ func main() {
 			fmt.Println("Invalid command")
 		}
 	}
-	time.Sleep(time.Second)
+
+	// r.Request(5, "Propose", "test")
+
+	wait.Wait()
 }

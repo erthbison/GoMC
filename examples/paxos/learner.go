@@ -30,29 +30,23 @@ type Learner struct {
 	numNodes int
 
 	// Consensus Value
-	Val *proto.Value
-
-	learnSubscribe []chan string
-
-	lock *sync.Mutex
+	learnSubscribe []func(string)
 }
 
-func NewLearner(id *proto.NodeId, numNodes int, lock *sync.Mutex) *Learner {
+func NewLearner(id *proto.NodeId, numNodes int) *Learner {
 	return &Learner{
 		id: id,
 
 		numNodes: numNodes,
 		recvLrn:  make(map[int64]*proto.Value),
 
-		learnSubscribe: make([]chan string, 0),
-
-		lock: lock,
+		learnSubscribe: make([]func(string), 0),
 	}
 }
 
 func (l *Learner) Learn(_ context.Context, in *proto.LearnRequest) (*empty.Empty, error) {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	l.addValue(in.GetFrom().GetVal(), in.GetVal())
 	numLrn := 0
@@ -86,23 +80,12 @@ func (l *Learner) addValue(from int64, val *proto.Value) {
 	}
 }
 
-func (l *Learner) Subscribe() <-chan string {
-	c := make(chan string)
-	l.learnSubscribe = append(l.learnSubscribe, c)
-	return c
+func (l *Learner) Subscribe(f func(val string)) {
+	l.learnSubscribe = append(l.learnSubscribe, f)
 }
 
 func (l *Learner) emmitLearn(val *proto.Value) {
-	l.lock.Lock()
-	l.Val = val
-	l.lock.Unlock()
-	for _, c := range l.learnSubscribe {
-		c <- val.GetVal()
-	}
-}
-
-func (l *Learner) Close() {
-	for _, c := range l.learnSubscribe {
-		close(c)
+	for _, f := range l.learnSubscribe {
+		f(val.GetVal())
 	}
 }

@@ -35,8 +35,8 @@ func NewAcceptor(id *proto.NodeId, waitForSend func(num int)) *Acceptor {
 }
 
 func (a *Acceptor) Prepare(_ context.Context, in *proto.PrepareRequest) (*empty.Empty, error) {
-	a.Lock()
-	defer a.Unlock()
+	// a.Lock()
+	// defer a.Unlock()
 	if in.GetCrnd().GetVal() > a.rnd.GetVal() {
 		a.rnd = in.GetCrnd()
 	}
@@ -54,8 +54,8 @@ func (a *Acceptor) Prepare(_ context.Context, in *proto.PrepareRequest) (*empty.
 }
 
 func (a *Acceptor) Accept(_ context.Context, in *proto.AcceptRequest) (*empty.Empty, error) {
-	a.Lock()
-	defer a.Unlock()
+	// a.Lock()
+	// defer a.Unlock()
 	if in.GetVal().GetRnd().GetVal() < a.rnd.GetVal() {
 		return &emptypb.Empty{}, nil
 	}
