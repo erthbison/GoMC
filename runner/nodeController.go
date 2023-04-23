@@ -118,12 +118,18 @@ func (nc *nodeController[T, S]) Resume() {
 }
 
 func (nc *nodeController[T, S]) Close() {
+	if nc.crashed {
+		return
+	}
 	nc.crashFunc(nc.node)
 	nc.crashed = true
 	close(nc.eventQueue)
 }
 
 func (nc *nodeController[T, S]) Crash() {
+	if nc.crashed {
+		return
+	}
 	nc.crashFunc(nc.node)
 	nc.crashed = true
 	close(nc.eventQueue)

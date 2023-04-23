@@ -7,6 +7,7 @@ type Record interface {
 	fmt.Stringer
 }
 
+// Sent by a node after executing some event (received a message or executed local event)
 type StateRecord struct {
 	target int
 	state  interface{}
@@ -20,6 +21,7 @@ func (er StateRecord) String() string {
 	return fmt.Sprintf("[State - %+v]", er.state)
 }
 
+// Sent when a node execute some local event
 type ExecutionRecord struct {
 	target int
 	evt    interface{}
@@ -33,6 +35,8 @@ func (er ExecutionRecord) String() string {
 	return fmt.Sprintf("[Execution - Evt %v]", er.evt)
 }
 
+// Sent when a node either send or receive a message.
+// The sent flag is true if the message was sent by the node and false if it was received
 type MessageRecord struct {
 	from, to int
 	sent     bool

@@ -91,7 +91,6 @@ func main() {
 
 	wait := new(sync.WaitGroup)
 	wait.Add(1)
-
 	// Store records by node id and write them to file
 	go func(c <-chan runner.Record) {
 		messages := map[int][]runner.Record{}
@@ -116,7 +115,7 @@ func main() {
 			fmt.Fprint(m, "]\n")
 		}
 		wait.Done()
-	}(r.SubscribeMessages())
+	}(r.SubscribeRecords())
 
 	scanner := bufio.NewScanner(os.Stdin)
 	ok := true
@@ -172,8 +171,6 @@ func main() {
 			fmt.Println("Invalid command")
 		}
 	}
-
-	// r.Request(5, "Propose", "test")
 
 	wait.Wait()
 }

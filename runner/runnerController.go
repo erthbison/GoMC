@@ -26,6 +26,8 @@ func NewEventController[T, S any](recordChanBuffer int) *RunnerController[T, S] 
 		inRecordChan:  make(chan Record, recordChanBuffer),
 		outRecordChan: make([]chan<- Record, 0),
 
+		subscribeRecordChan: make(chan chan Record),
+
 		crashSubscribes: make([]func(id int, status bool), 0),
 	}
 }

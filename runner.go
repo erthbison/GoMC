@@ -10,16 +10,16 @@ type Runner[T, S any] struct {
 
 	rc *runner.RunnerController[T, S]
 
-	cmd            chan interface{}
-	resp           chan error
+	cmd  chan interface{}
+	resp chan error
 }
 
 func NewRunner[T, S any](recordChanBuffer int) *Runner[T, S] {
 	return &Runner[T, S]{
 		rc: runner.NewEventController[T, S](recordChanBuffer),
 
-		cmd:            make(chan interface{}),
-		resp:           make(chan error),
+		cmd:  make(chan interface{}),
+		resp: make(chan error),
 	}
 }
 
@@ -54,7 +54,13 @@ func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T,
 	}()
 }
 
-func (r *Runner[T, S]) SubscribeMessages() <-chan runner.Record {
+// Subscribe to records of events and states that are reported by the nodes
+//
+// Events on different nodes can be executed concurrently, so order of events from different nodes does not necessarily match.
+// Orders of events on the same node is guaranteed to match the order in which they where executed.
+// Nodes send a MessageRecord when they either send or receive a message and an ExecutionRecord after they perform some local execution.
+// Nodes send a StateRecord containing the new state of the node after they have received a message or executed some local event.
+func (r *Runner[T, S]) SubscribeRecords() <-chan runner.Record {
 	return r.rc.Subscribe()
 }
 
