@@ -1,6 +1,9 @@
 package runner
 
-import "fmt"
+import (
+	"fmt"
+	"gomc/event"
+)
 
 type Record interface {
 	Target() int
@@ -24,7 +27,7 @@ func (er StateRecord[S]) String() string {
 // Sent when a node execute some local event
 type ExecutionRecord struct {
 	target int
-	evt    interface{}
+	evt    event.Event
 }
 
 func (er ExecutionRecord) Target() int {
@@ -40,7 +43,7 @@ func (er ExecutionRecord) String() string {
 type MessageRecord struct {
 	from, to int
 	sent     bool
-	evt      interface{}
+	evt      event.MessageEvent
 }
 
 func (m MessageRecord) Target() int {

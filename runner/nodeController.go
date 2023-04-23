@@ -150,6 +150,7 @@ func (nc *nodeController[T, S]) Close() {
 	nc.crashFunc(nc.node)
 	close(nc.eventQueue)
 	close(nc.resumeChan)
+	close(nc.pauseChan)
 }
 
 func (nc *nodeController[T, S]) isCrashed() bool {

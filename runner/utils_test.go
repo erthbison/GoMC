@@ -27,9 +27,9 @@ type State struct {
 }
 
 type MockEvent struct {
-	id     event.EventId
-	target int
-	val    int
+	id       event.EventId
+	target   int
+	val      int
 }
 
 func (me MockEvent) Id() event.EventId {

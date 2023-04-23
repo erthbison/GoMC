@@ -19,6 +19,8 @@ type RunnerController[T, S any] struct {
 	crashSubscribes []func(id int, status bool)
 
 	requestId int
+
+	stop chan bool
 }
 
 func NewEventController[T, S any](recordChanBuffer int) *RunnerController[T, S] {
@@ -29,6 +31,8 @@ func NewEventController[T, S any](recordChanBuffer int) *RunnerController[T, S] 
 		subscribeRecordChan: make(chan chan Record),
 
 		crashSubscribes: make([]func(id int, status bool), 0),
+
+		stop: make(chan bool),
 	}
 }
 
@@ -40,26 +44,34 @@ func (ec *RunnerController[T, S]) Subscribe() <-chan Record {
 }
 
 func (ec *RunnerController[T, S]) AddEvent(evt event.Event) {
-	ec.nodes[evt.Target()].addEvent(evt)
+	id := evt.Target()
+	node, ok := ec.nodes[id]
+	if !ok {
+		return
+	}
+	node.addEvent(evt)
 }
 
 func (ec *RunnerController[T, S]) NextEvent(err error, id int) {
-	ec.nodes[id].nextEvent(err)
+	node, ok := ec.nodes[id]
+	if !ok {
+		return
+	}
+	node.nextEvent(err)
 }
 
 func (ec *RunnerController[T, S]) MainLoop(nodes map[int]*T, eventChanBuffer int, crashFunc func(*T), getState func(*T) S) {
 	go func(inRecordChan <-chan Record) {
 		for {
 			select {
-			case rec, ok := <-inRecordChan:
-				if !ok {
-					return
-				}
+			case rec := <-inRecordChan:
 				for _, c := range ec.outRecordChan {
 					c <- rec
 				}
 			case c := <-ec.subscribeRecordChan:
 				ec.outRecordChan = append(ec.outRecordChan, c)
+			case <-ec.stop:
+				return
 			}
 		}
 	}(ec.inRecordChan)
@@ -75,7 +87,7 @@ func (ec *RunnerController[T, S]) Stop() error {
 	for _, n := range ec.nodes {
 		n.Close()
 	}
-	close(ec.inRecordChan)
+	close(ec.stop)
 	for _, c := range ec.outRecordChan {
 		close(c)
 	}
@@ -105,7 +117,7 @@ func (ec *RunnerController[T, S]) CrashNode(id int) error {
 	if !ok {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
 	}
-	node.Crash()
+	node.Close()
 	for _, f := range ec.crashSubscribes {
 		f(id, false)
 	}
