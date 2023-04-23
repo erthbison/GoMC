@@ -14,7 +14,7 @@ type State struct {
 }
 
 func TestFd(t *testing.T) {
-	sim := gomc.Prepare[fd, State](
+	sim := gomc.PrepareSimulation[fd, State](
 		gomc.RandomWalkScheduler(500),
 		gomc.WithPerfectFailureManager(
 			func(t *fd) { t.stopped = true }, 2,
@@ -22,7 +22,7 @@ func TestFd(t *testing.T) {
 	)
 
 	nodeIds := []int{0, 1, 2}
-	sim.RunSimulation(
+	sim.Run(
 		gomc.InitSingleNode(
 			nodeIds,
 			func(id int, sp gomc.SimulationParameters) *fd {

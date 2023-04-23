@@ -14,10 +14,10 @@ type State struct {
 
 func TestBroadcast(t *testing.T) {
 	numNodes := 2
-	sim := gomc.Prepare[Node, State](
+	sim := gomc.PrepareSimulation[Node, State](
 		gomc.PrefixScheduler(),
 	)
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Node {
 			send := eventManager.NewSender(sp.EventAdder)
 			sleep := eventManager.NewSleepManager(sp.EventAdder, sp.NextEvt)

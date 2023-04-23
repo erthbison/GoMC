@@ -12,10 +12,10 @@ type State string
 func TestFifo(t *testing.T) {
 	numNodes := 2
 
-	sim := gomc.Prepare[fifo, State](
+	sim := gomc.PrepareSimulation[fifo, State](
 		gomc.PrefixScheduler(),
 	)
-	sim.RunSimulation(
+	sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*fifo {
 				nodes := map[int]*fifo{}

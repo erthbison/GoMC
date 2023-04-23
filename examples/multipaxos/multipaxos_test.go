@@ -83,7 +83,7 @@ func TestMultiPaxosSim(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	sim := gomc.Prepare[MultiPaxos, State](
+	sim := gomc.PrepareSimulation[MultiPaxos, State](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(10000),
 		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
@@ -93,7 +93,7 @@ func TestMultiPaxosSim(t *testing.T) {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*MultiPaxos {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
@@ -169,7 +169,7 @@ func TestPaxosReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.Prepare[MultiPaxos, State](
+	sim := gomc.PrepareSimulation[MultiPaxos, State](
 		gomc.ReplayScheduler(run),
 		gomc.MaxDepth(100000),
 		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 5, 1),
@@ -180,7 +180,7 @@ func TestPaxosReplay(t *testing.T) {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*MultiPaxos {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {

@@ -42,7 +42,7 @@ func TestPaxosSim(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	sim := gomc.Prepare[Server, State](
+	sim := gomc.PrepareSimulation[Server, State](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxDepth(100000),
 		gomc.MaxRuns(1000),
@@ -53,7 +53,7 @@ func TestPaxosSim(t *testing.T) {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
@@ -158,7 +158,7 @@ func TestPaxosReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.Prepare[Server, State](
+	sim := gomc.PrepareSimulation[Server, State](
 		gomc.ReplayScheduler(run),
 		gomc.MaxDepth(100000),
 		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
@@ -169,7 +169,7 @@ func TestPaxosReplay(t *testing.T) {
 		t.Errorf("Error while creating file: %v", err)
 	}
 	defer w.Close()
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {

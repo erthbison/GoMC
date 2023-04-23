@@ -59,7 +59,7 @@ var predicates = []checking.Predicate[state]{
 }
 
 func TestConsensus(t *testing.T) {
-	sim := gomc.Prepare[HierarchicalConsensus[int], state](
+	sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
 		gomc.PrefixScheduler(),
 		gomc.WithPerfectFailureManager(
 			func(t *HierarchicalConsensus[int]) { t.crashed = true },
@@ -68,7 +68,7 @@ func TestConsensus(t *testing.T) {
 	)
 
 	nodeIds := []int{1, 2, 3}
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
 				send := eventManager.NewSender(sp.EventAdder)
@@ -121,7 +121,7 @@ func TestConsensusReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.Prepare[HierarchicalConsensus[int], state](
+	sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
 		gomc.ReplayScheduler(run),
 		gomc.WithPerfectFailureManager(
 			func(t *HierarchicalConsensus[int]) { t.crashed = true },
@@ -130,7 +130,7 @@ func TestConsensusReplay(t *testing.T) {
 	)
 
 	nodeIds := []int{1, 2, 3}
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
 				send := eventManager.NewSender(sp.EventAdder)
@@ -173,12 +173,12 @@ func TestConsensusReplay(t *testing.T) {
 
 func BenchmarkConsensus(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		sim := gomc.Prepare[HierarchicalConsensus[int], state](
+		sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
 			gomc.RandomWalkScheduler(1),
 		)
 
 		nodeIds := []int{1, 2, 3}
-		sim.RunSimulation(
+		sim.Run(
 			gomc.InitSingleNode(nodeIds,
 				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
 					send := eventManager.NewSender(sp.EventAdder)

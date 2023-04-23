@@ -12,7 +12,7 @@ import (
 	"gomc/stateManager"
 )
 
-func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) SimulationRunner[T, S] {
+func PrepareSimulation[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulation[T, S] {
 	var (
 		maxRuns  = 1000
 		maxDepth = 1000
@@ -47,18 +47,18 @@ func Prepare[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulati
 	}
 	sch := schOpt.sch
 	sim := NewSimulator[T, S](sch, fm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
-	return SimulationRunner[T, S]{
+	return Simulation[T, S]{
 		sch: sch,
 		sim: sim,
 	}
 }
 
-type SimulationRunner[T, S any] struct {
+type Simulation[T, S any] struct {
 	sch scheduler.GlobalScheduler
 	sim *Simulator[T, S]
 }
 
-func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
+func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
 		predicates = []checking.Predicate[S]{}
@@ -101,9 +101,12 @@ func (sr SimulationRunner[T, S]) RunSimulation(InitNodes InitNodeOption[T], requ
 	return checker.Check(state)
 }
 
-func Run[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunOptions) *Runner[T, S] {
+func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunOptions) *Runner[T, S] {
 	var (
 		stop = func(*T) {}
+
+		eventChanBuffer  = 1000
+		recordChanBuffer = 1000
 	)
 
 	for _, opt := range opts {
@@ -114,12 +117,14 @@ func Run[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], o
 	}
 
 	r := NewRunner[T, S](
-		stop,
+		recordChanBuffer,
 	)
 
 	r.Start(
 		initNodes.f,
 		getState.getState,
+		stop,
+		eventChanBuffer,
 	)
 	return r
 }

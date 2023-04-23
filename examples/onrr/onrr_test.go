@@ -23,10 +23,10 @@ type State struct {
 func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
-	sim := gomc.Prepare[onrr, State](
+	sim := gomc.PrepareSimulation[onrr, State](
 		gomc.RandomWalkScheduler(10000),
 	)
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*onrr {
 				numNodes := 5

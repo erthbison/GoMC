@@ -62,7 +62,7 @@ var predicates = []checking.Predicate[state]{
 }
 
 func TestGrpcConsensus(t *testing.T) {
-	sim := gomc.Prepare[GrpcConsensus, state](
+	sim := gomc.PrepareSimulation[GrpcConsensus, state](
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
 		gomc.WithPerfectFailureManager(
@@ -100,7 +100,7 @@ func TestGrpcConsensus(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
 				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
@@ -165,7 +165,7 @@ func TestReplayConsensus(t *testing.T) {
 	buffer := bytes.NewBuffer(in)
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
-	sim := gomc.Prepare[GrpcConsensus, state](
+	sim := gomc.PrepareSimulation[GrpcConsensus, state](
 		gomc.ReplayScheduler(run),
 		gomc.WithPerfectFailureManager(
 			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
@@ -203,7 +203,7 @@ func TestReplayConsensus(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
 

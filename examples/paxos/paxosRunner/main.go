@@ -42,7 +42,7 @@ func main() {
 	for id, addr := range addrMap {
 		addr2id[addr] = int(id)
 	}
-	r := gomc.Run(
+	r := gomc.PrepareRunner(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*paxos.Server {
 				lisMap := map[string]*bufconn.Listener{}
@@ -137,7 +137,7 @@ func main() {
 			if err != nil {
 				panic(fmt.Errorf("Error: %v", err))
 			}
-			err = r.Request(id, "Propose", params[1])
+			err = r.Request(gomc.NewRequest(id, "Propose", params[1]))
 			if err != nil {
 				panic(fmt.Errorf("Error: %v", err))
 			}

@@ -37,11 +37,11 @@ func (s State) String() string {
 func TestRrb(t *testing.T) {
 	numNodes := 2
 
-	sim := gomc.Prepare[Rrb, State](
+	sim := gomc.PrepareSimulation[Rrb, State](
 		gomc.PrefixScheduler(),
 	)
 
-	resp := sim.RunSimulation(gomc.InitNodeFunc(
+	resp := sim.Run(gomc.InitNodeFunc(
 		func(sp gomc.SimulationParameters) map[int]*Rrb {
 			send := eventManager.NewSender(sp.EventAdder)
 			nodeIds := []int{}
