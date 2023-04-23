@@ -54,7 +54,7 @@ func main() {
 				nodes := make(map[int]*paxos.Server)
 				for id, addr := range addrMap {
 					srv, err := paxos.NewServer(id, addrMap, gem.WaitForSend(int(id)))
-					sp.CrashSubscribe(srv.NodeCrash)
+					sp.CrashSubscribe(int(id), srv.NodeCrash)
 					if err != nil {
 						panic(err)
 					}

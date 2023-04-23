@@ -1,6 +1,7 @@
 package failureManager
 
 import (
+	"gomc/event"
 	"testing"
 
 	"golang.org/x/exp/maps"
@@ -55,18 +56,7 @@ func TestNodeCrash(t *testing.T) {
 			expectedNodeCrashed[test.crashingNode] = true
 		}
 
-		// For testing callback function
-		called := false
-		callbackFunc := func(nodeId int, status bool) {
-			called = true
-			if nodeId != test.crashingNode {
-				t.Errorf("Expected node 4 to fail")
-			}
-			if status {
-				t.Errorf("Expected status to be false")
-			}
-		}
-		fm.Subscribe(callbackFunc)
+		fm.Subscribe(test.subscribingNodeId, func(nodeId int, status bool) {})
 
 		err := fm.NodeCrash(test.crashingNode)
 
@@ -102,11 +92,21 @@ func TestNodeCrash(t *testing.T) {
 		}
 
 		// Test that the failure callbacks are properly called
-		// If there is an error, the callback function should not have been called
-		// If there was not an error the callback function should have been called
-		if called == test.expectedErr {
-			t.Errorf("Test %v: Expected callback function to be called", i)
+		if !test.expectedErr {
+			evt := sch.addedEvents[0]
+			cd, ok := evt.(event.CrashDetection)
+			if !ok {
+				t.Errorf("Test %v: Expected CrashDetection event to have been added to scheduler", i)
+			}
+			if cd.Target() != test.subscribingNodeId {
+				t.Errorf("Test %v: Expected CrashDetection event to target node 0", i)
+			}
+		} else {
+			if len(sch.addedEvents) != 0 {
+				t.Errorf("Test %v: Expected no event to have been added to the scheduler.", i)
+			}
 		}
+
 	}
 }
 
@@ -149,26 +149,30 @@ var InitTest = []struct {
 }
 
 var NodeCrashTest = []struct {
-	nodes        map[int]*MockNode
-	correct      map[int]bool
-	crashingNode int
-	expectedErr  bool
+	nodes             map[int]*MockNode
+	correct           map[int]bool
+	subscribingNodeId int
+	crashingNode      int
+	expectedErr       bool
 }{
 	{
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		map[int]bool{0: true, 1: true, 2: true},
+		3,
 		0,
 		false,
 	},
 	{
 		map[int]*MockNode{0: {}, 1: {}, 2: {}},
 		map[int]bool{0: true, 1: true, 2: true},
+		3,
 		5,
 		true,
 	},
 	{
 		map[int]*MockNode{0: {}, 1: {crashed: true}, 2: {}},
 		map[int]bool{0: true, 1: false, 2: true},
+		3,
 		1,
 		true,
 	},

@@ -123,7 +123,7 @@ func (ec *RunnerController[T, S]) CrashNode(id int) error {
 	return nil
 }
 
-func (ec *RunnerController[T, S]) CrashSubscribe(f func(id int, status bool)) {
+func (ec *RunnerController[T, S]) CrashSubscribe(_ int, f func(id int, status bool)) {
 	ec.crashSubscribes = append(ec.crashSubscribes, f)
 }
 

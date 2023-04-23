@@ -4,11 +4,6 @@ import (
 	"fmt"
 )
 
-type Stopper interface {
-	// Ungracefully stops the client. Immediately stopping all processing of messages and close all connections
-	Stop()
-}
-
 type CrashEvent struct {
 	target int
 	crash  func(int) error

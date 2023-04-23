@@ -77,7 +77,7 @@ func TestConsensus(t *testing.T) {
 					nodeIds,
 					send.SendFunc(id),
 				)
-				sp.CrashSubscribe(node.Crash)
+				sp.CrashSubscribe(id, node.Crash)
 				return node
 			},
 		),
@@ -139,7 +139,7 @@ func TestConsensusReplay(t *testing.T) {
 					nodeIds,
 					send.SendFunc(id),
 				)
-				sp.CrashSubscribe(node.Crash)
+				sp.CrashSubscribe(id, node.Crash)
 				return node
 			},
 		),
@@ -187,7 +187,7 @@ func BenchmarkConsensus(b *testing.B) {
 						nodeIds,
 						send.SendFunc(id),
 					)
-					sp.CrashSubscribe(node.Crash)
+					sp.CrashSubscribe(id, node.Crash)
 					return node
 				},
 			),

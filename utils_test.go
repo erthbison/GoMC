@@ -170,7 +170,7 @@ func (mrfm *MockRunFailureManager[MockNode]) CorrectNodes() map[int]bool {
 	return mrfm.correct
 }
 
-func (mrfm *MockRunFailureManager[MockNode]) Subscribe(callback func(id int, status bool)) {
+func (mrfm *MockRunFailureManager[MockNode]) Subscribe(nodeId int, callback func(id int, status bool)) {
 
 }
 

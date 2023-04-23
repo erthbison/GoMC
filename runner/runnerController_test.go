@@ -50,7 +50,7 @@ func TestCrashSubscribe(t *testing.T) {
 			newStatus = status
 		}
 
-		ec.CrashSubscribe(crashSubscribe)
+		ec.CrashSubscribe(0, crashSubscribe)
 
 		err := ec.CrashNode(test.id)
 		isErr := (err != nil)

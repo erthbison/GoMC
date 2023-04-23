@@ -105,7 +105,7 @@ func TestMultiPaxosSim(t *testing.T) {
 			for id, addr := range addrMap {
 				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
 				go srv.Start(lisMap[addr])
-				sp.CrashSubscribe(srv.proposer.leader.NodeCrash)
+				sp.CrashSubscribe(int(id), srv.proposer.leader.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -192,7 +192,7 @@ func TestPaxosReplay(t *testing.T) {
 			for id, addr := range addrMap {
 				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
 				go srv.Start(lisMap[addr])
-				sp.CrashSubscribe(srv.proposer.leader.NodeCrash)
+				sp.CrashSubscribe(int(id), srv.proposer.leader.NodeCrash)
 				nodes[int(id)] = srv
 			}
 

@@ -33,7 +33,7 @@ type PerfectRunFailureManager[T any] struct {
 
 	correct         map[int]bool
 	nodes           map[int]*T
-	failureCallback []func(int, bool)
+	failureCallback map[int]func(int, bool)
 }
 
 func newPerfectRunFailureManager[T any](ea eventManager.EventAdder, crashFunc func(*T), failingNodes []int) *PerfectRunFailureManager[T] {
@@ -43,7 +43,7 @@ func newPerfectRunFailureManager[T any](ea eventManager.EventAdder, crashFunc fu
 		failingNodes: failingNodes,
 
 		correct:         make(map[int]bool),
-		failureCallback: make([]func(int, bool), 0),
+		failureCallback: make(map[int]func(int, bool)),
 	}
 }
 
@@ -89,13 +89,17 @@ func (fm *PerfectRunFailureManager[T]) NodeCrash(nodeId int) error {
 	fm.crashFunc(node)
 
 	// Call all provided crash callbacks
-	for _, f := range fm.failureCallback {
-		f(nodeId, false)
+	for id, f := range fm.failureCallback {
+		fm.ea.AddEvent(event.NewCrashDetection(
+			id,
+			nodeId,
+			f,
+		))
 	}
 	return nil
 }
 
 // Register a callback function to be called when a node crashes.
-func (fm *PerfectRunFailureManager[T]) Subscribe(callback func(int, bool)) {
-	fm.failureCallback = append(fm.failureCallback, callback)
+func (fm *PerfectRunFailureManager[T]) Subscribe(id int, callback func(int, bool)) {
+	fm.failureCallback[id] = callback
 }

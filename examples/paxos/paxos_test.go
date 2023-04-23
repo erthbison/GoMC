@@ -68,7 +68,7 @@ func TestPaxosSim(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.CrashSubscribe(srv.NodeCrash)
+				sp.CrashSubscribe(int(id), srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
@@ -184,7 +184,7 @@ func TestPaxosReplay(t *testing.T) {
 					t.Errorf("Error while starting simulation: %v", err)
 				}
 				go srv.StartServer(lisMap[addr])
-				sp.CrashSubscribe(srv.NodeCrash)
+				sp.CrashSubscribe(int(id), srv.NodeCrash)
 				nodes[int(id)] = srv
 			}
 
