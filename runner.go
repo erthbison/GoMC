@@ -46,8 +46,9 @@ func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T,
 			case runner.Request:
 				err = r.rc.NewRequest(t.Id, t.Method, t.Params)
 			case runner.Stop:
-				err = r.rc.Stop()
+				r.rc.Stop()
 				close(r.cmd)
+				err = nil
 			}
 			r.resp <- err
 		}

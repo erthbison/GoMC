@@ -83,7 +83,7 @@ func (ec *RunnerController[T, S]) MainLoop(nodes map[int]*T, eventChanBuffer int
 	}
 }
 
-func (ec *RunnerController[T, S]) Stop() error {
+func (ec *RunnerController[T, S]) Stop() {
 	for _, n := range ec.nodes {
 		n.Close()
 	}
@@ -91,7 +91,6 @@ func (ec *RunnerController[T, S]) Stop() error {
 	for _, c := range ec.outRecordChan {
 		close(c)
 	}
-	return nil
 }
 
 func (ec *RunnerController[T, S]) Pause(id int) error {
