@@ -8,16 +8,16 @@ type Record interface {
 }
 
 // Sent by a node after executing some event (received a message or executed local event)
-type StateRecord struct {
+type StateRecord[S any] struct {
 	target int
-	state  interface{}
+	state  S
 }
 
-func (sr StateRecord) Target() int {
+func (sr StateRecord[S]) Target() int {
 	return sr.target
 }
 
-func (er StateRecord) String() string {
+func (er StateRecord[S]) String() string {
 	return fmt.Sprintf("[State - %+v]", er.state)
 }
 
