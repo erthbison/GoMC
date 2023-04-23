@@ -1,73 +1,53 @@
 package gomc
 
 import (
-	"fmt"
-	"gomc/event"
 	"gomc/runner"
-	"reflect"
 	"sync"
 )
 
 type Runner[T, S any] struct {
 	sync.Mutex
 
-	stateChannels []chan map[int]S
+	rc *runner.RunnerController[T, S]
 
-	stopFunc func(*T)
-
-	requestSeq int
-	ec         *runner.EventController[T, S]
-
-	stateSubscribe chan chan map[int]S
 	cmd            chan interface{}
 	resp           chan error
-
-	crashSubscribes []func(id int, status bool)
 }
 
-func NewRunner[T, S any](stop func(*T)) *Runner[T, S] {
+func NewRunner[T, S any](recordChanBuffer int) *Runner[T, S] {
 	return &Runner[T, S]{
-		stateChannels: make([]chan map[int]S, 0),
-		stopFunc:      stop,
+		rc: runner.NewEventController[T, S](recordChanBuffer),
 
-		ec: runner.NewEventController[T, S](),
-
-		stateSubscribe: make(chan chan map[int]S),
 		cmd:            make(chan interface{}),
 		resp:           make(chan error),
-
-		crashSubscribes: make([]func(id int, status bool), 0),
 	}
 }
 
-func (r *Runner[T, S]) CrashSubscribe(f func(id int, status bool)) {
-	r.crashSubscribes = append(r.crashSubscribes, f)
-}
-
-func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T, getState func(*T) S) {
+func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T, getState func(*T) S, stop func(*T), eventChanBuffer int) {
 
 	nodes := initNodes(SimulationParameters{
-		CrashSubscribe: r.CrashSubscribe,
-		EventAdder:     r.ec,
-		NextEvt:        r.ec.NextEvent,
+		CrashSubscribe: r.rc.CrashSubscribe,
+		EventAdder:     r.rc,
+		NextEvt:        r.rc.NextEvent,
 	})
 
-	r.ec.MainLoop(nodes, r.stopFunc, getState)
+	r.rc.MainLoop(nodes, eventChanBuffer, stop, getState)
 
 	go func() {
 		for cmd := range r.cmd {
 			var err error
 			switch t := cmd.(type) {
 			case runner.Pause:
-				err = r.pauseNode(t.Id, nodes)
+				err = r.rc.Pause(t.Id)
 			case runner.Resume:
-				err = r.resumeNode(t.Id, nodes)
+				err = r.rc.Resume(t.Id)
 			case runner.Crash:
-				err = r.crashNode(t.Id, nodes)
+				err = r.rc.CrashNode(t.Id)
 			case runner.Request:
-				err = r.request(t.Id, t.Method, t.Params, nodes)
+				err = r.rc.NewRequest(t.Id, t.Method, t.Params)
 			case runner.Stop:
-				err = r.stop(nodes)
+				err = r.rc.Stop()
+				close(r.cmd)
 			}
 			r.resp <- err
 		}
@@ -75,7 +55,7 @@ func (r *Runner[T, S]) Start(initNodes func(sp SimulationParameters) map[int]*T,
 }
 
 func (r *Runner[T, S]) SubscribeMessages() <-chan runner.Record {
-	return r.ec.Subscribe()
+	return r.rc.Subscribe()
 }
 
 func (r *Runner[T, S]) Stop() error {
@@ -83,39 +63,13 @@ func (r *Runner[T, S]) Stop() error {
 	return <-r.resp
 }
 
-func (r *Runner[T, S]) stop(nodes map[int]*T) error {
-	for _, n := range nodes {
-		r.stopFunc(n)
-	}
-	for _, c := range r.stateChannels {
-		close(c)
-	}
-	r.ec.Stop()
-	close(r.cmd)
-	return nil
-}
-
-func (r *Runner[T, S]) Request(id int, requestType string, params ...any) error {
-	reflectParams := make([]reflect.Value, len(params))
-	for i, val := range params {
-		reflectParams[i] = reflect.ValueOf(val)
-	}
+func (r *Runner[T, S]) Request(req Request) error {
 	r.cmd <- runner.Request{
-		Id:     id,
-		Method: requestType,
-		Params: reflectParams,
+		Id:     req.Id,
+		Method: req.Method,
+		Params: req.Params,
 	}
 	return <-r.resp
-}
-
-func (r *Runner[T, S]) request(id int, method string, params []reflect.Value, nodes map[int]*T) error {
-	_, ok := nodes[id]
-	if !ok {
-		return fmt.Errorf("Invalid Node id")
-	}
-	r.ec.AddEvent(event.NewFunctionEvent(r.requestSeq, id, method, params...))
-	r.requestSeq++
-	return nil
 }
 
 func (r *Runner[T, S]) PauseNode(id int) error {
@@ -125,14 +79,6 @@ func (r *Runner[T, S]) PauseNode(id int) error {
 	return <-r.resp
 }
 
-func (r *Runner[T, S]) pauseNode(id int, nodes map[int]*T) error {
-	_, ok := nodes[id]
-	if !ok {
-		return fmt.Errorf("Invalid Node id")
-	}
-	return r.ec.Pause(id)
-}
-
 func (r *Runner[T, S]) ResumeNode(id int) error {
 	r.cmd <- runner.Resume{
 		Id: id,
@@ -140,31 +86,9 @@ func (r *Runner[T, S]) ResumeNode(id int) error {
 	return <-r.resp
 }
 
-func (r *Runner[T, S]) resumeNode(id int, nodes map[int]*T) error {
-	_, ok := nodes[id]
-	if !ok {
-		return fmt.Errorf("Invalid node Id")
-	}
-	return r.ec.Resume(id)
-}
-
 func (r *Runner[T, S]) CrashNode(id int) error {
 	r.cmd <- runner.Crash{
 		Id: id,
 	}
 	return <-r.resp
-}
-
-func (r *Runner[T, S]) crashNode(id int, nodes map[int]*T) error {
-	n, ok := nodes[id]
-	if !ok {
-		return fmt.Errorf("Invalid node id")
-	}
-	for _, f := range r.crashSubscribes {
-		f(id, false)
-	}
-
-	r.ec.CrashNode(id)
-	r.stopFunc(n)
-	return nil
 }

@@ -5,23 +5,30 @@ import (
 )
 
 type nodeController[T, S any] struct {
-	id      int
-	node    *T
+	id   int
+	node *T
+
 	crashed bool
 
-	getState  func(*T) S
+	// Collects the state from the node
+	getState func(*T) S
+	// Crash/stop the node
 	crashFunc func(*T)
 
+	// Send updates of events and states to the user
 	recordChan chan Record
 
+	// Used to pause and resume execution of events
 	pauseChan  chan bool
 	resumeChan chan bool
 
-	eventQueue  chan event.Event
+	// Pending events for the node
+	eventQueue chan event.Event
+	// Signal when to begin the next event for the node
 	nextEvtChan chan error
 }
 
-func NewNodeController[T, S any](id int, node *T, getState func(*T) S, crashFunc func(*T), evtChan chan Record) *nodeController[T, S] {
+func NewNodeController[T, S any](id int, node *T, getState func(*T) S, crashFunc func(*T), evtChan chan Record, eventQueueBuffer int) *nodeController[T, S] {
 	return &nodeController[T, S]{
 		id:   id,
 		node: node,
@@ -31,10 +38,10 @@ func NewNodeController[T, S any](id int, node *T, getState func(*T) S, crashFunc
 		crashFunc: crashFunc,
 		getState:  getState,
 
-		pauseChan:  make(chan bool, 1),
-		resumeChan: make(chan bool, 1),
+		pauseChan:  make(chan bool),
+		resumeChan: make(chan bool),
 
-		eventQueue:  make(chan event.Event, 1000),
+		eventQueue:  make(chan event.Event, eventQueueBuffer),
 		nextEvtChan: make(chan error),
 	}
 }
@@ -111,9 +118,13 @@ func (nc *nodeController[T, S]) Resume() {
 }
 
 func (nc *nodeController[T, S]) Close() {
+	nc.crashFunc(nc.node)
+	nc.crashed = true
 	close(nc.eventQueue)
 }
 
 func (nc *nodeController[T, S]) Crash() {
+	nc.crashFunc(nc.node)
 	nc.crashed = true
+	close(nc.eventQueue)
 }
