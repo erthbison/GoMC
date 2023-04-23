@@ -9,11 +9,11 @@ import (
 func Benchmark(b *testing.B) {
 	numNodes := 5
 	for i := 0; i < b.N; i++ {
-		sim := gomc.Prepare[BroadcastNode, BroadcastState](
+		sim := gomc.PrepareSimulation[BroadcastNode, BroadcastState](
 			gomc.PrefixScheduler(),
 		)
 
-		sim.RunSimulation(
+		sim.Run(
 			gomc.InitNodeFunc(
 				func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
 					send := eventManager.NewSender(sp.EventAdder)

@@ -8,11 +8,11 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	sim := gomc.Prepare[BroadcastNode, BroadcastState](
+	sim := gomc.PrepareSimulation[BroadcastNode, BroadcastState](
 		gomc.PrefixScheduler(),
 		gomc.MaxDepth(10000),
 	)
-	resp := sim.RunSimulation(
+	resp := sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
 				send := eventManager.NewSender(sp.EventAdder)
