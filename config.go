@@ -12,7 +12,7 @@ import (
 	"gomc/stateManager"
 )
 
-func PrepareSimulation[T, S any](schOpt SchedulerOption, opts ...SimulatorOption) Simulation[T, S] {
+func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
 	var (
 		maxRuns  = 1000
 		maxDepth = 1000
@@ -24,13 +24,17 @@ func PrepareSimulation[T, S any](schOpt SchedulerOption, opts ...SimulatorOption
 		// ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
 		ignorePanics = false
 
-		fm failureManager.FailureManger[T]
+		fm  failureManager.FailureManger[T]
+		sch scheduler.GlobalScheduler
 	)
 	fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
+	sch = scheduler.NewPrefix()
 
 	// Use the simulator options to configure
 	for _, opt := range opts {
 		switch t := opt.(type) {
+		case SchedulerOption:
+			sch = t.sch
 		case maxRunsOption:
 			maxRuns = t.maxRuns
 		case maxDepthOption:
@@ -45,7 +49,7 @@ func PrepareSimulation[T, S any](schOpt SchedulerOption, opts ...SimulatorOption
 			fm = t.fm
 		}
 	}
-	sch := schOpt.sch
+	// sch := schOpt.sch
 	sim := NewSimulator[T, S](sch, fm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return Simulation[T, S]{
 		sim: sim,
