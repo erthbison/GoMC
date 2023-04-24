@@ -48,13 +48,11 @@ func PrepareSimulation[T, S any](schOpt SchedulerOption, opts ...SimulatorOption
 	sch := schOpt.sch
 	sim := NewSimulator[T, S](sch, fm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return Simulation[T, S]{
-		sch: sch,
 		sim: sim,
 	}
 }
 
 type Simulation[T, S any] struct {
-	sch scheduler.GlobalScheduler
 	sim *Simulator[T, S]
 }
 
