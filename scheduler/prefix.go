@@ -8,10 +8,9 @@ import (
 
 type run []event.EventId
 
+// Explores the state space by maintaining a stack of unexplored prefixes.
+// When a new run is started it follows the prefix and begins exploring from there, adding new prefixes it discovers as it executes events.
 type Prefix struct {
-	// Explores the state space by maintaining a stack of unexplored prefixes.
-	// When a new run is started it follows the prefix and begins exploring from there, adding new prefixes it discovers as it executes events
-
 	// unexplored prefixes
 	r []run
 
