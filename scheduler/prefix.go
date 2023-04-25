@@ -68,6 +68,7 @@ func (p *Prefix) getRun() run {
 		return nil
 	}
 
+	// Pop the latest prefix
 	r := p.r[len(p.r)-1]
 	p.r = p.r[:len(p.r)-1]
 
@@ -129,7 +130,6 @@ func (rp *runPrefix) GetEvent() (event.Event, error) {
 			copy(newRun, rp.currentRun)
 			newRun = append(newRun, pendingEvt.Id())
 			rp.p.addRun(newRun)
-			// rss.pendingRuns = append(rss.pendingRuns, run)
 		}
 		rp.currentRun = append(rp.currentRun, evt.Id())
 	}
