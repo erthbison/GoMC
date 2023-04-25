@@ -99,7 +99,7 @@ func newRunQueue(p *Prefix) *runPrefix {
 	}
 }
 
-// Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
+// Get the next event in the run. Will return RunEndedError if there are no more events in the run. 
 func (rp *runPrefix) GetEvent() (event.Event, error) {
 	rp.Lock()
 	defer rp.Unlock()
