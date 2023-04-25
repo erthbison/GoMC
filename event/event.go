@@ -16,7 +16,6 @@ type Event interface {
 	Execute(node any, errorChan chan error)
 
 	// The id of the target node, i.e. the node whose state will be changed by the event executing.
-	// Is used to identify if an event is still enabled, or if it has been disabled, e.g. because the node crashed.
 	Target() int
 }
 
