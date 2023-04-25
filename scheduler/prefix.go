@@ -158,7 +158,7 @@ func (rp *runPrefix) AddEvent(evt event.Event) {
 func (rp *runPrefix) StartRun() error {
 	rp.Lock()
 	defer rp.Unlock()
-	// rss.sendRun <- rss.pendingRuns
+
 	rp.currentIndex = 0
 	r := rp.p.getRun()
 	if r == nil {
