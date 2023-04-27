@@ -13,7 +13,7 @@ type Record interface {
 // Sent by a node after executing some event (received a message or executed local event)
 type StateRecord[S any] struct {
 	target int
-	state  S
+	State  S
 }
 
 func (sr StateRecord[S]) Target() int {
@@ -21,13 +21,13 @@ func (sr StateRecord[S]) Target() int {
 }
 
 func (er StateRecord[S]) String() string {
-	return fmt.Sprintf("[State - %+v]", er.state)
+	return fmt.Sprintf("[State - %+v]", er.State)
 }
 
 // Sent when a node execute some local event
 type ExecutionRecord struct {
 	target int
-	evt    event.Event
+	Evt    event.Event
 }
 
 func (er ExecutionRecord) Target() int {
@@ -35,30 +35,30 @@ func (er ExecutionRecord) Target() int {
 }
 
 func (er ExecutionRecord) String() string {
-	return fmt.Sprintf("[Execution - Evt %v]", er.evt)
+	return fmt.Sprintf("[Execution - Evt %v]", er.Evt)
 }
 
 // Sent when a node either send or receive a message.
 // The sent flag is true if the message was sent by the node and false if it was received
 type MessageRecord struct {
-	from, to int
-	sent     bool
-	evt      event.MessageEvent
+	From, To int
+	Sent     bool
+	Evt      event.MessageEvent
 }
 
 func (m MessageRecord) Target() int {
-	if m.sent {
-		return m.from
+	if m.Sent {
+		return m.From
 	}
-	return m.to
+	return m.To
 }
 
 func (m MessageRecord) String() string {
 	var t string
-	if m.sent {
+	if m.Sent {
 		t = "Sent"
 	} else {
 		t = "Received"
 	}
-	return fmt.Sprintf("[Message %v - %v]", t, m.evt)
+	return fmt.Sprintf("[Message %v - %v]", t, m.Evt)
 }

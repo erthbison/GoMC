@@ -27,8 +27,8 @@ func TestNodeControllerMain(t *testing.T) {
 			rec := <-recordChan
 			if state, ok := rec.(StateRecord[int]); ok {
 				expectedState := test.expectedStateChange[currentState]
-				if state.state != expectedState {
-					t.Errorf("Test %v: Events executed in unexpected order. Got state: %v. Expected: %v", i, state.state, expectedState)
+				if state.State != expectedState {
+					t.Errorf("Test %v: Events executed in unexpected order. Got state: %v. Expected: %v", i, state.State, expectedState)
 				}
 				currentState++
 			}
@@ -86,8 +86,8 @@ func TestNodeControllerPause(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected to get an StateRecord. Got %T", rec)
 		}
-		if state.state != 10 {
-			t.Errorf("NodeController resumed. Expected to receive state record with correct value. Got: %v. Expected: %v", state.state, 10)
+		if state.State != 10 {
+			t.Errorf("NodeController resumed. Expected to receive state record with correct value. Got: %v. Expected: %v", state.State, 10)
 		}
 	case <-time.After(5 * time.Second):
 		t.Errorf("NodeController resumed. Did expect to get value. Got none")
@@ -235,8 +235,8 @@ func TestResumeBeforePause(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected to get an StateRecord. Got %T", rec)
 		}
-		if state.state != 10 {
-			t.Errorf("NodeController resumed. Expected to receive state record with correct value. Got: %v. Expected: %v", state.state, 10)
+		if state.State != 10 {
+			t.Errorf("NodeController resumed. Expected to receive state record with correct value. Got: %v. Expected: %v", state.State, 10)
 		}
 	case <-time.After(5 * time.Second):
 		t.Errorf("NodeController resumed. Did expect to get value. Got none")

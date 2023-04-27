@@ -77,17 +77,17 @@ func (nc *nodeController[T, S]) Main() {
 func (nc *nodeController[T, S]) recordState() {
 	nc.recordChan <- StateRecord[S]{
 		target: nc.id,
-		state:  nc.getState(nc.node),
+		State:  nc.getState(nc.node),
 	}
 }
 
 func (nc *nodeController[T, S]) recordEvent(evt event.Event, isExecuting bool) {
 	if msg, ok := evt.(event.MessageEvent); ok {
 		nc.recordChan <- MessageRecord{
-			from: msg.From(),
-			to:   msg.To(),
-			sent: !isExecuting,
-			evt:  msg,
+			From: msg.From(),
+			To:   msg.To(),
+			Sent: !isExecuting,
+			Evt:  msg,
 		}
 		return
 	}
@@ -101,7 +101,7 @@ func (nc *nodeController[T, S]) recordEvent(evt event.Event, isExecuting bool) {
 	// Want to add record non-message events as well
 	nc.recordChan <- ExecutionRecord{
 		target: evt.Target(),
-		evt:    evt,
+		Evt:    evt,
 	}
 }
 

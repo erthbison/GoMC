@@ -107,7 +107,7 @@ func TestAddEvent(t *testing.T) {
 			rec := <-recSub
 			if rec, ok := rec.(ExecutionRecord); ok {
 				expectedEvt := test.eventTargets[numEvt]
-				evtId, err := strconv.Atoi(string(rec.evt.Id()))
+				evtId, err := strconv.Atoi(string(rec.Evt.Id()))
 				if err != nil {
 					panic(err)
 				}
