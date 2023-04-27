@@ -48,12 +48,6 @@ func (pcr predicateCheckerResponse[S]) Export() []event.EventId {
 
 // A function to be evaluated on the states
 // It returns true if the predicate holds for the state and false otherwise
-//
-// gs: The current state
-//
-// terminal: true if this is the last state in a run. False otherwise
-//
-// seq: the sequence of states that lead to the current state. If terminal is true, this represent the entire run.
 type Predicate[S any] func(s State[S]) bool
 
 type PredicateChecker[S any] struct {
