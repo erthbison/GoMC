@@ -150,12 +150,12 @@ func (ec *RunnerController[T, S]) NewRequest(id int, method string, params []ref
 		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
 	}
 
-	_, ok := ec.nodes[id]
+	node, ok := ec.nodes[id]
 	if !ok {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
 	}
 
-	ec.AddEvent(event.NewFunctionEvent(ec.requestId, id, method, params...))
+	node.addEvent(event.NewFunctionEvent(ec.requestId, id, method, params...))
 	ec.requestId++
 	return nil
 }
