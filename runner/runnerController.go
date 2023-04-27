@@ -45,7 +45,7 @@ func (ec *RunnerController[T, S]) Subscribe() <-chan Record {
 
 func (ec *RunnerController[T, S]) AddEvent(evt event.Event) {
 	if ec.isClosed() {
-		return 
+		return
 	}
 	id := evt.Target()
 	node, ok := ec.nodes[id]
@@ -57,7 +57,7 @@ func (ec *RunnerController[T, S]) AddEvent(evt event.Event) {
 
 func (ec *RunnerController[T, S]) NextEvent(err error, id int) {
 	if ec.isClosed() {
-		return 
+		return
 	}
 	node, ok := ec.nodes[id]
 	if !ok {
@@ -148,6 +148,11 @@ func (ec *RunnerController[T, S]) CrashSubscribe(_ int, f func(id int, status bo
 func (ec *RunnerController[T, S]) NewRequest(id int, method string, params []reflect.Value) error {
 	if ec.isClosed() {
 		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
+	}
+
+	_, ok := ec.nodes[id]
+	if !ok {
+		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
 	}
 
 	ec.AddEvent(event.NewFunctionEvent(ec.requestId, id, method, params...))
