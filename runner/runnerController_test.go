@@ -15,9 +15,11 @@ func TestCommandsIncorrectId(t *testing.T) {
 			nodes[id] = &MockNode{Id: id}
 		}
 		ec.MainLoop(nodes, eventBuffer, crashFunc, getState)
+		var err error
 		for _, cmd := range test.commands {
-			var err error
 			switch cmd.cmd {
+			case "stop":
+				ec.Stop()
 			case "pause":
 				err = ec.Pause(cmd.id)
 			case "resume":
@@ -25,9 +27,9 @@ func TestCommandsIncorrectId(t *testing.T) {
 			case "crash":
 				err = ec.CrashNode(cmd.id)
 			}
-			if err == nil {
-				t.Errorf("Test %v: Expected to receive an error", i)
-			}
+		}
+		if err == nil {
+			t.Errorf("Test %v: Expected to receive an error", i)
 		}
 		ec.Stop()
 	}
@@ -110,12 +112,24 @@ func TestAddEvent(t *testing.T) {
 					panic(err)
 				}
 				if expectedEvt != evtId {
-					t.Errorf("WRONG")
+					t.Errorf("Unexpected event. Expected %v. Got: %v", expectedEvt, evtId)
 				}
 				numEvt++
 			}
 		}
 	}
+}
+
+func TestMultipleClose(t *testing.T) {
+	ec := NewEventController[MockNode, int](1000)
+	nodes := make(map[int]*MockNode)
+	for id := 0; id < 3; id++ {
+		nodes[id] = &MockNode{Id: id}
+	}
+	ec.MainLoop(nodes, eventBuffer, crashFunc, getState)
+	ec.Stop()
+
+	ec.Stop()
 }
 
 type command struct {
@@ -133,11 +147,23 @@ var commandTest = []struct {
 	},
 	{
 		[]int{0, 1, 2},
+		[]command{{"stop", -1}, {"pause", 0}},
+	},
+	{
+		[]int{0, 1, 2},
 		[]command{{"resume", 10}},
 	},
 	{
 		[]int{0, 1, 2},
+		[]command{{"stop", -1}, {"resume", 0}},
+	},
+	{
+		[]int{0, 1, 2},
 		[]command{{"crash", 10}},
+	},
+	{
+		[]int{0, 1, 2},
+		[]command{{"stop", -1}, {"crash", 1}},
 	},
 }
 

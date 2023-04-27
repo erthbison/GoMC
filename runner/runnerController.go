@@ -44,6 +44,9 @@ func (ec *RunnerController[T, S]) Subscribe() <-chan Record {
 }
 
 func (ec *RunnerController[T, S]) AddEvent(evt event.Event) {
+	if ec.isClosed() {
+		return 
+	}
 	id := evt.Target()
 	node, ok := ec.nodes[id]
 	if !ok {
@@ -53,6 +56,9 @@ func (ec *RunnerController[T, S]) AddEvent(evt event.Event) {
 }
 
 func (ec *RunnerController[T, S]) NextEvent(err error, id int) {
+	if ec.isClosed() {
+		return 
+	}
 	node, ok := ec.nodes[id]
 	if !ok {
 		return
@@ -71,6 +77,9 @@ func (ec *RunnerController[T, S]) MainLoop(nodes map[int]*T, eventChanBuffer int
 			case c := <-ec.subscribeRecordChan:
 				ec.outRecordChan = append(ec.outRecordChan, c)
 			case <-ec.stop:
+				for _, c := range ec.outRecordChan {
+					close(c)
+				}
 				return
 			}
 		}
@@ -84,16 +93,19 @@ func (ec *RunnerController[T, S]) MainLoop(nodes map[int]*T, eventChanBuffer int
 }
 
 func (ec *RunnerController[T, S]) Stop() {
+	if ec.isClosed() {
+		return
+	}
 	for _, n := range ec.nodes {
 		n.Close()
 	}
 	close(ec.stop)
-	for _, c := range ec.outRecordChan {
-		close(c)
-	}
 }
 
 func (ec *RunnerController[T, S]) Pause(id int) error {
+	if ec.isClosed() {
+		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
+	}
 	node, ok := ec.nodes[id]
 	if !ok {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
@@ -103,6 +115,9 @@ func (ec *RunnerController[T, S]) Pause(id int) error {
 }
 
 func (ec *RunnerController[T, S]) Resume(id int) error {
+	if ec.isClosed() {
+		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
+	}
 	node, ok := ec.nodes[id]
 	if !ok {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
@@ -112,6 +127,9 @@ func (ec *RunnerController[T, S]) Resume(id int) error {
 }
 
 func (ec *RunnerController[T, S]) CrashNode(id int) error {
+	if ec.isClosed() {
+		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
+	}
 	node, ok := ec.nodes[id]
 	if !ok {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
@@ -128,7 +146,20 @@ func (ec *RunnerController[T, S]) CrashSubscribe(_ int, f func(id int, status bo
 }
 
 func (ec *RunnerController[T, S]) NewRequest(id int, method string, params []reflect.Value) error {
+	if ec.isClosed() {
+		return fmt.Errorf("RunnerController: Runner Controller has been stopped. No more commands can be executed.")
+	}
+
 	ec.AddEvent(event.NewFunctionEvent(ec.requestId, id, method, params...))
 	ec.requestId++
 	return nil
+}
+
+func (ec *RunnerController[T, S]) isClosed() bool {
+	select {
+	case <-ec.stop:
+		return true
+	default:
+		return false
+	}
 }
