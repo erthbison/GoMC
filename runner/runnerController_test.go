@@ -45,14 +45,7 @@ func TestCrashSubscribe(t *testing.T) {
 
 		ec.MainLoop(nodes, eventBuffer, crashFunc, getState)
 
-		nodeId := -1
-		newStatus := true
-		crashSubscribe := func(id int, status bool) {
-			nodeId = id
-			newStatus = status
-		}
-
-		ec.CrashSubscribe(0, crashSubscribe)
+		ec.CrashSubscribe(test.subscribeId, func(id int, status bool) {})
 
 		err := ec.CrashNode(test.id)
 		isErr := (err != nil)
@@ -63,23 +56,6 @@ func TestCrashSubscribe(t *testing.T) {
 				t.Errorf("Test %v: Expected to receive an error", i)
 			}
 		}
-
-		if !test.expectErr {
-			if newStatus != false {
-				t.Errorf("Test %v: EventController: Expected callback to be called and status to be updated. Got: %v", i, newStatus)
-			}
-			if nodeId != test.id {
-				t.Errorf("Test %v: EventController: Expected callback to be called and nodeId to be updated. Got: %v", i, nodeId)
-			}
-		} else {
-			if newStatus != true {
-				t.Errorf("Test %v: EventController: Expected callback not to be called. Status have been updated. Got: %v", i, newStatus)
-			}
-			if nodeId != -1 {
-				t.Errorf("Test %v: EventController: Expected callback not to be called. NodeId has been updated. Got: %v", i, nodeId)
-			}
-		}
-
 	}
 }
 
@@ -168,22 +144,32 @@ var commandTest = []struct {
 }
 
 var crashNodeTest = []struct {
-	nodeIds []int
-	id      int
+	nodeIds     []int
+	id          int
+	subscribeId int
 
 	expectErr bool
 }{
 	{
 		[]int{0, 1, 2},
 		1,
+		0,
 
 		false,
 	},
 	{
 		[]int{0, 1, 2},
 		10,
+		0,
 
 		true,
+	},
+	{
+		[]int{0, 1, 2},
+		1,
+		15,
+
+		false,
 	},
 }
 

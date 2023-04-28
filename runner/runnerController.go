@@ -16,7 +16,7 @@ type RunnerController[T, S any] struct {
 	nodes map[int]*nodeController[T, S]
 
 	// Callback functions that have subscribed to node crash updates
-	crashSubscribes []func(id int, status bool)
+	crashSubscribes map[int]func(id int, status bool)
 
 	requestId int
 
@@ -30,7 +30,7 @@ func NewEventController[T, S any](recordChanBuffer int) *RunnerController[T, S] 
 
 		subscribeRecordChan: make(chan chan Record),
 
-		crashSubscribes: make([]func(id int, status bool), 0),
+		crashSubscribes: make(map[int]func(id int, status bool)),
 
 		stop: make(chan bool),
 	}
@@ -135,14 +135,23 @@ func (ec *RunnerController[T, S]) CrashNode(id int) error {
 		return fmt.Errorf("RunnerController: No node with the provided id. Provided id: %v", id)
 	}
 	node.Close()
-	for _, f := range ec.crashSubscribes {
-		f(id, false)
-	}
+
+	ec.sendCrashNotification(id)
 	return nil
 }
 
-func (ec *RunnerController[T, S]) CrashSubscribe(_ int, f func(id int, status bool)) {
-	ec.crashSubscribes = append(ec.crashSubscribes, f)
+func (ec *RunnerController[T, S]) sendCrashNotification(crashedId int) {
+	for id, f := range ec.crashSubscribes {
+		node, ok := ec.nodes[id]
+		if !ok {
+			continue
+		}
+		node.addEvent(event.NewCrashDetection(id, crashedId, f))
+	}
+}
+
+func (ec *RunnerController[T, S]) CrashSubscribe(id int, f func(id int, status bool)) {
+	ec.crashSubscribes[id] = f
 }
 
 func (ec *RunnerController[T, S]) NewRequest(id int, method string, params []reflect.Value) error {
