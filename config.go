@@ -102,7 +102,6 @@ func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOptio
 	var (
 		stop = func(*T) {}
 
-		// TODO: Create options for these parameters
 		eventChanBuffer  = 1000
 		recordChanBuffer = 1000
 	)
@@ -111,6 +110,10 @@ func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOptio
 		switch t := opt.(type) {
 		case stopOption[T]:
 			stop = t.stop
+		case eventChanBufferOption:
+			eventChanBuffer = t.size
+		case recordChanBufferOption:
+			recordChanBuffer = t.size
 		}
 	}
 
@@ -319,4 +322,20 @@ type stopOption[T any] struct {
 
 func WithStopFunction[T any](stop func(*T)) RunOptions {
 	return stopOption[T]{stop: stop}
+}
+
+type recordChanBufferOption struct {
+	size int
+}
+
+func RecordChanSize(size int) RunOptions {
+	return recordChanBufferOption{size: size}
+}
+
+type eventChanBufferOption struct {
+	size int
+}
+
+func EventChanBufferSize(size int) RunOptions {
+	return eventChanBufferOption{size: size}
 }
