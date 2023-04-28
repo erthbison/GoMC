@@ -46,6 +46,7 @@ func Benchmark(b *testing.B) {
 					return s1 == s2
 				},
 			),
+			gomc.WithPredicateChecker[BroadcastState](),
 		)
 	}
 }

@@ -48,5 +48,6 @@ func TestFd(t *testing.T) {
 				return slices.Equal(s1.crashed, s2.crashed)
 			},
 		),
+		gomc.WithPredicateChecker[State](),
 	)
 }

@@ -63,7 +63,7 @@ func NewPredicateChecker[S any](predicates ...Predicate[S]) *PredicateChecker[S]
 	}
 }
 
-func (pc *PredicateChecker[S]) Check(root state.StateSpace[S]) *predicateCheckerResponse[S] {
+func (pc *PredicateChecker[S]) Check(root state.StateSpace[S]) CheckerResponse {
 	// Checks that all predicates holds for all nodes. Nodes are searched depth first and the search is interrupted if some state that breaks the predicates are provided
 	if resp := pc.checkNode(root, []state.GlobalState[S]{}); resp != nil {
 		return resp

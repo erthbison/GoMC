@@ -143,7 +143,7 @@ func TestMultiPaxosSim(t *testing.T) {
 				return slices.Equal(s1.proposed, s2.proposed)
 			},
 		),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)
@@ -227,7 +227,7 @@ func TestPaxosReplay(t *testing.T) {
 				return maps.Equal(s1.decided, s2.decided)
 			},
 		),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)

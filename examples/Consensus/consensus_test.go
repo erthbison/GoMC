@@ -100,7 +100,7 @@ func TestConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.Export(os.Stdout),
 	)
 	if ok, out := resp.Response(); !ok {
@@ -162,7 +162,7 @@ func TestConsensusReplay(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.Export(os.Stdout),
 	)
 
@@ -210,7 +210,7 @@ func BenchmarkConsensus(b *testing.B) {
 					return slices.Equal(a.decided, b.decided)
 				},
 			),
-			gomc.WithPredicate(predicates...),
+			gomc.WithPredicateChecker(predicates...),
 		)
 	}
 }

@@ -41,5 +41,6 @@ func TestFifo(t *testing.T) {
 				return s1 == s2
 			},
 		),
+		gomc.WithPredicateChecker[State](),
 	)
 }

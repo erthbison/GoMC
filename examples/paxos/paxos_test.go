@@ -104,7 +104,7 @@ func TestPaxosSim(t *testing.T) {
 				return s1 == s2
 			},
 		),
-		gomc.WithPredicate(
+		gomc.WithPredicateChecker(
 			func(s checking.State[State]) bool {
 				// Only a value that has been proposed may be chosen
 				proposedVal := map[string]bool{}
@@ -220,7 +220,7 @@ func TestPaxosReplay(t *testing.T) {
 				return s1 == s2
 			},
 		),
-		gomc.WithPredicate(
+		gomc.WithPredicateChecker(
 			func(s checking.State[State]) bool {
 				// Only a value that has been proposed may be chosen
 				proposedVal := map[string]bool{}

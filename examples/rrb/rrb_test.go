@@ -87,7 +87,7 @@ func TestRrb(t *testing.T) {
 				return maps.Equal(s1.sent, s2.sent)
 			},
 		),
-		gomc.WithPredicate(
+		gomc.WithPredicateChecker(
 			checking.Eventually(
 				func(s checking.State[State]) bool {
 					// RB1: Validity

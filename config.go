@@ -60,11 +60,10 @@ type Simulation[T, S any] struct {
 	sim *Simulator[T, S]
 }
 
-func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], opts ...RunOptions) checking.CheckerResponse {
+func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], checker CheckerOption[S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
-		predicates = []checking.Predicate[S]{}
-		requests   = []Request{}
+		requests = []Request{}
 
 		export []io.Writer
 
@@ -75,8 +74,6 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 		switch t := opt.(type) {
 		case stopOption[T]:
 			stopFunc = t.stop
-		case predicateOption[S]:
-			predicates = append(predicates, t.pred...)
 		case exportOption:
 			export = append(export, t.w)
 		}
@@ -98,15 +95,14 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 		state.Export(w)
 	}
 
-	// Check the predicates
-	checker := checking.NewPredicateChecker(predicates...)
-	return checker.Check(state)
+	return checker.checker.Check(state)
 }
 
 func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunOptions) *Runner[T, S] {
 	var (
 		stop = func(*T) {}
 
+		// TODO: Create options for these parameters
 		eventChanBuffer  = 1000
 		recordChanBuffer = 1000
 	)
@@ -284,11 +280,18 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 
 type RunOptions interface{}
 
-type predicateOption[S any] struct{ pred []checking.Predicate[S] }
+type CheckerOption[S any] struct {
+	checker checking.Checker[S]
+}
 
-// Specify a list of predicates that will be used when verifying the implementation.
-func WithPredicate[S any](preds ...checking.Predicate[S]) RunOptions {
-	return predicateOption[S]{pred: preds}
+func WithPredicateChecker[S any](predicates ...checking.Predicate[S]) CheckerOption[S] {
+	return CheckerOption[S]{
+		checker: checking.NewPredicateChecker(predicates...),
+	}
+}
+
+func WithChecker[S any](checker checking.Checker[S]) CheckerOption[S] {
+	return CheckerOption[S]{checker: checker}
 }
 
 type RequestOption struct {

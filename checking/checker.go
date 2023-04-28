@@ -6,7 +6,7 @@ import (
 )
 
 type Checker[S any] interface {
-	Check(state.StateSpace[S]) CheckerResponse
+	Check(root state.StateSpace[S]) CheckerResponse
 }
 
 type CheckerResponse interface {

@@ -141,7 +141,7 @@ func TestGrpcConsensus(t *testing.T) {
 			gomc.NewRequest(5, "Propose", "6"),
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
@@ -246,7 +246,7 @@ func TestReplayConsensus(t *testing.T) {
 			gomc.NewRequest(5, "Propose", "6"),
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
-		gomc.WithPredicate(predicates...),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)

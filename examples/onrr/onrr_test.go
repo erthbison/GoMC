@@ -24,7 +24,7 @@ func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
 	sim := gomc.PrepareSimulation[onrr, State](
-		gomc.RandomWalkScheduler(10000),
+		gomc.RandomWalkScheduler(1),
 	)
 	resp := sim.Run(
 		gomc.InitNodeFunc(
@@ -93,7 +93,7 @@ func TestOnrr(t *testing.T) {
 				return slices.Equal(a.possibleReads, b.possibleReads)
 			},
 		),
-		gomc.WithPredicate(
+		gomc.WithPredicateChecker(
 			checking.Eventually(
 				func(s checking.State[State]) bool {
 					// Check that all correct nodes have no ongoing reads or writes

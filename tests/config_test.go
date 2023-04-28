@@ -47,6 +47,7 @@ func TestConfig(t *testing.T) {
 				return s1 == s2
 			},
 		),
+		gomc.WithPredicateChecker[BroadcastState](),
 	)
 
 	if ok, txt := resp.Response(); !ok {
