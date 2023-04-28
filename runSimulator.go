@@ -174,7 +174,8 @@ func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, stopFunc func(*T)) {
 	rs.sm.EndRun()
 
 	// Stop all  nodes
-	// TODO: What happens if nodes is a nil map???
+	// What happens if nodes is a nil map???
+	// Will not iterate over nil map. No problems.
 	for _, node := range nodes {
 		stopFunc(node)
 	}

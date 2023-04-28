@@ -86,6 +86,42 @@ func TestAddRequests(t *testing.T) {
 	}
 }
 
+func TestTeardownRun(t *testing.T) {
+	sch := NewMockRunScheduler()
+	gsm := NewMockStateManager()
+	fm := NewMockRunFailureManager(sch, []int{}, func(mn *MockNode) {})
+	sim := newRunSimulator[MockNode](
+		sch,
+		stateManager.NewRunStateManager[MockNode, State](gsm, GetState),
+		fm,
+		1000,
+		false,
+	)
+	for i, test := range teardownTest {
+		sim.teardownRun(test.nodes, func(t *MockNode) { t.crashed = true })
+
+		for _, node := range test.nodes {
+			if !node.crashed {
+				t.Errorf("Test %v: Expected stop function to have been called on all nodes. Got: %v", i, test.nodes)
+			}
+		}
+	}
+}
+
+var teardownTest = []struct {
+	nodes map[int]*MockNode
+}{
+	{
+		map[int]*MockNode{0: {}, 1: {}, 2: {}},
+	},
+	{
+		map[int]*MockNode{},
+	},
+	{
+		nil,
+	},
+}
+
 var emptyParams = []reflect.Value{}
 
 var addRequestTests = []struct {
