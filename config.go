@@ -33,7 +33,7 @@ func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
 	// Use the simulator options to configure
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case SchedulerOption:
+		case schedulerOption:
 			sch = t.sch
 		case maxRunsOption:
 			maxRuns = t.maxRuns
@@ -139,7 +139,7 @@ func WithStateFunction[T, S any](f func(*T) S) GetStateOption[T, S] {
 	return GetStateOption[T, S]{getState: f}
 }
 
-type SchedulerOption struct {
+type schedulerOption struct {
 	sch scheduler.GlobalScheduler
 }
 
@@ -150,31 +150,31 @@ type SchedulerOption struct {
 // It does not have a designated stop point, and will continue to schedule events until maxRuns is reached.
 // It does not guarantee that all runs have been tested, nor does it guarantee that the same run will not be simulated multiple times.
 // Generally, it provides a more even/varied exploration of the state space than systematic exploration
-func RandomWalkScheduler(seed int64) SchedulerOption {
-	return SchedulerOption{sch: scheduler.NewRandom(seed)}
+func RandomWalkScheduler(seed int64) SimulatorOption {
+	return schedulerOption{sch: scheduler.NewRandom(seed)}
 }
 
 // Use a prefix scheduler for the simulation.
 //
 // The prefix scheduler is a systematic tester, that performs a depth first search of the state space.
 // It will stop when the entire state space is explored and will not schedule identical runs.
-func PrefixScheduler() SchedulerOption {
-	return SchedulerOption{sch: scheduler.NewPrefix()}
+func PrefixScheduler() SimulatorOption {
+	return schedulerOption{sch: scheduler.NewPrefix()}
 }
 
 // Use a replay scheduler for the simulation
 //
 // The replay scheduler replays the provided run, returning an error if it is unable to reproduce it
 // The provided run is represented as a slice of event ids, and can be exported using the CheckerResponse.Export()
-func ReplayScheduler(run []event.EventId) SchedulerOption {
-	return SchedulerOption{sch: scheduler.NewReplay(run)}
+func ReplayScheduler(run []event.EventId) SimulatorOption {
+	return schedulerOption{sch: scheduler.NewReplay(run)}
 }
 
 // Use the provided scheduler for the simulation
 //
 // Used to configure the simulation to use a different implementation of scheduler than is commonly provided
-func WithScheduler(sch scheduler.GlobalScheduler) SchedulerOption {
-	return SchedulerOption{sch: sch}
+func WithScheduler(sch scheduler.GlobalScheduler) SimulatorOption {
+	return schedulerOption{sch: sch}
 }
 
 type SimulatorOption interface{}
@@ -283,17 +283,6 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 }
 
 type RunOptions interface{}
-
-// type incorrectNodesOption[T any] struct {
-// 	crashFunc func(*T)
-// 	nodes     []int
-// }
-
-// // Configure the provided nodes to crash during the simulation.
-// // The crash function specifies how to represent the node crash.
-// func IncorrectNodes[T any](crashFunc func(*T), nodes ...int) RunOptions {
-// 	return incorrectNodesOption[T]{crashFunc: crashFunc, nodes: nodes}
-// }
 
 type predicateOption[S any] struct{ pred []checking.Predicate[S] }
 
