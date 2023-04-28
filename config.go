@@ -102,8 +102,8 @@ func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOptio
 	var (
 		stop = func(*T) {}
 
-		eventChanBuffer  = 1000
-		recordChanBuffer = 1000
+		eventChanBuffer  = 100
+		recordChanBuffer = 100
 	)
 
 	for _, opt := range opts {
