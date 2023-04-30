@@ -50,7 +50,6 @@ func (rr *runReplay) GetEvent() (event.Event, error) {
 	defer rr.Unlock()
 
 	if rr.index >= len(rr.run) {
-		rr.run = nil
 		return nil, RunEndedError
 	}
 	evtId := rr.run[rr.index]
