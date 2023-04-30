@@ -94,4 +94,5 @@ func (rr *runReplay) EndRun() {
 	rr.Lock()
 	defer rr.Unlock()
 	rr.index = 0
+	rr.run = nil
 }

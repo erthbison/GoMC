@@ -77,7 +77,48 @@ func TestReplaySchedulerEndRun(t *testing.T) {
 		t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
 	}
 	sch.EndRun()
+}
 
+func TestReplaySchedulerMultipleRuns(t *testing.T) {
+	run := []event.EventId{"1", "3", "4", "6", "7"}
+	events := []MockEvent{
+		{id: "4", target: 0},
+		{id: "5", target: 1},
+		{id: "1", target: 0},
+		{id: "3", target: 0},
+		{id: "7", target: 0},
+		{id: "2", target: 1},
+		{id: "6", target: 0},
+	}
+	gsch := NewReplay(run)
+	sch := gsch.GetRunScheduler()
+	err := sch.StartRun()
+	if err != nil {
+		t.Errorf("Received unexpected error: %v", err)
+	}
+	for _, evt := range events {
+		sch.AddEvent(evt)
+	}
+	actualRun := []event.EventId{}
+	for {
+		evt, err := sch.GetEvent()
+		if errors.Is(err, NoRunsError) {
+			break
+		}
+		if errors.Is(err, RunEndedError) {
+			break
+		}
+		actualRun = append(actualRun, evt.Id())
+	}
+	if !slices.Equal(actualRun, run) {
+		t.Errorf("Received unexpected run. \nGot: %v. \nExpected: %v", actualRun, run)
+	}
+	sch.EndRun()
+
+	err = sch.StartRun()
+	if !errors.Is(err, NoRunsError) {
+		t.Errorf(" Expected to get NoRunsError on second start run. Got: %v", err)
+	}
 }
 
 var replaySchedulerTest = []struct {
