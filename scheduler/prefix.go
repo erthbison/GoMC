@@ -84,8 +84,6 @@ type runPrefix struct {
 	currentRun   run
 
 	pendingEvents []event.Event
-
-	pendingRuns []run
 }
 
 func newRunQueue(p *Prefix) *runPrefix {
@@ -95,11 +93,10 @@ func newRunQueue(p *Prefix) *runPrefix {
 		currentIndex:  0,
 		currentRun:    make(run, 0),
 		pendingEvents: make([]event.Event, 0),
-		pendingRuns:   make([]run, 0),
 	}
 }
 
-// Get the next event in the run. Will return RunEndedError if there are no more events in the run. 
+// Get the next event in the run. Will return RunEndedError if there are no more events in the run.
 func (rp *runPrefix) GetEvent() (event.Event, error) {
 	rp.Lock()
 	defer rp.Unlock()
