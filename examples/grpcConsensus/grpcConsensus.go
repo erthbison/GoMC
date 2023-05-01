@@ -87,10 +87,14 @@ func (gc *GrpcConsensus) Crash(id int, _ bool) {
 		return
 	}
 	gc.detectedRanks[int32(id)] = true
-	// for gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
-	// 	gc.round++
-	// 	gc.decide()
-	// }
+	// Violates C1: Termination
+	// The algorithm does not advance the round again if it enters a round where the node has already crashed
+	// Teh correct implementation would be:
+	// for gc.delivered[gc.round] || gc.detectedRanks[gc.round]
+	if gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
+		gc.round++
+		gc.decide()
+	}
 }
 
 func (hc *GrpcConsensus) Propose(val string) {
