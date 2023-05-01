@@ -14,7 +14,7 @@ import (
 
 func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
 	var (
-		maxRuns  = 1000
+		maxRuns  = 10000
 		maxDepth = 1000
 		// number of runs that is simulated at the same time
 		numConcurrent = runtime.GOMAXPROCS(0) // Will not change GOMAXPROCS but only return the current value
@@ -182,7 +182,7 @@ type maxRunsOption struct{ maxRuns int }
 
 // Configure the maximum number of runs simulated
 //
-// Default value is 1000
+// Default value is 10000
 func MaxRuns(maxRuns int) SimulatorOption {
 	return maxRunsOption{maxRuns: maxRuns}
 }
