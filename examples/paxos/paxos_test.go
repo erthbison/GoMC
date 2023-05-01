@@ -74,8 +74,6 @@ func TestPaxosSim(t *testing.T) {
 
 	sim := gomc.PrepareSimulation[Server, State](
 		gomc.RandomWalkScheduler(1),
-		gomc.MaxDepth(100000),
-		gomc.MaxRuns(1000),
 		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 	)
 	w, err := os.Create("export.txt")

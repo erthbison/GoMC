@@ -25,6 +25,7 @@ func TestOnrr(t *testing.T) {
 	// sch := gomc.NewBasicScheduler()
 	sim := gomc.PrepareSimulation[onrr, State](
 		gomc.RandomWalkScheduler(1),
+		gomc.MaxRuns(10000),
 	)
 	resp := sim.Run(
 		gomc.InitNodeFunc(
@@ -143,7 +144,6 @@ func TestOnrr(t *testing.T) {
 				return true
 			},
 		),
-		gomc.MaxRuns(10000),
 	)
 	ok, desc := resp.Response()
 	if !ok {
