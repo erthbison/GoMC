@@ -63,29 +63,12 @@ var predicates = []checking.Predicate[state]{
 
 func TestGrpcConsensus(t *testing.T) {
 	sim := gomc.PrepareSimulation[GrpcConsensus, state](
-		gomc.RandomWalkScheduler(1),
-		gomc.MaxRuns(1000),
+		gomc.PrefixScheduler(),
 		gomc.WithPerfectFailureManager(
 			func(t *GrpcConsensus) { t.Stop() }, 2,
 		),
 	)
 
-	sm := stateManager.NewTreeStateManager(
-		func(node *GrpcConsensus) state {
-			decided := make([]string, len(node.DecidedVal))
-			copy(decided, node.DecidedVal)
-			return state{
-				proposed: node.ProposedVal,
-				decided:  decided,
-			}
-		},
-		func(a, b state) bool {
-			if a.proposed != b.proposed {
-				return false
-			}
-			return slices.Equal(a.decided, b.decided)
-		},
-	)
 	addrMap := map[int32]string{
 		1: ":50000",
 		2: ":50001",
@@ -134,12 +117,27 @@ func TestGrpcConsensus(t *testing.T) {
 			gomc.NewRequest(1, "Propose", "1"),
 			gomc.NewRequest(2, "Propose", "2"),
 			gomc.NewRequest(3, "Propose", "3"),
+			gomc.NewRequest(4, "Propose", "4"),
 		),
-		gomc.WithStateManager[GrpcConsensus, state](sm),
+		gomc.WithTreeStateManager(
+			func(node *GrpcConsensus) state {
+				decided := make([]string, len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed != b.proposed {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
+		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
-	sm.Export(os.Stdout)
 
 	fmt.Println()
 	ok, text := resp.Response()
@@ -248,5 +246,86 @@ func TestReplayConsensus(t *testing.T) {
 	ok, text := resp.Response()
 	if !ok {
 		t.Errorf("Expected simulation to pass. Got:\n %v", text)
+	}
+}
+
+func BenchmarkConsensus(b *testing.B) {
+	addrMap := map[int32]string{
+		1: ":50000",
+		2: ":50001",
+		3: ":50002",
+		4: ":50003",
+	}
+
+	addrToIdMap := map[string]int{}
+	for id, addr := range addrMap {
+		addrToIdMap[addr] = int(id)
+	}
+
+	for i := 0; i < b.N; i++ {
+		sim := gomc.PrepareSimulation[GrpcConsensus, state](
+			gomc.PrefixScheduler(),
+			gomc.WithPerfectFailureManager(
+				func(t *GrpcConsensus) { t.Stop() }, 2,
+			),
+		)
+
+		sim.Run(
+			gomc.InitNodeFunc(
+				func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
+					gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+					lisMap := map[string]*bufconn.Listener{}
+					for _, addr := range addrMap {
+						lisMap[addr] = bufconn.Listen(bufSize)
+					}
+
+					nodes := map[int]*GrpcConsensus{}
+					for id, addr := range addrMap {
+						gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
+						sp.CrashSubscribe(int(id), gc.Crash)
+						nodes[int(id)] = gc
+					}
+
+					for id, node := range nodes {
+						node.DialServers(
+							addrMap,
+							grpc.WithContextDialer(
+								func(ctx context.Context, s string) (net.Conn, error) {
+									return lisMap[s].DialContext(ctx)
+								},
+							),
+							grpc.WithBlock(),
+							grpc.WithTransportCredentials(insecure.NewCredentials()),
+							grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(int(id))),
+						)
+					}
+					return nodes
+				},
+			),
+			gomc.WithRequests(
+				gomc.NewRequest(1, "Propose", "1"),
+				gomc.NewRequest(2, "Propose", "2"),
+				gomc.NewRequest(3, "Propose", "3"),
+				gomc.NewRequest(4, "Propose", "4"),
+			),
+			gomc.WithTreeStateManager(
+				func(node *GrpcConsensus) state {
+					decided := make([]string, len(node.DecidedVal))
+					copy(decided, node.DecidedVal)
+					return state{
+						proposed: node.ProposedVal,
+						decided:  decided,
+					}
+				},
+				func(a, b state) bool {
+					if a.proposed != b.proposed {
+						return false
+					}
+					return slices.Equal(a.decided, b.decided)
+				},
+			),
+			gomc.WithPredicateChecker(predicates...),
+			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+		)
 	}
 }
