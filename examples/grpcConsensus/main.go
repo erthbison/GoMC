@@ -22,7 +22,6 @@ func main() {
 		4: ":50003",
 		5: ":50004",
 	}
-	ids := []int32{1, 2, 3, 4, 5}
 	addrToIdMao := map[string]int{}
 	for id, addr := range addrMap {
 		addrToIdMao[addr] = int(id)
@@ -41,7 +40,6 @@ func main() {
 
 	for _, node := range nodes {
 		node.DialServers(
-			ids,
 			addrMap,
 			grpc.WithContextDialer(
 				func(ctx context.Context, s string) (net.Conn, error) {

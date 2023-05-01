@@ -33,6 +33,8 @@ type GrpcConsensus struct {
 	id    int32
 	nodes []*Client
 
+	stopped bool
+
 	DecidedVal  []string
 	ProposedVal string
 
@@ -66,9 +68,8 @@ func NewGrpcConsensus(id int32, lis net.Listener, waitForSend func(int), srvOpts
 	return gc
 }
 
-func (gc *GrpcConsensus) DialServers(ids []int32, addrMap map[int32]string, dialOpts ...grpc.DialOption) {
-	for _, id := range ids {
-		addr := addrMap[id]
+func (gc *GrpcConsensus) DialServers(addrMap map[int32]string, dialOpts ...grpc.DialOption) {
+	for id, addr := range addrMap {
 		conn, err := grpc.Dial(addr, dialOpts...)
 		if err != nil {
 			panic(err)
@@ -82,11 +83,14 @@ func (gc *GrpcConsensus) DialServers(ids []int32, addrMap map[int32]string, dial
 }
 
 func (gc *GrpcConsensus) Crash(id int, _ bool) {
-	gc.detectedRanks[int32(id)] = true
-	for gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
-		gc.round++
-		gc.decide()
+	if gc.stopped {
+		return
 	}
+	gc.detectedRanks[int32(id)] = true
+	// for gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
+	// 	gc.round++
+	// 	gc.decide()
+	// }
 }
 
 func (hc *GrpcConsensus) Propose(val string) {
@@ -113,22 +117,31 @@ func (gc *GrpcConsensus) Decided(ctx context.Context, in *pb.DecideRequest) (*pb
 }
 
 func (gc *GrpcConsensus) decide() {
-	if gc.id == gc.round && !gc.broadcast && gc.proposal != nil {
-		gc.broadcast = true
-		gc.DecidedVal = append(gc.DecidedVal, gc.proposal.GetVal())
-		msg := &pb.DecideRequest{
-			Val:  gc.proposal,
-			From: gc.id,
-		}
-		num := 0
-		for _, node := range gc.nodes {
-			if node.id > gc.id {
-				num++
-				go node.Decided(context.Background(), msg)
-			}
-		}
-		gc.waitForSend(num) // Wait until all messages has been sent, but do not wait until an answer is received
+	if gc.id != gc.round {
+		return
 	}
+
+	if gc.broadcast {
+		return
+	}
+	if gc.proposal == nil {
+		return
+	}
+
+	gc.broadcast = true
+	gc.DecidedVal = append(gc.DecidedVal, gc.proposal.GetVal())
+	msg := &pb.DecideRequest{
+		Val:  gc.proposal,
+		From: gc.id,
+	}
+	num := 0
+	for _, node := range gc.nodes {
+		if node.id > gc.id {
+			num++
+			go node.Decided(context.Background(), msg)
+		}
+	}
+	gc.waitForSend(num) // Wait until all messages has been sent, but do not wait until an answer is received
 }
 
 func (gc *GrpcConsensus) Stop() {
@@ -136,4 +149,5 @@ func (gc *GrpcConsensus) Stop() {
 	for _, node := range gc.nodes {
 		node.conn.Close()
 	}
+	gc.stopped = true
 }

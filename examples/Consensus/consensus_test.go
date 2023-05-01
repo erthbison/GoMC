@@ -82,7 +82,9 @@ func TestConsensus(t *testing.T) {
 			},
 		),
 		gomc.WithRequests(
-			gomc.NewRequest(1, "Propose", Value[int]{2}),
+			gomc.NewRequest(1, "Propose", Value[int]{1}),
+			gomc.NewRequest(2, "Propose", Value[int]{2}),
+			gomc.NewRequest(3, "Propose", Value[int]{3}),
 		),
 		gomc.WithTreeStateManager(
 			func(node *HierarchicalConsensus[int]) state {

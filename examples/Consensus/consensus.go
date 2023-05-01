@@ -87,15 +87,24 @@ func (hc *HierarchicalConsensus[T]) Decided(from int, val Value[T]) {
 }
 
 func (hc *HierarchicalConsensus[T]) decide() {
-	if hc.id == hc.round && hc.broadcast == false && hc.proposed {
-		hc.broadcast = true
-		for _, target := range hc.nodes {
-			if target > hc.id {
-				hc.send(int(target), "Decided", hc.id, hc.proposal)
-			}
-		}
-		// Decide on value
-		hc.DecidedSignal <- hc.proposal
-		hc.DecidedVal = append(hc.DecidedVal, hc.proposal)
+	if hc.id != hc.round {
+		return
 	}
+
+	if hc.broadcast {
+		return
+	}
+	if !hc.proposed {
+		return
+	}
+
+	hc.broadcast = true
+	for _, target := range hc.nodes {
+		if target > hc.id {
+			hc.send(int(target), "Decided", hc.id, hc.proposal)
+		}
+	}
+	// Decide on value
+	hc.DecidedSignal <- hc.proposal
+	hc.DecidedVal = append(hc.DecidedVal, hc.proposal)
 }

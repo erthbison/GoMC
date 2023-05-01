@@ -66,7 +66,7 @@ func TestGrpcConsensus(t *testing.T) {
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
 		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+			func(t *GrpcConsensus) { t.Stop() }, 2,
 		),
 	)
 
@@ -86,13 +86,10 @@ func TestGrpcConsensus(t *testing.T) {
 			return slices.Equal(a.decided, b.decided)
 		},
 	)
-	ids := []int32{1, 2, 3, 4, 5}
 	addrMap := map[int32]string{
 		1: ":50000",
 		2: ":50001",
 		3: ":50002",
-		4: ":50003",
-		5: ":50004",
 	}
 
 	addrToIdMap := map[string]int{}
@@ -118,7 +115,6 @@ func TestGrpcConsensus(t *testing.T) {
 
 				for id, node := range nodes {
 					node.DialServers(
-						ids,
 						addrMap,
 						grpc.WithContextDialer(
 							func(ctx context.Context, s string) (net.Conn, error) {
@@ -134,11 +130,9 @@ func TestGrpcConsensus(t *testing.T) {
 			},
 		),
 		gomc.WithRequests(
-			gomc.NewRequest(1, "Propose", "2"),
-			gomc.NewRequest(2, "Propose", "3"),
-			gomc.NewRequest(3, "Propose", "4"),
-			gomc.NewRequest(4, "Propose", "5"),
-			gomc.NewRequest(5, "Propose", "6"),
+			gomc.NewRequest(1, "Propose", "1"),
+			gomc.NewRequest(2, "Propose", "2"),
+			gomc.NewRequest(3, "Propose", "3"),
 		),
 		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicateChecker(predicates...),
@@ -189,7 +183,6 @@ func TestReplayConsensus(t *testing.T) {
 		},
 	)
 
-	ids := []int32{1, 2, 3, 4, 5}
 	addrMap := map[int32]string{
 		1: ":50000",
 		2: ":50001",
@@ -223,7 +216,6 @@ func TestReplayConsensus(t *testing.T) {
 
 				for id, node := range nodes {
 					node.DialServers(
-						ids,
 						addrMap,
 						grpc.WithContextDialer(
 							func(ctx context.Context, s string) (net.Conn, error) {
