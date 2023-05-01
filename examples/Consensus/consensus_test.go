@@ -67,7 +67,7 @@ func TestConsensus(t *testing.T) {
 		),
 	)
 
-	nodeIds := []int{1, 2, 3}
+	nodeIds := []int{1, 2, 3, 4}
 	resp := sim.Run(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {

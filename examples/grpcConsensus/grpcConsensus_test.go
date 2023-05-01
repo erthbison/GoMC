@@ -66,7 +66,7 @@ func TestGrpcConsensus(t *testing.T) {
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(1000),
 		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 2, 3,
+			func(t *GrpcConsensus) { t.Stop() }, 2,
 		),
 	)
 

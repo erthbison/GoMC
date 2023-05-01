@@ -172,7 +172,7 @@ func TestPaxosReplay(t *testing.T) {
 	sim := gomc.PrepareSimulation[MultiPaxos, State](
 		gomc.ReplayScheduler(run),
 		gomc.MaxDepth(100000),
-		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 5, 1),
+		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 	)
 	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
 	w, err := os.Create("export.txt")

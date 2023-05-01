@@ -37,6 +37,36 @@ var (
 	zeroVal string
 )
 
+var predicates = []checking.Predicate[State]{
+	func(s checking.State[State]) bool {
+		// Only a value that has been proposed may be chosen
+		proposedVal := map[string]bool{}
+		for _, state := range s.LocalStates {
+			proposedVal[state.proposed] = true
+		}
+		return checking.ForAllNodes(func(s State) bool { return !(s.decided != zeroVal && !proposedVal[s.decided]) }, s, false)
+	},
+	func(s checking.State[State]) bool {
+		// Only a single value is chosen
+		decidedVal := map[string]bool{}
+		for _, state := range s.LocalStates {
+			if state.decided != zeroVal {
+				decidedVal[state.decided] = true
+			}
+		}
+		if len(decidedVal) > 1 {
+			return false
+		}
+		return true
+	},
+	checking.Eventually(
+		func(s checking.State[State]) bool {
+			// All correct node should eventually learn the decided value
+			return checking.ForAllNodes(func(s State) bool { return s.decided != zeroVal }, s, true)
+		},
+	),
+}
+
 func TestPaxosSim(t *testing.T) {
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
@@ -104,35 +134,7 @@ func TestPaxosSim(t *testing.T) {
 				return s1 == s2
 			},
 		),
-		gomc.WithPredicateChecker(
-			func(s checking.State[State]) bool {
-				// Only a value that has been proposed may be chosen
-				proposedVal := map[string]bool{}
-				for _, state := range s.LocalStates {
-					proposedVal[state.proposed] = true
-				}
-				return checking.ForAllNodes(func(s State) bool { return !(s.decided != zeroVal && !proposedVal[s.decided]) }, s, false)
-			},
-			func(s checking.State[State]) bool {
-				// Only a single value is chosen
-				decidedVal := map[string]bool{}
-				for _, state := range s.LocalStates {
-					if state.decided != zeroVal {
-						decidedVal[state.decided] = true
-					}
-				}
-				if len(decidedVal) > 1 {
-					return false
-				}
-				return true
-			},
-			checking.Eventually(
-				func(s checking.State[State]) bool {
-					// All correct node should eventually learn the decided value
-					return checking.ForAllNodes(func(s State) bool { return s.decided != zeroVal }, s, true)
-				},
-			),
-		),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)
@@ -220,47 +222,7 @@ func TestPaxosReplay(t *testing.T) {
 				return s1 == s2
 			},
 		),
-		gomc.WithPredicateChecker(
-			func(s checking.State[State]) bool {
-				// Only a value that has been proposed may be chosen
-				proposedVal := map[string]bool{}
-				for _, state := range s.LocalStates {
-					proposedVal[state.proposed] = true
-				}
-				for _, state := range s.LocalStates {
-					if state.decided != zeroVal && !proposedVal[state.decided] {
-						return false
-					}
-				}
-				return true
-			},
-			func(s checking.State[State]) bool {
-				// Only a single value is chosen
-				decidedVal := map[string]bool{}
-				for _, state := range s.LocalStates {
-					if state.decided != zeroVal {
-						decidedVal[state.decided] = true
-					}
-				}
-				if len(decidedVal) > 1 {
-					return false
-				}
-				return true
-			},
-			checking.Eventually(
-				func(s checking.State[State]) bool {
-					// All correct node should eventually learn the decided value
-					for id, state := range s.LocalStates {
-						if s.Correct[id] {
-							if state.decided == zeroVal {
-								return false
-							}
-						}
-					}
-					return true
-				},
-			),
-		),
+		gomc.WithPredicateChecker(predicates...),
 		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)

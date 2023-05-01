@@ -35,7 +35,7 @@ func (s State) String() string {
 }
 
 func TestRrb(t *testing.T) {
-	numNodes := 2
+	numNodes := 5
 
 	sim := gomc.PrepareSimulation[Rrb, State](
 		gomc.PrefixScheduler(),

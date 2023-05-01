@@ -89,8 +89,8 @@ func (gc *GrpcConsensus) Crash(id int, _ bool) {
 	gc.detectedRanks[int32(id)] = true
 	// Violates C1: Termination
 	// The algorithm does not advance the round again if it enters a round where the node has already crashed
-	// Teh correct implementation would be:
-	// for gc.delivered[gc.round] || gc.detectedRanks[gc.round]
+	// The correct implementation would be:
+	// for gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
 	if gc.delivered[gc.round] || gc.detectedRanks[gc.round] {
 		gc.round++
 		gc.decide()
