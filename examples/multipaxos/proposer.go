@@ -77,7 +77,6 @@ func (p *proposer) Propose(_ context.Context, prop *proto.ProposeRequest) (*empt
 	if !p.completedPhase1 {
 		// Store this value for when phase 1 is completed
 		p.pendingProposals = append(p.pendingProposals, prop.GetVal())
-		p.performPhaseOne()
 		return &empty.Empty{}, nil
 	}
 
@@ -226,6 +225,10 @@ func (p *proposer) newLeader(newLeader int64) {
 
 	p.completedPhase1 = false
 	p.IncrementCrnd()
+
+	if p.leader.IsLeader() {
+		p.performPhaseOne()
+	}
 }
 
 func (p *proposer) IncrementCrnd() {
