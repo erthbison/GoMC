@@ -130,7 +130,6 @@ func (p *proposer) Promise(_ context.Context, prm *proto.PromiseRequest) (*empty
 	accepts := p.getValues()
 
 	// Accept messages are added to the front of the queue
-	// p.valQueue = append(accepts, p.valQueue...)
 	for _, val := range accepts {
 		p.nextSlot++
 		// create accept message
