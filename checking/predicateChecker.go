@@ -41,6 +41,9 @@ func (pcr predicateCheckerResponse[S]) Export() []event.EventId {
 		return evtSequence
 	}
 	for _, state := range pcr.Sequence {
+		if state.Evt.Id == "" {
+			continue
+		}
 		evtSequence = append(evtSequence, state.Evt.Id)
 	}
 	return evtSequence
