@@ -54,6 +54,7 @@ func newProposer(id int64, waitForSend func(num int), l *LeaderElector) *propose
 }
 
 func (p *proposer) performPhaseOne() {
+	p.nextSlot = p.Adu
 	msg := &proto.PrepareRequest{
 		Crnd: p.crnd,
 		Slot: p.Adu,
@@ -237,7 +238,4 @@ func (p *proposer) IncrementCrnd() {
 
 func (p *proposer) IncrementAdu() {
 	p.Adu++
-	if p.Adu > p.nextSlot {
-		p.nextSlot = p.Adu
-	}
 }
