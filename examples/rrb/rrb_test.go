@@ -37,28 +37,7 @@ func (s State) String() string {
 func TestRrb(t *testing.T) {
 	numNodes := 5
 
-	sim := gomc.PrepareSimulation[Rrb, State](
-		gomc.PrefixScheduler(),
-	)
-
-	resp := sim.Run(gomc.InitNodeFunc(
-		func(sp gomc.SimulationParameters) map[int]*Rrb {
-			send := eventManager.NewSender(sp.EventAdder)
-			nodeIds := []int{}
-			for i := 0; i < numNodes; i++ {
-				nodeIds = append(nodeIds, i)
-			}
-			nodes := map[int]*Rrb{}
-			for _, id := range nodeIds {
-				nodes[id] = NewRrb(
-					id,
-					nodeIds,
-					send.SendFunc(id),
-				)
-			}
-			return nodes
-		}),
-		gomc.WithRequests(gomc.NewRequest(0, "Broadcast", "Test Message")),
+	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
 			func(node *Rrb) State {
 				newDelivered := map[message]bool{}
@@ -87,6 +66,27 @@ func TestRrb(t *testing.T) {
 				return maps.Equal(s1.sent, s2.sent)
 			},
 		),
+		gomc.PrefixScheduler(),
+	)
+
+	resp := sim.Run(gomc.InitNodeFunc(
+		func(sp gomc.SimulationParameters) map[int]*Rrb {
+			send := eventManager.NewSender(sp.EventAdder)
+			nodeIds := []int{}
+			for i := 0; i < numNodes; i++ {
+				nodeIds = append(nodeIds, i)
+			}
+			nodes := map[int]*Rrb{}
+			for _, id := range nodeIds {
+				nodes[id] = NewRrb(
+					id,
+					nodeIds,
+					send.SendFunc(id),
+				)
+			}
+			return nodes
+		}),
+		gomc.WithRequests(gomc.NewRequest(0, "Broadcast", "Test Message")),
 		gomc.WithPredicateChecker(
 			checking.Eventually(
 				func(s checking.State[State]) bool {

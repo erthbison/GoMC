@@ -12,7 +12,7 @@ import (
 	"gomc/stateManager"
 )
 
-func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
+func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...SimulatorOption) Simulation[T, S] {
 	var (
 		maxRuns  = 10000
 		maxDepth = 1000
@@ -24,10 +24,9 @@ func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
 		// ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
 		ignorePanics = false
 
-		fm  failureManager.FailureManger[T]
 		sch scheduler.GlobalScheduler
 	)
-	fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
+
 	sch = scheduler.NewPrefix()
 
 	// Use the simulator options to configure
@@ -45,22 +44,23 @@ func PrepareSimulation[T, S any](opts ...SimulatorOption) Simulation[T, S] {
 			ignoreErrors = true
 		case ignorePanicOption:
 			ignorePanics = true
-		case failureManagerOption[T]:
-			fm = t.fm
 		}
 	}
-	// sch := schOpt.sch
-	sim := NewSimulator[T, S](sch, fm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
+	sm := smOpts.sm
+
+	sim := NewSimulator(sch, sm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return Simulation[T, S]{
 		sim: sim,
+		sm:  sm,
 	}
 }
 
 type Simulation[T, S any] struct {
 	sim *Simulator[T, S]
+	sm  stateManager.StateManager[T, S]
 }
 
-func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, smOpts StateManagerOption[T, S], checker CheckerOption[S], opts ...RunOptions) checking.CheckerResponse {
+func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, checker CheckerOption[S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
 		requests = []Request{}
@@ -68,7 +68,10 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 		export []io.Writer
 
 		stopFunc = func(*T) {}
+
+		fm failureManager.FailureManger[T]
 	)
+	fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
 
 	for _, opt := range opts {
 		switch t := opt.(type) {
@@ -76,6 +79,8 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 			stopFunc = t.stop
 		case exportOption:
 			export = append(export, t.w)
+		case failureManagerOption[T]:
+			fm = t.fm
 		}
 	}
 
@@ -84,13 +89,15 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 		log.Panicf("At least one request must be provided to start the simulation")
 	}
 
-	sm := smOpts.sm
-	err := sr.sim.Simulate(sm, InitNodes.f, stopFunc, requests...)
+	// Reset the state and prepare for the simulation
+	sr.sm.Reset()
+
+	err := sr.sim.Simulate(fm, InitNodes.f, stopFunc, requests...)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
 	}
 
-	state := sm.State()
+	state := sr.sm.State()
 	for _, w := range export {
 		state.Export(w)
 	}
@@ -142,6 +149,8 @@ type schedulerOption struct {
 	sch scheduler.GlobalScheduler
 }
 
+func (so schedulerOption) simOpt() {}
+
 // Use a random walk scheduler for the simulation.
 //
 // The random walk scheduler is a randomized scheduler.
@@ -176,9 +185,13 @@ func WithScheduler(sch scheduler.GlobalScheduler) SimulatorOption {
 	return schedulerOption{sch: sch}
 }
 
-type SimulatorOption interface{}
+type SimulatorOption interface {
+	simOpt()
+}
 
 type maxRunsOption struct{ maxRuns int }
+
+func (mro maxRunsOption) simOpt() {}
 
 // Configure the maximum number of runs simulated
 //
@@ -188,6 +201,8 @@ func MaxRuns(maxRuns int) SimulatorOption {
 }
 
 type maxDepthOption struct{ maxDepth int }
+
+func (mdo maxDepthOption) simOpt() {}
 
 // Configure the maximum depth explored.
 //
@@ -200,6 +215,8 @@ func MaxDepth(maxDepth int) SimulatorOption {
 
 type numConcurrentOption struct{ n int }
 
+func (nco numConcurrentOption) simOpt() {}
+
 // Configure the number of runs that will be executed concurrently.
 //
 // Default value is GOMAXPROCS
@@ -208,6 +225,8 @@ func NumConcurrent(n int) SimulatorOption {
 }
 
 type ignorePanicOption struct{}
+
+func (ipo ignorePanicOption) simOpt() {}
 
 // Set the ignorePanic flag to true.
 //
@@ -219,6 +238,8 @@ func IgnorePanic() SimulatorOption {
 }
 
 type ignoreErrorOption struct{}
+
+func (ieo ignoreErrorOption) simOpt() {}
 
 // Set the ignoreError flag to true.
 //
@@ -232,11 +253,17 @@ type failureManagerOption[T any] struct {
 	fm failureManager.FailureManger[T]
 }
 
-func WithFailureManager[T any](fm failureManager.FailureManger[T]) failureManagerOption[T] {
+type RunOptions interface {
+	runOpt()
+}
+
+func (fmo failureManagerOption[T]) runOpt() {}
+
+func WithFailureManager[T any](fm failureManager.FailureManger[T]) RunOptions {
 	return failureManagerOption[T]{fm: fm}
 }
 
-func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) failureManagerOption[T] {
+func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) RunOptions {
 	fm := failureManager.NewPerfectFailureManager(
 		crashFunc,
 		failingNodes,
@@ -281,8 +308,6 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 	return InitNodeOption[T]{f: t}
 }
 
-type RunOptions interface{}
-
 type CheckerOption[S any] struct {
 	checker checking.Checker[S]
 }
@@ -309,6 +334,8 @@ type exportOption struct {
 	w io.Writer
 }
 
+func (eo exportOption) runOpt() {}
+
 // Write the state to the writer
 func Export(w io.Writer) RunOptions {
 	return exportOption{w: w}
@@ -320,6 +347,8 @@ type stopOption[T any] struct {
 	stop func(*T)
 }
 
+func (so stopOption[T]) runOpt() {}
+
 func WithStopFunction[T any](stop func(*T)) RunOptions {
 	return stopOption[T]{stop: stop}
 }
@@ -328,6 +357,8 @@ type recordChanBufferOption struct {
 	size int
 }
 
+func (opt recordChanBufferOption) runOpt() {}
+
 func RecordChanSize(size int) RunOptions {
 	return recordChanBufferOption{size: size}
 }
@@ -335,6 +366,8 @@ func RecordChanSize(size int) RunOptions {
 type eventChanBufferOption struct {
 	size int
 }
+
+func (opt eventChanBufferOption) runOpt() {}
 
 func EventChanBufferSize(size int) RunOptions {
 	return eventChanBufferOption{size: size}

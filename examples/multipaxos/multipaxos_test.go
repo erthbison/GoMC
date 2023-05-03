@@ -83,10 +83,23 @@ func TestMultiPaxosSim(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	sim := gomc.PrepareSimulation[MultiPaxos, State](
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(t *MultiPaxos) State {
+				return State{
+					proposed: slices.Clone(t.proposed),
+					decided:  maps.Clone(t.LearntValues),
+				}
+			},
+			func(s1, s2 State) bool {
+				if !maps.Equal(s1.decided, s2.decided) {
+					return false
+				}
+				return slices.Equal(s1.proposed, s2.proposed)
+			},
+		),
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(10000),
-		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 	)
 	w, err := os.Create("export.txt")
 	if err != nil {
@@ -129,21 +142,8 @@ func TestMultiPaxosSim(t *testing.T) {
 			gomc.NewRequest(3, "ProposeVal", "Test3"),
 			gomc.NewRequest(1, "ProposeVal", "Test4"),
 		),
-		gomc.WithTreeStateManager(
-			func(t *MultiPaxos) State {
-				return State{
-					proposed: slices.Clone(t.proposed),
-					decided:  maps.Clone(t.LearntValues),
-				}
-			},
-			func(s1, s2 State) bool {
-				if !maps.Equal(s1.decided, s2.decided) {
-					return false
-				}
-				return slices.Equal(s1.proposed, s2.proposed)
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)
@@ -169,10 +169,19 @@ func TestPaxosReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.PrepareSimulation[MultiPaxos, State](
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(t *MultiPaxos) State {
+				return State{
+					decided: maps.Clone(t.LearntValues),
+				}
+			},
+			func(s1, s2 State) bool {
+				return maps.Equal(s1.decided, s2.decided)
+			},
+		),
 		gomc.ReplayScheduler(run),
 		gomc.MaxDepth(100000),
-		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 	)
 	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
 	w, err := os.Create("export.txt")
@@ -217,17 +226,8 @@ func TestPaxosReplay(t *testing.T) {
 			gomc.NewRequest(4, "Propose", "4"),
 			gomc.NewRequest(5, "Propose", "5"),
 		),
-		gomc.WithTreeStateManager(
-			func(t *MultiPaxos) State {
-				return State{
-					decided: maps.Clone(t.LearntValues),
-				}
-			},
-			func(s1, s2 State) bool {
-				return maps.Equal(s1.decided, s2.decided)
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)

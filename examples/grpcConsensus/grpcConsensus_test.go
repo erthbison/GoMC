@@ -62,11 +62,24 @@ var predicates = []checking.Predicate[state]{
 }
 
 func TestGrpcConsensus(t *testing.T) {
-	sim := gomc.PrepareSimulation[GrpcConsensus, state](
-		gomc.PrefixScheduler(),
-		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 2,
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(node *GrpcConsensus) state {
+				decided := make([]string, len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed != b.proposed {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
 		),
+		gomc.PrefixScheduler(),
 	)
 
 	addrMap := map[int32]string{
@@ -119,23 +132,10 @@ func TestGrpcConsensus(t *testing.T) {
 			gomc.NewRequest(3, "Propose", "3"),
 			gomc.NewRequest(4, "Propose", "4"),
 		),
-		gomc.WithTreeStateManager(
-			func(node *GrpcConsensus) state {
-				decided := make([]string, len(node.DecidedVal))
-				copy(decided, node.DecidedVal)
-				return state{
-					proposed: node.ProposedVal,
-					decided:  decided,
-				}
-			},
-			func(a, b state) bool {
-				if a.proposed != b.proposed {
-					return false
-				}
-				return slices.Equal(a.decided, b.decided)
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 2,
+		),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 
@@ -158,12 +158,6 @@ func TestReplayConsensus(t *testing.T) {
 	buffer := bytes.NewBuffer(in)
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
-	sim := gomc.PrepareSimulation[GrpcConsensus, state](
-		gomc.ReplayScheduler(run),
-		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
-		),
-	)
 
 	sm := stateManager.NewTreeStateManager(
 		func(node *GrpcConsensus) state {
@@ -180,6 +174,11 @@ func TestReplayConsensus(t *testing.T) {
 			}
 			return slices.Equal(a.decided, b.decided)
 		},
+	)
+
+	sim := gomc.PrepareSimulation(
+		gomc.WithStateManager[GrpcConsensus, state](sm),
+		gomc.ReplayScheduler(run),
 	)
 
 	addrMap := map[int32]string{
@@ -236,8 +235,10 @@ func TestReplayConsensus(t *testing.T) {
 			gomc.NewRequest(4, "Propose", "5"),
 			gomc.NewRequest(5, "Propose", "6"),
 		),
-		gomc.WithStateManager[GrpcConsensus, state](sm),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(
+			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+		),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
 	sm.Export(os.Stdout)
@@ -263,11 +264,24 @@ func BenchmarkConsensus(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		sim := gomc.PrepareSimulation[GrpcConsensus, state](
-			gomc.PrefixScheduler(),
-			gomc.WithPerfectFailureManager(
-				func(t *GrpcConsensus) { t.Stop() }, 2,
+		sim := gomc.PrepareSimulation(
+			gomc.WithTreeStateManager(
+				func(node *GrpcConsensus) state {
+					decided := make([]string, len(node.DecidedVal))
+					copy(decided, node.DecidedVal)
+					return state{
+						proposed: node.ProposedVal,
+						decided:  decided,
+					}
+				},
+				func(a, b state) bool {
+					if a.proposed != b.proposed {
+						return false
+					}
+					return slices.Equal(a.decided, b.decided)
+				},
 			),
+			gomc.PrefixScheduler(),
 		)
 
 		sim.Run(
@@ -308,23 +322,10 @@ func BenchmarkConsensus(b *testing.B) {
 				gomc.NewRequest(3, "Propose", "3"),
 				gomc.NewRequest(4, "Propose", "4"),
 			),
-			gomc.WithTreeStateManager(
-				func(node *GrpcConsensus) state {
-					decided := make([]string, len(node.DecidedVal))
-					copy(decided, node.DecidedVal)
-					return state{
-						proposed: node.ProposedVal,
-						decided:  decided,
-					}
-				},
-				func(a, b state) bool {
-					if a.proposed != b.proposed {
-						return false
-					}
-					return slices.Equal(a.decided, b.decided)
-				},
-			),
 			gomc.WithPredicateChecker(predicates...),
+			gomc.WithPerfectFailureManager(
+				func(t *GrpcConsensus) { t.Stop() }, 2,
+			),
 			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 		)
 	}

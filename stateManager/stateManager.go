@@ -9,4 +9,5 @@ type StateManager[T, S any] interface {
 	GetRunStateManager() *RunStateManager[T, S]
 	AddRun(run []state.GlobalState[S])
 	State() state.StateSpace[S]
+	Reset()
 }

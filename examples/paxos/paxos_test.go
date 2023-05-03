@@ -72,9 +72,19 @@ func TestPaxosSim(t *testing.T) {
 		addrToIdMap[addr] = int(id)
 	}
 
-	sim := gomc.PrepareSimulation[Server, State](
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(t *Server) State {
+				return State{
+					proposed: t.Proposal,
+					decided:  t.Decided,
+				}
+			},
+			func(s1, s2 State) bool {
+				return s1 == s2
+			},
+		),
 		gomc.RandomWalkScheduler(1),
-		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 	)
 	w, err := os.Create("export.txt")
 	if err != nil {
@@ -121,18 +131,8 @@ func TestPaxosSim(t *testing.T) {
 			gomc.NewRequest(4, "Propose", "4"),
 			gomc.NewRequest(5, "Propose", "5"),
 		),
-		gomc.WithTreeStateManager(
-			func(t *Server) State {
-				return State{
-					proposed: t.Proposal,
-					decided:  t.Decided,
-				}
-			},
-			func(s1, s2 State) bool {
-				return s1 == s2
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)
@@ -158,12 +158,22 @@ func TestPaxosReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.PrepareSimulation[Server, State](
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(t *Server) State {
+				return State{
+					proposed: t.Proposal,
+					decided:  t.Decided,
+				}
+			},
+			func(s1, s2 State) bool {
+				return s1 == s2
+			},
+		),
 		gomc.ReplayScheduler(run),
 		gomc.MaxDepth(100000),
-		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 	)
-	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
+
 	w, err := os.Create("export.txt")
 	if err != nil {
 		t.Errorf("Error while creating file: %v", err)
@@ -209,18 +219,8 @@ func TestPaxosReplay(t *testing.T) {
 			gomc.NewRequest(4, "Propose", "4"),
 			gomc.NewRequest(5, "Propose", "5"),
 		),
-		gomc.WithTreeStateManager(
-			func(t *Server) State {
-				return State{
-					proposed: t.Proposal,
-					decided:  t.Decided,
-				}
-			},
-			func(s1, s2 State) bool {
-				return s1 == s2
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
 		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)

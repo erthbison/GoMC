@@ -8,11 +8,21 @@ import (
 
 func Benchmark(b *testing.B) {
 	numNodes := 5
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(node *BroadcastNode) BroadcastState {
+				return BroadcastState{
+					delivered: node.Delivered,
+					acked:     node.Acked,
+				}
+			},
+			func(s1, s2 BroadcastState) bool {
+				return s1 == s2
+			},
+		),
+		gomc.PrefixScheduler(),
+	)
 	for i := 0; i < b.N; i++ {
-		sim := gomc.PrepareSimulation[BroadcastNode, BroadcastState](
-			gomc.PrefixScheduler(),
-		)
-
 		sim.Run(
 			gomc.InitNodeFunc(
 				func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
@@ -35,17 +45,6 @@ func Benchmark(b *testing.B) {
 				},
 			),
 			gomc.WithRequests(gomc.NewRequest(0, "Broadcast", []byte("Test Message"))),
-			gomc.WithTreeStateManager(
-				func(node *BroadcastNode) BroadcastState {
-					return BroadcastState{
-						delivered: node.Delivered,
-						acked:     node.Acked,
-					}
-				},
-				func(s1, s2 BroadcastState) bool {
-					return s1 == s2
-				},
-			),
 			gomc.WithPredicateChecker[BroadcastState](),
 		)
 	}

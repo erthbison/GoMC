@@ -8,7 +8,18 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	sim := gomc.PrepareSimulation[BroadcastNode, BroadcastState](
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(node *BroadcastNode) BroadcastState {
+				return BroadcastState{
+					delivered: node.Delivered,
+					acked:     node.Acked,
+				}
+			},
+			func(s1, s2 BroadcastState) bool {
+				return s1 == s2
+			},
+		),
 		gomc.PrefixScheduler(),
 		gomc.MaxDepth(10000),
 	)
@@ -35,17 +46,6 @@ func TestConfig(t *testing.T) {
 		),
 		gomc.WithRequests(
 			gomc.NewRequest(0, "Broadcast", []byte("Test Message")),
-		),
-		gomc.WithTreeStateManager(
-			func(node *BroadcastNode) BroadcastState {
-				return BroadcastState{
-					delivered: node.Delivered,
-					acked:     node.Acked,
-				}
-			},
-			func(s1, s2 BroadcastState) bool {
-				return s1 == s2
-			},
 		),
 		gomc.WithPredicateChecker[BroadcastState](),
 	)

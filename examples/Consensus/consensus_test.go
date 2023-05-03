@@ -59,12 +59,24 @@ var predicates = []checking.Predicate[state]{
 }
 
 func TestConsensus(t *testing.T) {
-	sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
-		gomc.PrefixScheduler(),
-		gomc.WithPerfectFailureManager(
-			func(t *HierarchicalConsensus[int]) { t.crashed = true },
-			2,
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(node *HierarchicalConsensus[int]) state {
+				decided := make([]Value[int], len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed != b.proposed {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
 		),
+		gomc.PrefixScheduler(),
 	)
 
 	nodeIds := []int{1, 2, 3, 4}
@@ -87,23 +99,11 @@ func TestConsensus(t *testing.T) {
 			gomc.NewRequest(3, "Propose", Value[int]{3}),
 			gomc.NewRequest(4, "Propose", Value[int]{4}),
 		),
-		gomc.WithTreeStateManager(
-			func(node *HierarchicalConsensus[int]) state {
-				decided := make([]Value[int], len(node.DecidedVal))
-				copy(decided, node.DecidedVal)
-				return state{
-					proposed: node.ProposedVal,
-					decided:  decided,
-				}
-			},
-			func(a, b state) bool {
-				if a.proposed != b.proposed {
-					return false
-				}
-				return slices.Equal(a.decided, b.decided)
-			},
-		),
 		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(
+			func(t *HierarchicalConsensus[int]) { t.crashed = true },
+			2,
+		),
 		gomc.Export(os.Stdout),
 	)
 	if ok, out := resp.Response(); !ok {
@@ -124,12 +124,24 @@ func TestConsensusReplay(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
-		gomc.ReplayScheduler(run),
-		gomc.WithPerfectFailureManager(
-			func(t *HierarchicalConsensus[int]) { t.crashed = true },
-			2,
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(
+			func(node *HierarchicalConsensus[int]) state {
+				decided := make([]Value[int], len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed.Val != b.proposed.Val {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
 		),
+		gomc.ReplayScheduler(run),
 	)
 
 	nodeIds := []int{1, 2, 3}
@@ -149,6 +161,21 @@ func TestConsensusReplay(t *testing.T) {
 		gomc.WithRequests(
 			gomc.NewRequest(1, "Propose", Value[int]{2}),
 		),
+		gomc.WithPredicateChecker(predicates...),
+		gomc.WithPerfectFailureManager(
+			func(t *HierarchicalConsensus[int]) { t.crashed = true },
+			2,
+		),
+		gomc.Export(os.Stdout),
+	)
+
+	if ok, _ := resp.Response(); ok {
+		t.Errorf("Expected errors while checking")
+	}
+}
+
+func BenchmarkConsensus(b *testing.B) {
+	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
 			func(node *HierarchicalConsensus[int]) state {
 				decided := make([]Value[int], len(node.DecidedVal))
@@ -159,32 +186,17 @@ func TestConsensusReplay(t *testing.T) {
 				}
 			},
 			func(a, b state) bool {
-				if a.proposed.Val != b.proposed.Val {
+				if a.proposed != b.proposed {
 					return false
 				}
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.WithPredicateChecker(predicates...),
-		gomc.Export(os.Stdout),
+		gomc.PrefixScheduler(),
 	)
 
-	if ok, _ := resp.Response(); ok {
-		t.Errorf("Expected errors while checking")
-	}
-}
-
-func BenchmarkConsensus(b *testing.B) {
+	nodeIds := []int{1, 2, 3, 4}
 	for i := 0; i < b.N; i++ {
-		sim := gomc.PrepareSimulation[HierarchicalConsensus[int], state](
-			gomc.PrefixScheduler(),
-			gomc.WithPerfectFailureManager(
-				func(t *HierarchicalConsensus[int]) { t.crashed = true },
-				2,
-			),
-		)
-
-		nodeIds := []int{1, 2, 3, 4}
 		sim.Run(
 			gomc.InitSingleNode(nodeIds,
 				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
@@ -204,23 +216,11 @@ func BenchmarkConsensus(b *testing.B) {
 				gomc.NewRequest(3, "Propose", Value[int]{3}),
 				gomc.NewRequest(4, "Propose", Value[int]{4}),
 			),
-			gomc.WithTreeStateManager(
-				func(node *HierarchicalConsensus[int]) state {
-					decided := make([]Value[int], len(node.DecidedVal))
-					copy(decided, node.DecidedVal)
-					return state{
-						proposed: node.ProposedVal,
-						decided:  decided,
-					}
-				},
-				func(a, b state) bool {
-					if a.proposed != b.proposed {
-						return false
-					}
-					return slices.Equal(a.decided, b.decided)
-				},
-			),
 			gomc.WithPredicateChecker(predicates...),
+			gomc.WithPerfectFailureManager(
+				func(t *HierarchicalConsensus[int]) { t.crashed = true },
+				2,
+			),
 		)
 	}
 }

@@ -23,39 +23,7 @@ type State struct {
 func TestOnrr(t *testing.T) {
 	// Select a scheduler. We will use the basic scheduler since it is the only one that is currently implemented
 	// sch := gomc.NewBasicScheduler()
-	sim := gomc.PrepareSimulation[onrr, State](
-		gomc.RandomWalkScheduler(1),
-		gomc.MaxRuns(10000),
-	)
-	resp := sim.Run(
-		gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*onrr {
-				numNodes := 5
-				send := eventManager.NewSender(sp.EventAdder)
-
-				nodeIds := []int{}
-				for i := 0; i < numNodes; i++ {
-					nodeIds = append(nodeIds, i)
-				}
-				nodes := make(map[int]*onrr)
-				for _, id := range nodeIds {
-					nodes[id] = NewOnrr(id, send.SendFunc(id), nodeIds)
-				}
-				go func() {
-					for {
-						<-nodes[0].WriteIndicator
-					}
-				}()
-				return nodes
-			},
-		),
-		gomc.WithRequests(
-			gomc.NewRequest(0, "Write", 2),
-			gomc.NewRequest(1, "Read"),
-			gomc.NewRequest(2, "Read"),
-			gomc.NewRequest(3, "Read"),
-			gomc.NewRequest(4, "Read"),
-		),
+	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
 			func(node *onrr) State {
 				reads := []int{}
@@ -93,6 +61,38 @@ func TestOnrr(t *testing.T) {
 				}
 				return slices.Equal(a.possibleReads, b.possibleReads)
 			},
+		),
+		gomc.RandomWalkScheduler(1),
+		gomc.MaxRuns(10000),
+	)
+	resp := sim.Run(
+		gomc.InitNodeFunc(
+			func(sp gomc.SimulationParameters) map[int]*onrr {
+				numNodes := 5
+				send := eventManager.NewSender(sp.EventAdder)
+
+				nodeIds := []int{}
+				for i := 0; i < numNodes; i++ {
+					nodeIds = append(nodeIds, i)
+				}
+				nodes := make(map[int]*onrr)
+				for _, id := range nodeIds {
+					nodes[id] = NewOnrr(id, send.SendFunc(id), nodeIds)
+				}
+				go func() {
+					for {
+						<-nodes[0].WriteIndicator
+					}
+				}()
+				return nodes
+			},
+		),
+		gomc.WithRequests(
+			gomc.NewRequest(0, "Write", 2),
+			gomc.NewRequest(1, "Read"),
+			gomc.NewRequest(2, "Read"),
+			gomc.NewRequest(3, "Read"),
+			gomc.NewRequest(4, "Read"),
 		),
 		gomc.WithPredicateChecker(
 			checking.Eventually(

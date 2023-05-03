@@ -27,7 +27,7 @@ type Simulator[T any, S any] struct {
 	// The scheduler keeps track of the events and selects the next event to be executed
 	Scheduler scheduler.GlobalScheduler
 
-	fm failureManager.FailureManger[T]
+	sm stateManager.StateManager[T, S]
 
 	// If true will ignore all errors while simulating runs. Will return aggregate of errors at the end. If false will interrupt simulation if an error occur
 	ignoreErrors bool
@@ -40,12 +40,12 @@ type Simulator[T any, S any] struct {
 	numConcurrent int
 }
 
-func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, fm failureManager.FailureManger[T], ignoreErrors bool, ignorePanics bool, maxRuns int, maxDepth int, numConcurrent int) *Simulator[T, S] {
+func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, sm stateManager.StateManager[T, S], ignoreErrors bool, ignorePanics bool, maxRuns int, maxDepth int, numConcurrent int) *Simulator[T, S] {
 	// Create a crash manager and make the scheduler subscribe to node crash messages
 
 	return &Simulator[T, S]{
 		Scheduler: sch,
-		fm:        fm,
+		sm:        sm,
 
 		ignoreErrors: ignoreErrors,
 		ignorePanics: ignorePanics,
@@ -61,7 +61,7 @@ func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, fm failureManager
 // funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
 // Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
-func (s Simulator[T, S]) Simulate(sm stateManager.StateManager[T, S], initNodes func(SimulationParameters) map[int]*T, stopFunc func(*T), requests ...Request) error {
+func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes func(SimulationParameters) map[int]*T, stopFunc func(*T), requests ...Request) error {
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
 	}
@@ -86,7 +86,7 @@ func (s Simulator[T, S]) Simulate(sm stateManager.StateManager[T, S], initNodes 
 	for i := 0; i < s.numConcurrent; i++ {
 		ongoing++
 		rsch := s.Scheduler.GetRunScheduler()
-		rsim := newRunSimulator(rsch, sm.GetRunStateManager(), s.fm.GetRunFailureManager(rsch), s.maxDepth, s.ignorePanics)
+		rsim := newRunSimulator(rsch, s.sm.GetRunStateManager(), fm.GetRunFailureManager(rsch), s.maxDepth, s.ignorePanics)
 		go rsim.SimulateRuns(nextRun, status, closing, cfg)
 
 		// Send a signal to start processing runs

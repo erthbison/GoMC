@@ -100,6 +100,10 @@ func (ms *MockStateManager) AddRun(run []state.GlobalState[State]) {
 	ms.receivedRun = run
 }
 
+func (ms *MockStateManager) Reset() {
+	ms.receivedRun = nil
+}
+
 type MockEvent struct {
 	id       event.EventId
 	target   int

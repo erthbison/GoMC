@@ -16,9 +16,9 @@ func TestSimulatorNoEvents(t *testing.T) {
 	sch := NewMockGlobalScheduler()
 	sm := NewMockStateManager()
 	fm := NewMockFailureManager([]int{}, func(*MockNode) {})
-	simulator := NewSimulator[MockNode, State](sch, fm, false, false, 10000, 1000, 1)
+	simulator := NewSimulator[MockNode, State](sch, sm, false, false, 10000, 1000, 1)
 	err := simulator.Simulate(
-		sm,
+		fm,
 		func(sp SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
@@ -28,9 +28,8 @@ func TestSimulatorNoEvents(t *testing.T) {
 		t.Errorf("Expected to receive an error when not providing any functions to simulate")
 	}
 
-	sm = NewMockStateManager()
 	err = simulator.Simulate(
-		sm,
+		fm,
 		func(sp SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
@@ -469,8 +468,8 @@ var initRunTest = []struct {
 func TestMainLoop(t *testing.T) {
 	for i, test := range mainLoopTest {
 		sch := NewMockGlobalScheduler()
-		fm := NewMockFailureManager([]int{}, func(*MockNode) {})
-		sim := NewSimulator[MockNode, State](sch, fm, test.ignoreError, false, test.maxRuns, 1000, 10)
+		sm := NewMockStateManager()
+		sim := NewSimulator[MockNode, State](sch, sm, test.ignoreError, false, test.maxRuns, 1000, 10)
 
 		nextRun := make(chan bool)
 		status := make(chan error)

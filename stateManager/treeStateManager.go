@@ -82,3 +82,9 @@ func (sm *TreeStateManager[T, S]) State() state.StateSpace[S] {
 	defer sm.RUnlock()
 	return state.TreeStateSpace[S]{Tree: sm.stateRoot}
 }
+
+func (sm *TreeStateManager[T, S]) Reset() {
+	sm.RLock()
+	defer sm.RUnlock()
+	sm.stateRoot = nil
+}
