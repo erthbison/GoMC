@@ -73,6 +73,9 @@ func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes 
 		requests:  requests,
 	}
 
+	// Reset the previous state
+	s.sm.Reset()
+
 	// Used to signal to start the next run
 	nextRun := make(chan bool)
 	// used by runSimulators to signal that a run has been completed to the main loop. Errors are also returned

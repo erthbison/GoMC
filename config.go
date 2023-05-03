@@ -89,9 +89,6 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 		log.Panicf("At least one request must be provided to start the simulation")
 	}
 
-	// Reset the state and prepare for the simulation
-	sr.sm.Reset()
-
 	err := sr.sim.Simulate(fm, InitNodes.f, stopFunc, requests...)
 	if err != nil {
 		log.Panicf("Received an error while running simulation: %v", err)
