@@ -13,7 +13,6 @@ import (
 	"gomc/checking"
 	"gomc/event"
 	"gomc/gomcGrpc"
-	"gomc/stateManager"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -61,6 +60,13 @@ var predicates = []checking.Predicate[state]{
 	},
 }
 
+var addrMap = map[int32]string{
+	1: ":50000",
+	2: ":50001",
+	3: ":50002",
+	4: ":50003",
+}
+
 func TestGrpcConsensus(t *testing.T) {
 	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
@@ -79,15 +85,8 @@ func TestGrpcConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.PrefixScheduler(),
+		gomc.RandomWalkScheduler(1),
 	)
-
-	addrMap := map[int32]string{
-		1: ":50000",
-		2: ":50001",
-		3: ":50002",
-		4: ":50003",
-	}
 
 	addrToIdMap := map[string]int{}
 	for id, addr := range addrMap {
@@ -141,9 +140,9 @@ func TestGrpcConsensus(t *testing.T) {
 
 	fmt.Println()
 	ok, text := resp.Response()
-	if !ok {
-		t.Errorf("Expected simulation to pass. Got:\n %v", text)
-
+	if ok {
+		t.Errorf("Expected simulation to fail. Got:\n %v", text)
+	} else {
 		var buffer bytes.Buffer
 		json.NewEncoder(&buffer).Encode(resp.Export())
 		os.WriteFile("FailedRun.txt", buffer.Bytes(), 0755)
@@ -159,35 +158,25 @@ func TestReplayConsensus(t *testing.T) {
 	var run []event.EventId
 	json.NewDecoder(buffer).Decode(&run)
 
-	sm := stateManager.NewTreeStateManager(
-		func(node *GrpcConsensus) state {
-			decided := make([]string, len(node.DecidedVal))
-			copy(decided, node.DecidedVal)
-			return state{
-				proposed: node.ProposedVal,
-				decided:  decided,
-			}
-		},
-		func(a, b state) bool {
-			if a.proposed != b.proposed {
-				return false
-			}
-			return slices.Equal(a.decided, b.decided)
-		},
-	)
-
 	sim := gomc.PrepareSimulation(
-		gomc.WithStateManager[GrpcConsensus, state](sm),
+		gomc.WithTreeStateManager(
+			func(node *GrpcConsensus) state {
+				decided := make([]string, len(node.DecidedVal))
+				copy(decided, node.DecidedVal)
+				return state{
+					proposed: node.ProposedVal,
+					decided:  decided,
+				}
+			},
+			func(a, b state) bool {
+				if a.proposed != b.proposed {
+					return false
+				}
+				return slices.Equal(a.decided, b.decided)
+			},
+		),
 		gomc.ReplayScheduler(run),
 	)
-
-	addrMap := map[int32]string{
-		1: ":50000",
-		2: ":50001",
-		3: ":50002",
-		4: ":50003",
-		5: ":50004",
-	}
 
 	addrToIdMap := map[string]int{}
 	for id, addr := range addrMap {
@@ -197,9 +186,7 @@ func TestReplayConsensus(t *testing.T) {
 	resp := sim.Run(
 		gomc.InitNodeFunc(
 			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-
 				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-
 				lisMap := map[string]*bufconn.Listener{}
 				for _, addr := range addrMap {
 					lisMap[addr] = bufconn.Listen(bufSize)
@@ -229,24 +216,22 @@ func TestReplayConsensus(t *testing.T) {
 			},
 		),
 		gomc.WithRequests(
-			gomc.NewRequest(1, "Propose", "2"),
-			gomc.NewRequest(2, "Propose", "3"),
-			gomc.NewRequest(3, "Propose", "4"),
-			gomc.NewRequest(4, "Propose", "5"),
-			gomc.NewRequest(5, "Propose", "6"),
+			gomc.NewRequest(1, "Propose", "1"),
+			gomc.NewRequest(2, "Propose", "2"),
+			gomc.NewRequest(3, "Propose", "3"),
+			gomc.NewRequest(4, "Propose", "4"),
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 3, 5,
+			func(t *GrpcConsensus) { t.Stop() }, 2,
 		),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
-	sm.Export(os.Stdout)
 
 	fmt.Println()
 	ok, text := resp.Response()
-	if !ok {
-		t.Errorf("Expected simulation to pass. Got:\n %v", text)
+	if ok {
+		t.Errorf("Expected simulation to fail. Got:\n %v", text)
 	}
 }
 
