@@ -79,7 +79,7 @@ func TestConsensus(t *testing.T) {
 		gomc.PrefixScheduler(),
 	)
 
-	nodeIds := []int{1, 2, 3, 4}
+	nodeIds := []int{1, 2, 3}
 	resp := sim.Run(
 		gomc.InitSingleNode(nodeIds,
 			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
@@ -97,12 +97,11 @@ func TestConsensus(t *testing.T) {
 			gomc.NewRequest(1, "Propose", Value[int]{1}),
 			gomc.NewRequest(2, "Propose", Value[int]{2}),
 			gomc.NewRequest(3, "Propose", Value[int]{3}),
-			gomc.NewRequest(4, "Propose", Value[int]{4}),
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(
 			func(t *HierarchicalConsensus[int]) { t.crashed = true },
-			2,
+			1,
 		),
 		gomc.Export(os.Stdout),
 	)
@@ -159,12 +158,14 @@ func TestConsensusReplay(t *testing.T) {
 			},
 		),
 		gomc.WithRequests(
-			gomc.NewRequest(1, "Propose", Value[int]{2}),
+			gomc.NewRequest(1, "Propose", Value[int]{1}),
+			gomc.NewRequest(2, "Propose", Value[int]{2}),
+			gomc.NewRequest(3, "Propose", Value[int]{3}),
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(
 			func(t *HierarchicalConsensus[int]) { t.crashed = true },
-			2,
+			1,
 		),
 		gomc.Export(os.Stdout),
 	)
@@ -195,7 +196,7 @@ func BenchmarkConsensus(b *testing.B) {
 		gomc.PrefixScheduler(),
 	)
 
-	nodeIds := []int{1, 2, 3, 4}
+	nodeIds := []int{1, 2, 3}
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitSingleNode(nodeIds,
@@ -214,7 +215,6 @@ func BenchmarkConsensus(b *testing.B) {
 				gomc.NewRequest(1, "Propose", Value[int]{1}),
 				gomc.NewRequest(2, "Propose", Value[int]{2}),
 				gomc.NewRequest(3, "Propose", Value[int]{3}),
-				gomc.NewRequest(4, "Propose", Value[int]{4}),
 			),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(

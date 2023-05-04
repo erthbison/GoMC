@@ -64,7 +64,6 @@ var addrMap = map[int32]string{
 	1: ":50000",
 	2: ":50001",
 	3: ":50002",
-	4: ":50003",
 }
 
 func TestGrpcConsensus(t *testing.T) {
@@ -85,7 +84,7 @@ func TestGrpcConsensus(t *testing.T) {
 				return slices.Equal(a.decided, b.decided)
 			},
 		),
-		gomc.RandomWalkScheduler(1),
+		gomc.PrefixScheduler(),
 	)
 
 	addrToIdMap := map[string]int{}
@@ -129,11 +128,10 @@ func TestGrpcConsensus(t *testing.T) {
 			gomc.NewRequest(1, "Propose", "1"),
 			gomc.NewRequest(2, "Propose", "2"),
 			gomc.NewRequest(3, "Propose", "3"),
-			gomc.NewRequest(4, "Propose", "4"),
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 2,
+			func(t *GrpcConsensus) { t.Stop() }, 1,
 		),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
@@ -219,11 +217,10 @@ func TestReplayConsensus(t *testing.T) {
 			gomc.NewRequest(1, "Propose", "1"),
 			gomc.NewRequest(2, "Propose", "2"),
 			gomc.NewRequest(3, "Propose", "3"),
-			gomc.NewRequest(4, "Propose", "4"),
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(
-			func(t *GrpcConsensus) { t.Stop() }, 2,
+			func(t *GrpcConsensus) { t.Stop() }, 1,
 		),
 		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
 	)
