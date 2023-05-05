@@ -24,6 +24,10 @@ func (r *Random) GetRunScheduler() RunScheduler {
 	return newRandomRun(rand.Int63())
 }
 
+func (r *Random) Reset() {
+
+}
+
 type randomRun struct {
 	sync.Mutex
 

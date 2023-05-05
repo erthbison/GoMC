@@ -23,6 +23,10 @@ func (gs *GuidedSearch) GetRunScheduler() RunScheduler {
 	return newRunGuidedSearch(search, gs.run)
 }
 
+func (gs *GuidedSearch) Reset() {
+	gs.search.Reset()
+}
+
 type runGuidedSearch struct {
 	sync.Mutex
 	// The scheduler used to search the state space

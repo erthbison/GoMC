@@ -12,6 +12,7 @@ import (
 type GlobalScheduler interface {
 	// Create a RunScheduler that will communicate with the global scheduler
 	GetRunScheduler() RunScheduler
+	Reset()
 }
 
 // Manages the exploration of the state space in a single goroutine.
@@ -23,11 +24,11 @@ type RunScheduler interface {
 	// The event returned must be an event that has been added during the current run.
 	GetEvent() (event.Event, error)
 
-	// Prepare for starting a new run. Returns a NoRunsError if all possible runs have been completed. 
+	// Prepare for starting a new run. Returns a NoRunsError if all possible runs have been completed.
 	// May block until new runs are available.
 	StartRun() error
 	// Finish the current run and prepare for the next one.
-	// Will always be called after a run has been completely executed, 
+	// Will always be called after a run has been completely executed,
 	// even if an error occurred during execution of the run.
 	EndRun()
 

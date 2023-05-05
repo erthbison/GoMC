@@ -25,6 +25,10 @@ func (r *Replay) GetRunScheduler() RunScheduler {
 	return newRunReplay(r.run)
 }
 
+func (r *Replay) Reset() {
+	r.done = false
+}
+
 type runReplay struct {
 	sync.Mutex
 	// A slice of the run to be replayed with event ids in order

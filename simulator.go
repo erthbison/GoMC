@@ -73,8 +73,9 @@ func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes 
 		requests:  requests,
 	}
 
-	// Reset the previous state
+	// Reset the state of modules so that they are ready for a new simulation
 	s.sm.Reset()
+	s.Scheduler.Reset()
 
 	// Used to signal to start the next run
 	nextRun := make(chan bool)

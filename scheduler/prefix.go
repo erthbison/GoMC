@@ -75,6 +75,14 @@ func (p *Prefix) getRun() run {
 	return r
 }
 
+func (p *Prefix) Reset() {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	p.r = []run{{}}
+	p.ongoing = 0
+}
+
 type runPrefix struct {
 	sync.Mutex
 

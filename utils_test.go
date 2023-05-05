@@ -41,6 +41,9 @@ func (mgs *MockGlobalScheduler) GetRunScheduler() scheduler.RunScheduler {
 	return NewMockRunScheduler()
 }
 
+func (mgs *MockGlobalScheduler) Reset() {
+}
+
 type MockRunScheduler struct {
 	eventQueue  []event.Event
 	addedEvents []event.Event
