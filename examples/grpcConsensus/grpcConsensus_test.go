@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
 	"gomc"
 	"gomc/checking"
@@ -66,64 +67,148 @@ var addrMap = map[int32]string{
 	3: ":50002",
 }
 
-func TestGrpcConsensus(t *testing.T) {
-	sim := gomc.PrepareSimulation(
-		gomc.WithTreeStateManager(
-			func(node *GrpcConsensus) state {
-				decided := make([]string, len(node.DecidedVal))
-				copy(decided, node.DecidedVal)
-				return state{
-					proposed: node.ProposedVal,
-					decided:  decided,
-				}
-			},
-			func(a, b state) bool {
-				if a.proposed != b.proposed {
-					return false
-				}
-				return slices.Equal(a.decided, b.decided)
-			},
-		),
-		gomc.PrefixScheduler(),
-	)
-
-	addrToIdMap := map[string]int{}
+func createNodes(addrMap map[int32]string) func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
+	var addrToIdMap = map[string]int{}
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
 	}
+	return func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
+		gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+		lisMap := map[string]*bufconn.Listener{}
+		for _, addr := range addrMap {
+			lisMap[addr] = bufconn.Listen(bufSize)
+		}
+
+		nodes := map[int]*GrpcConsensus{}
+		for id, addr := range addrMap {
+			gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
+			sp.CrashSubscribe(int(id), gc.Crash)
+			nodes[int(id)] = gc
+		}
+
+		for id, node := range nodes {
+			node.DialServers(
+				addrMap,
+				grpc.WithContextDialer(
+					func(ctx context.Context, s string) (net.Conn, error) {
+						return lisMap[s].DialContext(ctx)
+					},
+				),
+				grpc.WithBlock(),
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(int(id))),
+			)
+		}
+		return nodes
+	}
+}
+
+func getState(node *GrpcConsensus) state {
+	return state{
+		proposed: node.ProposedVal,
+		decided:  slices.Clone(node.DecidedVal),
+	}
+}
+
+func cmpState(a, b state) bool {
+	if a.proposed != b.proposed {
+		return false
+	}
+	return slices.Equal(a.decided, b.decided)
+}
+
+var simulations = []struct {
+	nodes        map[int32]string
+	crashedNodes []int
+}{
+	{
+		map[int32]string{
+			1: ":1",
+			2: ":2",
+			3: ":3",
+		},
+		[]int{},
+	},
+	{
+		map[int32]string{
+			1: ":1",
+			2: ":2",
+			3: ":3",
+		},
+		[]int{1},
+	},
+	{
+		map[int32]string{
+			1: ":1",
+			2: ":2",
+			3: ":3",
+			4: ":4",
+			5: ":7",
+			6: ":6",
+			7: "127:0:0:1",
+		},
+		[]int{2},
+	},
+}
+
+func TestGrpcConsensusPrefix(t *testing.T) {
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(getState, cmpState),
+		gomc.PrefixScheduler(),
+	)
+
+	for i, test := range simulations {
+		requests := []gomc.Request{}
+		for id, addr := range test.nodes {
+			requests = append(requests, gomc.NewRequest(int(id), "Propose", addr))
+		}
+		start := time.Now()
+		resp := sim.Run(
+			gomc.InitNodeFunc(createNodes(test.nodes)),
+			gomc.WithRequests(requests...),
+			gomc.WithPredicateChecker(predicates...),
+			gomc.WithPerfectFailureManager(func(t *GrpcConsensus) { t.Stop() }, test.crashedNodes...),
+			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+		)
+		duration := time.Since(start)
+		_, desc := resp.Response()
+		t.Logf("Test %v - Duration %v: %v", i, duration, desc)
+	}
+}
+
+func TestGrpcConsensusRandom(t *testing.T) {
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(getState, cmpState),
+		gomc.RandomWalkScheduler(0),
+	)
+
+	for i, test := range simulations {
+		requests := []gomc.Request{}
+		for id, addr := range test.nodes {
+			requests = append(requests, gomc.NewRequest(int(id), "Propose", addr))
+		}
+		start := time.Now()
+		resp := sim.Run(
+			gomc.InitNodeFunc(createNodes(test.nodes)),
+			gomc.WithRequests(requests...),
+			gomc.WithPredicateChecker(predicates...),
+			gomc.WithPerfectFailureManager(func(t *GrpcConsensus) { t.Stop() }, test.crashedNodes...),
+			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+		)
+		duration := time.Since(start)
+		_, desc := resp.Response()
+		t.Logf("Test %v - Duration %v: %v", i, duration, desc)
+	}
+}
+
+func TestGrpcConsensusCreateReplay(t *testing.T) {
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(getState, cmpState),
+		gomc.PrefixScheduler(),
+	)
 
 	resp := sim.Run(
-		gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-				lisMap := map[string]*bufconn.Listener{}
-				for _, addr := range addrMap {
-					lisMap[addr] = bufconn.Listen(bufSize)
-				}
-
-				nodes := map[int]*GrpcConsensus{}
-				for id, addr := range addrMap {
-					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.CrashSubscribe(int(id), gc.Crash)
-					nodes[int(id)] = gc
-				}
-
-				for id, node := range nodes {
-					node.DialServers(
-						addrMap,
-						grpc.WithContextDialer(
-							func(ctx context.Context, s string) (net.Conn, error) {
-								return lisMap[s].DialContext(ctx)
-							},
-						),
-						grpc.WithBlock(),
-						grpc.WithTransportCredentials(insecure.NewCredentials()),
-						grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(int(id))),
-					)
-				}
-				return nodes
-			},
-		),
+		gomc.InitNodeFunc(createNodes(addrMap)),
 		gomc.WithRequests(
 			gomc.NewRequest(1, "Propose", "1"),
 			gomc.NewRequest(2, "Propose", "2"),
@@ -157,61 +242,13 @@ func TestReplayConsensus(t *testing.T) {
 	json.NewDecoder(buffer).Decode(&run)
 
 	sim := gomc.PrepareSimulation(
-		gomc.WithTreeStateManager(
-			func(node *GrpcConsensus) state {
-				decided := make([]string, len(node.DecidedVal))
-				copy(decided, node.DecidedVal)
-				return state{
-					proposed: node.ProposedVal,
-					decided:  decided,
-				}
-			},
-			func(a, b state) bool {
-				if a.proposed != b.proposed {
-					return false
-				}
-				return slices.Equal(a.decided, b.decided)
-			},
-		),
+		gomc.WithTreeStateManager(getState, cmpState),
 		gomc.ReplayScheduler(run),
 	)
 
-	addrToIdMap := map[string]int{}
-	for id, addr := range addrMap {
-		addrToIdMap[addr] = int(id)
-	}
-
 	resp := sim.Run(
 		gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-				gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-				lisMap := map[string]*bufconn.Listener{}
-				for _, addr := range addrMap {
-					lisMap[addr] = bufconn.Listen(bufSize)
-				}
-
-				nodes := map[int]*GrpcConsensus{}
-				for id, addr := range addrMap {
-					gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-					sp.CrashSubscribe(int(id), gc.Crash)
-					nodes[int(id)] = gc
-				}
-
-				for id, node := range nodes {
-					node.DialServers(
-						addrMap,
-						grpc.WithContextDialer(
-							func(ctx context.Context, s string) (net.Conn, error) {
-								return lisMap[s].DialContext(ctx)
-							},
-						),
-						grpc.WithBlock(),
-						grpc.WithTransportCredentials(insecure.NewCredentials()),
-						grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(int(id))),
-					)
-				}
-				return nodes
-			},
+			createNodes(addrMap),
 		),
 		gomc.WithRequests(
 			gomc.NewRequest(1, "Propose", "1"),
@@ -233,76 +270,20 @@ func TestReplayConsensus(t *testing.T) {
 }
 
 func BenchmarkConsensus(b *testing.B) {
-	addrMap := map[int32]string{
-		1: ":50000",
-		2: ":50001",
-		3: ":50002",
-		4: ":50003",
-	}
-
-	addrToIdMap := map[string]int{}
-	for id, addr := range addrMap {
-		addrToIdMap[addr] = int(id)
-	}
+	sim := gomc.PrepareSimulation(
+		gomc.WithTreeStateManager(getState, cmpState),
+		gomc.PrefixScheduler(),
+	)
 
 	for i := 0; i < b.N; i++ {
-		sim := gomc.PrepareSimulation(
-			gomc.WithTreeStateManager(
-				func(node *GrpcConsensus) state {
-					decided := make([]string, len(node.DecidedVal))
-					copy(decided, node.DecidedVal)
-					return state{
-						proposed: node.ProposedVal,
-						decided:  decided,
-					}
-				},
-				func(a, b state) bool {
-					if a.proposed != b.proposed {
-						return false
-					}
-					return slices.Equal(a.decided, b.decided)
-				},
-			),
-			gomc.PrefixScheduler(),
-		)
-
 		sim.Run(
 			gomc.InitNodeFunc(
-				func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-					gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-					lisMap := map[string]*bufconn.Listener{}
-					for _, addr := range addrMap {
-						lisMap[addr] = bufconn.Listen(bufSize)
-					}
-
-					nodes := map[int]*GrpcConsensus{}
-					for id, addr := range addrMap {
-						gc := NewGrpcConsensus(id, lisMap[addr], gem.WaitForSend(int(id)))
-						sp.CrashSubscribe(int(id), gc.Crash)
-						nodes[int(id)] = gc
-					}
-
-					for id, node := range nodes {
-						node.DialServers(
-							addrMap,
-							grpc.WithContextDialer(
-								func(ctx context.Context, s string) (net.Conn, error) {
-									return lisMap[s].DialContext(ctx)
-								},
-							),
-							grpc.WithBlock(),
-							grpc.WithTransportCredentials(insecure.NewCredentials()),
-							grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(int(id))),
-						)
-					}
-					return nodes
-				},
+				createNodes(addrMap),
 			),
 			gomc.WithRequests(
 				gomc.NewRequest(1, "Propose", "1"),
 				gomc.NewRequest(2, "Propose", "2"),
 				gomc.NewRequest(3, "Propose", "3"),
-				gomc.NewRequest(4, "Propose", "4"),
 			),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(
