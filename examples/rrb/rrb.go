@@ -22,6 +22,8 @@ type Rrb struct {
 	sent      map[message]bool
 	send      func(to int, msgType string, msg ...any)
 
+	crashed bool
+
 	deliveredSlice []message
 }
 
@@ -37,6 +39,9 @@ func NewRrb(id int, nodes []int, send func(int, string, ...any)) *Rrb {
 }
 
 func (rrb *Rrb) Broadcast(msg string) {
+	if rrb.crashed {
+		return
+	}
 	message := message{
 		From:    rrb.id,
 		Index:   len(rrb.sent),
@@ -50,6 +55,10 @@ func (rrb *Rrb) Broadcast(msg string) {
 }
 
 func (rrb *Rrb) Deliver(message message) {
+	if rrb.crashed {
+		return
+	}
+
 	// violation of RB2:No Duplication
 	rrb.deliveredSlice = append(rrb.deliveredSlice, message)
 	if !rrb.delivered[message] {
