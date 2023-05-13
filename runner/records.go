@@ -5,6 +5,16 @@ import (
 	"gomc/event"
 )
 
+// A record that has been collected by the Runner.
+//
+// The Target method returns the id of the node where the event originates.
+// There are three types of records:
+//
+// StateRecord: Which contains the state of a node after an event has been executed.
+//
+// ExecutionRecord: Which represent the execution of a local event.
+//
+// MessageRecord: Which are created when a message is sent and when it is executed on a node.
 type Record interface {
 	Target() int
 	fmt.Stringer
@@ -16,6 +26,7 @@ type StateRecord[S any] struct {
 	State  S
 }
 
+// The id of the node whose state was collected
 func (sr StateRecord[S]) Target() int {
 	return sr.target
 }
@@ -30,6 +41,7 @@ type ExecutionRecord struct {
 	Evt    event.Event
 }
 
+// The id of the node where the local event was executed
 func (er ExecutionRecord) Target() int {
 	return er.target
 }
@@ -42,10 +54,16 @@ func (er ExecutionRecord) String() string {
 // The sent flag is true if the message was sent by the node and false if it was received
 type MessageRecord struct {
 	From, To int
-	Sent     bool
-	Evt      event.MessageEvent
+	// Sent is true if the record was created because a node sent this MessageEvent
+	// It is false if the record was created because the MessageEvent was executed on a node.
+	Sent bool
+	Evt  event.MessageEvent
 }
 
+// The id of the node
+//
+// If the message was sent by a node, it is the id of the event that sent the message.
+// if the message was received on a node it is the id of the event that received the message.
 func (m MessageRecord) Target() int {
 	if m.Sent {
 		return m.From
