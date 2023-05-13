@@ -7,11 +7,13 @@ import (
 	"time"
 )
 
+// An EventManager that is used to set timeouts
 type SleepManager struct {
 	ea      EventAdder
 	nextEvt func(error, int)
 }
 
+// Create a SleepManager with the provided EventAdder and nextEvent function
 func NewSleepManager(ea EventAdder, nextEvent func(error, int)) *SleepManager {
 	return &SleepManager{
 		ea:      ea,
@@ -19,6 +21,13 @@ func NewSleepManager(ea EventAdder, nextEvent func(error, int)) *SleepManager {
 	}
 }
 
+// Creates a sleep function that is used to create timeouts.
+// The SleepFunc method is called with the id of the node that sets the timeout.
+// Should create a new sleep function for each node.
+//
+// The returned sleep function imitates the signature of the time.Sleep function.
+// The provided duration is ignored.
+// It is assumed that at most one timeout is active at each node at teh same time.
 func (sm *SleepManager) SleepFunc(id int) func(time.Duration) {
 	return func(_ time.Duration) {
 		sleepChan := make(chan time.Time)
