@@ -2,6 +2,11 @@ package event
 
 import "fmt"
 
+// Event representing the detection of a crashed node.
+//
+// The event is created when a node crashed.
+// When the event is executed the target node will detect that the crashedNode has crashed.
+// This is done by calling the callback function.
 type CrashDetection struct {
 	targetId    int
 	crashedNode int
@@ -11,6 +16,11 @@ type CrashDetection struct {
 	evtId EventId
 }
 
+// Event representing the detection of a crashed node.
+//
+// The event is created when a node crashed.
+// When the event is executed the target node will detect that the crashedNode has crashed.
+// This is done by calling the callback function.
 func NewCrashDetection(targetNode int, crashedNode int, callback func(int, bool)) CrashDetection {
 	return CrashDetection{
 		targetId:    targetNode,
@@ -38,6 +48,8 @@ func (cd CrashDetection) Id() EventId {
 // The event will be executed on a separate goroutine.
 // It should signal on the channel if it is clear for the simulator to proceed to processing of the state and the next event.
 // Panics raised while executing the event is recovered by the simulator and returned as errors
+//
+// Calls the provided callback function
 func (cd CrashDetection) Execute(node any, errorChan chan error) {
 	cd.callback(cd.crashedNode, false)
 	errorChan <- nil

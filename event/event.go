@@ -27,6 +27,11 @@ type MessageEvent interface {
 	From() int
 }
 
+
+// Compares two events
+// 
+// Returns true of both events have the same id or if both are nil.
+// Returns false otherwise.
 func EventsEquals(a, b Event) bool {
 	if a == nil || b == nil {
 		return a == b
