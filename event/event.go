@@ -23,13 +23,14 @@ type Event interface {
 type MessageEvent interface {
 	Event
 
+	// Returns the id of the node receiving the event
 	To() int
+	// Returns the id of the node sending the event
 	From() int
 }
 
-
 // Compares two events
-// 
+//
 // Returns true of both events have the same id or if both are nil.
 // Returns false otherwise.
 func EventsEquals(a, b Event) bool {
