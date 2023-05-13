@@ -1,9 +1,7 @@
 package multipaxos
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net"
 	"os"
 	"testing"
@@ -16,8 +14,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
-	"gomc/event"
-	"gomc/gomcGrpc"
+	"gomc/eventManager"
 )
 
 var predicates = []checking.Predicate[State]{
@@ -112,7 +109,7 @@ func TestMultiPaxosSim(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+			gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 
 			nodes := make(map[int]*MultiPaxos)
 			for id, addr := range addrMap {
@@ -144,90 +141,6 @@ func TestMultiPaxosSim(t *testing.T) {
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 3),
-		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
-		gomc.Export(w),
-	)
-	if ok, text := resp.Response(); !ok {
-		t.Errorf("Test Failed: \n %v", text)
-
-		var buffer bytes.Buffer
-		json.NewEncoder(&buffer).Encode(resp.Export())
-		os.WriteFile("FailedRun.txt", buffer.Bytes(), 0755)
-	}
-}
-
-func TestPaxosReplay(t *testing.T) {
-	for id, addr := range addrMap {
-		addrToIdMap[addr] = int(id)
-	}
-
-	in, err := os.ReadFile("FailedRun.txt")
-	if err != nil {
-		t.Errorf("Error while setting up test: %v", err)
-	}
-	buffer := bytes.NewBuffer(in)
-	var run []event.EventId
-	json.NewDecoder(buffer).Decode(&run)
-
-	sim := gomc.PrepareSimulation(
-		gomc.WithTreeStateManager(
-			func(t *MultiPaxos) State {
-				return State{
-					decided: maps.Clone(t.LearntValues),
-				}
-			},
-			func(s1, s2 State) bool {
-				return maps.Equal(s1.decided, s2.decided)
-			},
-		),
-		gomc.ReplayScheduler(run),
-		gomc.MaxDepth(100000),
-	)
-	// sim := gomc.Prepare[Server, State](gomc.WithScheduler(scheduler.NewGuidedSearch(scheduler.NewRandomScheduler(25, 1), run)))
-	w, err := os.Create("export.txt")
-	if err != nil {
-		t.Errorf("Error while creating file: %v", err)
-	}
-	defer w.Close()
-	resp := sim.Run(
-		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*MultiPaxos {
-			lisMap := map[string]*bufconn.Listener{}
-			for _, addr := range addrMap {
-				lisMap[addr] = bufconn.Listen(bufSize)
-			}
-			gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-
-			nodes := make(map[int]*MultiPaxos)
-			for id, addr := range addrMap {
-				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
-				go srv.Start(lisMap[addr])
-				sp.CrashSubscribe(int(id), srv.proposer.leader.NodeCrash)
-				nodes[int(id)] = srv
-			}
-
-			for id, node := range nodes {
-				node.DialNodes(
-					grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
-					grpc.WithContextDialer(
-						func(ctx context.Context, s string) (net.Conn, error) {
-							return lisMap[s].DialContext(ctx)
-						},
-					),
-					grpc.WithBlock(),
-					grpc.WithTransportCredentials(insecure.NewCredentials()),
-				)
-			}
-			return nodes
-		}),
-		gomc.WithRequests(
-			gomc.NewRequest(1, "Propose", "1"),
-			gomc.NewRequest(2, "Propose", "2"),
-			gomc.NewRequest(3, "Propose", "3"),
-			gomc.NewRequest(4, "Propose", "4"),
-			gomc.NewRequest(5, "Propose", "5"),
-		),
-		gomc.WithPredicateChecker(predicates...),
-		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 1),
 		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)

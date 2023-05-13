@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"gomc/eventManager"
 	"gomc/examples/paxos"
-	"gomc/gomcGrpc"
 	"gomc/runner"
 
 	"google.golang.org/grpc"
@@ -50,7 +50,7 @@ func main() {
 					lisMap[addr] = bufconn.Listen(bufSize)
 				}
 
-				gem := gomcGrpc.NewGrpcEventManager(addr2id, sp.EventAdder, sp.NextEvt)
+				gem := eventManager.NewGrpcEventManager(addr2id, sp.EventAdder, sp.NextEvt)
 				nodes := make(map[int]*paxos.Server)
 				for id, addr := range addrMap {
 					srv, err := paxos.NewServer(id, addrMap, gem.WaitForSend(int(id)))

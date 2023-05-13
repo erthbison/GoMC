@@ -8,7 +8,7 @@ import (
 
 	"gomc"
 	"gomc/checking"
-	"gomc/gomcGrpc"
+	"gomc/eventManager"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -68,7 +68,7 @@ func createNodes(addrMap map[int32]string) func(sp gomc.SimulationParameters) ma
 		addrToIdMap[addr] = int(id)
 	}
 	return func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
-		gem := gomcGrpc.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+		gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 		lisMap := map[string]*bufconn.Listener{}
 		for _, addr := range addrMap {
 			lisMap[addr] = bufconn.Listen(bufSize)
@@ -195,4 +195,3 @@ func TestGrpcConsensusRandom(t *testing.T) {
 		t.Logf("Test %v - Duration %v: %v", i, duration, desc)
 	}
 }
-
