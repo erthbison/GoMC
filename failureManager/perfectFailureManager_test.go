@@ -11,7 +11,7 @@ import (
 func TestInit(t *testing.T) {
 	for i, test := range InitTest {
 		sch := NewMockRunScheduler()
-		fm := newPerfectRunFailureManager(
+		fm := newRunPerfectFailureManager(
 			sch, func(t *MockNode) { t.crashed = true }, test.failingNodes,
 		)
 		fm.Init(test.nodes)
@@ -41,7 +41,7 @@ func TestInit(t *testing.T) {
 func TestNodeCrash(t *testing.T) {
 	for i, test := range NodeCrashTest {
 		sch := NewMockRunScheduler()
-		fm := newPerfectRunFailureManager(
+		fm := newRunPerfectFailureManager(
 			sch, func(t *MockNode) { t.crashed = true }, []int{},
 		)
 		fm.nodes = test.nodes
@@ -58,7 +58,7 @@ func TestNodeCrash(t *testing.T) {
 
 		fm.Subscribe(test.subscribingNodeId, func(nodeId int, status bool) {})
 
-		err := fm.NodeCrash(test.crashingNode)
+		err := fm.nodeCrash(test.crashingNode)
 
 		// Test that an error is returned as expected
 		isErr := (err != nil)

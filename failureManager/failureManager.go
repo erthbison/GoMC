@@ -3,25 +3,34 @@ package failureManager
 import "gomc/eventManager"
 
 // Used to manage the correctness of nodes
+//
+// Keeps track of which nodes has crashed.
+// Imitates the functionality of a failure manager and provide mechanisms that allows nodes to learn which nodes have crashed.
+// Performs changes in the status of nodes.
+//
+// Configures the RunFailureManager and tracks global information across runs
 type FailureManger[T any] interface {
+	// Create a RunFailureManager that can be used when simulating a run
 	GetRunFailureManager(eventManager.EventAdder) RunFailureManager[T]
 }
 
+// RunSpecific part of the FailureManager
+//
+// Manages the functionality of the Failure Manager across a single run.
 type RunFailureManager[T any] interface {
-	Init(nodes map[int]*T)                                // Initialize the FailureManager with a set of nodes for this run
-	CorrectNodes() map[int]bool                           // Return a map of the node ids and the status of the corresponding node
-	Subscribe(id int, callback func(id int, status bool)) // Subscribe to updates about node status. Calls the callback function with the node id and the new status of the node when the status of a node changes
+	// Initialize the FailureManager with the nodes that are used in this run
+	Init(nodes map[int]*T)
+
+	// Return a map of the node ids and the status of the corresponding node
+	//
+	// If the status is true the node is currently running.
+	// if it is false the node has crashed.
+	CorrectNodes() map[int]bool
+
+	// Subscribe to updates about node status.
+	//
+	// id is the id of the node that subscribes to the callback.
+	// The callback is a function that is called with the new status of the node when the status.
+	// A node should only subscribe to node crashes once.
+	Subscribe(id int, callback func(id int, status bool))
 }
-
-/*
-	Failure Manager Should:
-		- Keep track of which nodes has crashed and which has not
-		- Provide mechanism that allows nodes to learn which nodes have crashed and which have not.
-			- Specific should vary depending on abstraction
-			- Should at least be able to support perfect FD
-			- Should be able to support delayed information and node specific(i.e. not all nodes are informed at the same time)
-				- This should probably be handled by using events.
-		- Perform crashing, since the failure manager can interact with the nodes
-
-
-*/

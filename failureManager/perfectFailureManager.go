@@ -6,15 +6,22 @@ import (
 	"gomc/eventManager"
 )
 
-// The failureManager keeps track of which nodes has crashed and which has not.
-// It also provides a Subscribe(func(int)) function which can be used to emulate the properties of a perfect failure detector
-// The subscribe function replicates the functionality of a perfect failure detectors.
-// All provided callback functions are called immediately upon the crash of a node
+// The PerfectFailureManager is a failure manager that implements the PerfectFailureDetector abstraction in a fail-stop system.
+//
+// It is configured with a slice of nodes that will crash at some point during the simulation, i.e. nodes that are faulty.
+// it is also configured with a function specifying how the node should crash.
 type PerfectFailureManager[T any] struct {
 	crashFunc    func(*T)
 	failingNodes []int
 }
 
+// Create a new PerfectFailureManager
+//
+// Implements the PerfectFailureDetector abstraction in a fail-stop system.
+// crashFunc is a function performing the crash on the node.
+// It should close all network connections and stop all ongoing executions on the node.
+// Events executed on the node after the crash should have no effect.
+// failingNodes is a slice of node ids of the nodes that will crash at some point during a run.
 func NewPerfectFailureManager[T any](crashFunc func(*T), failingNodes []int) *PerfectFailureManager[T] {
 	return &PerfectFailureManager[T]{
 		crashFunc:    crashFunc,
@@ -22,11 +29,17 @@ func NewPerfectFailureManager[T any](crashFunc func(*T), failingNodes []int) *Pe
 	}
 }
 
+// Create a RunFailureManager that can be used when simulating a run
+// ea is the EventAdder that is used in this run.
+// The EventAdder for the run is provided in the SimulationParameters
 func (pfm PerfectFailureManager[T]) GetRunFailureManager(ea eventManager.EventAdder) RunFailureManager[T] {
-	return newPerfectRunFailureManager(ea, pfm.crashFunc, pfm.failingNodes)
+	return newRunPerfectFailureManager(ea, pfm.crashFunc, pfm.failingNodes)
 }
 
-type PerfectRunFailureManager[T any] struct {
+// The run specific implementation of the PerfectFailureManager
+//
+// Manages the functionality of the PerfectFailureManager during the simulation of a run.
+type runPerfectFailureManager[T any] struct {
 	ea           eventManager.EventAdder
 	crashFunc    func(*T)
 	failingNodes []int
@@ -36,8 +49,13 @@ type PerfectRunFailureManager[T any] struct {
 	failureCallback map[int]func(int, bool)
 }
 
-func newPerfectRunFailureManager[T any](ea eventManager.EventAdder, crashFunc func(*T), failingNodes []int) *PerfectRunFailureManager[T] {
-	return &PerfectRunFailureManager[T]{
+// Create a new runPerfectFailureManager
+//
+// ea is the EventAdder that is used in this run
+// crashFunc is a function performing the crash on the node.
+// failingNodes is a slice of node ids of the nodes that will crash at some point during a run.
+func newRunPerfectFailureManager[T any](ea eventManager.EventAdder, crashFunc func(*T), failingNodes []int) *runPerfectFailureManager[T] {
+	return &runPerfectFailureManager[T]{
 		ea:           ea,
 		crashFunc:    crashFunc,
 		failingNodes: failingNodes,
@@ -47,9 +65,8 @@ func newPerfectRunFailureManager[T any](ea eventManager.EventAdder, crashFunc fu
 	}
 }
 
-// Init the failure manager with the provided nodes.
-// Set all the provided nodes to correct
-func (fm *PerfectRunFailureManager[T]) Init(nodes map[int]*T) {
+// Initialize the FailureManager with the nodes that are used in this run
+func (fm *runPerfectFailureManager[T]) Init(nodes map[int]*T) {
 	for id := range nodes {
 		fm.correct[id] = true
 	}
@@ -62,18 +79,23 @@ func (fm *PerfectRunFailureManager[T]) Init(nodes map[int]*T) {
 			continue
 		}
 		fm.ea.AddEvent(
-			event.NewCrashEvent(id, fm.NodeCrash),
+			event.NewCrashEvent(id, fm.nodeCrash),
 		)
 	}
 }
 
-// Return a map of the status of the nodes
-func (fm *PerfectRunFailureManager[T]) CorrectNodes() map[int]bool {
+// Return a map of the node ids and the status of the corresponding node
+//
+// If the status is true the node is currently running.
+// if it is false the node has crashed.
+func (fm *runPerfectFailureManager[T]) CorrectNodes() map[int]bool {
 	return fm.correct
 }
 
-// register that the node with the provided id has crashed
-func (fm *PerfectRunFailureManager[T]) NodeCrash(nodeId int) error {
+// Perform the crash of the node with the provided id.
+//
+// The method is called by the CrashEvent when it is executed.
+func (fm *runPerfectFailureManager[T]) nodeCrash(nodeId int) error {
 	node, ok := fm.nodes[nodeId]
 	if !ok {
 		return errors.New("FailureManager: Received NodeCrash for node that is not added to the system")
@@ -99,7 +121,10 @@ func (fm *PerfectRunFailureManager[T]) NodeCrash(nodeId int) error {
 	return nil
 }
 
-// Register a callback function to be called when a node crashes.
-func (fm *PerfectRunFailureManager[T]) Subscribe(id int, callback func(int, bool)) {
+// Subscribe to updates about node status.
+//
+// id is the id of the node that subscribes to the callback.
+// The callback is a function that is called with the new status of the node when the status.
+func (fm *runPerfectFailureManager[T]) Subscribe(id int, callback func(int, bool)) {
 	fm.failureCallback[id] = callback
 }
