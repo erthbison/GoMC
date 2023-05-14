@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"gomc/event"
 )
 
@@ -91,7 +92,10 @@ func (nc *nodeController[T, S]) Main() {
 			}
 			nc.recordEvent(evt, true)
 			go evt.Execute(nc.node, nc.nextEvtChan)
-			<-nc.nextEvtChan
+			err := <-nc.nextEvtChan
+			if err != nil {
+				panic(fmt.Sprintf("nodeController: Received error while executing events: %v", err))
+			}
 			nc.recordState()
 		}
 	}
