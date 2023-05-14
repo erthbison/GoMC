@@ -12,6 +12,9 @@ import (
 type GlobalScheduler interface {
 	// Create a RunScheduler that will communicate with the global scheduler
 	GetRunScheduler() RunScheduler
+
+	// Reset the global state of the GlobalScheduler.
+	// Prepare the scheduler for the next simulation.
 	Reset()
 }
 
@@ -20,19 +23,35 @@ type GlobalScheduler interface {
 // Events will only be retrieved from a single goroutine during the simulation.
 // Communicates with the GlobalScheduler to ensure that the state exploration remains consistent.
 type RunScheduler interface {
-	// Get the next event in the run. Will return RunEndedError if there are no more events in the run.
+	// Get the next event in the run.
+	//
+	// Will return RunEndedError if there are no more events in the run.
 	// The event returned must be an event that has been added during the current run.
+	// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+	// but not from the same goroutine as AddEvent.
 	GetEvent() (event.Event, error)
 
-	// Prepare for starting a new run. Returns a NoRunsError if all possible runs have been completed.
+	// Prepare for starting a new run.
+	//
+	// Returns a NoRunsError if all possible runs have been completed.
 	// May block until new runs are available.
+	// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+	// but not from the same goroutine as AddEvent.
 	StartRun() error
+
 	// Finish the current run and prepare for the next one.
+	//
 	// Will always be called after a run has been completely executed,
 	// even if an error occurred during execution of the run.
+	// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+	// but not from the same goroutine as AddEvent.
 	EndRun()
 
-	// Implements the event adder interface
+	// Implements the event adder interface.
+	//
+	// It must be safe to add events from different goroutines.
+	// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+	// but not from the same goroutine as AddEvent.
 	eventManager.EventAdder
 }
 

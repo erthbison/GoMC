@@ -10,17 +10,25 @@ type run []event.EventId
 
 // Explores the state space by maintaining a stack of unexplored prefixes.
 // When a new run is started it follows the prefix and begins exploring from there, adding new prefixes it discovers as it executes events.
+//
+// Deterministic, stateful scheduler that explores the entire state space.
 type Prefix struct {
 	// unexplored prefixes
 	r []run
 
-	// Used to wait for a change in p.ongoing or p.r. The condition is len(p.r) == 0 and p.ongoing > 0
+	// Used to wait for a change in p.ongoing or p.r.
+	// The condition is len(p.r) == 0 and p.ongoing > 0
 	cond *sync.Cond
 
-	// Number of runScheduler currently scheduling a run. I.e. runScheduler no waiting for a new run
+	// Number of runScheduler currently scheduling a run.
+	// I.e. number of runScheduler not waiting for a new run
 	ongoing int
 }
 
+// Create a Prefix Scheduler
+//
+// The Prefix Scheduler is a deterministic and stateful scheduler that explores the entire state space.
+// Given enough runs it will completely explore the state space.
 func NewPrefix() *Prefix {
 	ss := &Prefix{
 		r:    []run{{}},
@@ -29,10 +37,12 @@ func NewPrefix() *Prefix {
 	return ss
 }
 
+// Create a RunScheduler that will communicate with the global scheduler.
 func (p *Prefix) GetRunScheduler() RunScheduler {
-	return newRunQueue(p)
+	return newRunPrefix(p)
 }
 
+// Add the provided prefix to the list of unexplored prefixes.
 func (p *Prefix) addRun(r run) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -44,14 +54,22 @@ func (p *Prefix) addRun(r run) {
 	}
 }
 
+// End the run
+//
+// Decrement the number of ongoing runs
 func (p *Prefix) endRun() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
 	p.ongoing--
+	// Signal on the cond that the ongoing variable has changed
 	p.cond.Broadcast()
 }
 
+// Get the prefix for the next run
+//
+// Will block until some prefixes are available.
+// If no prefixes are available and there are no ongoing runs it will return nil
 func (p *Prefix) getRun() run {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -75,6 +93,8 @@ func (p *Prefix) getRun() run {
 	return r
 }
 
+// Reset the global state of the GlobalScheduler.
+// Prepare the scheduler for the next simulation.
 func (p *Prefix) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -83,6 +103,10 @@ func (p *Prefix) Reset() {
 	p.ongoing = 0
 }
 
+// Manages the exploration of the state space in a single goroutine.
+// Events can safely be added from multiple goroutines.
+// Events will only be retrieved from a single goroutine during the simulation.
+// Communicates with the GlobalScheduler to ensure that the state exploration remains consistent.
 type runPrefix struct {
 	sync.Mutex
 
@@ -94,7 +118,8 @@ type runPrefix struct {
 	pendingEvents []event.Event
 }
 
-func newRunQueue(p *Prefix) *runPrefix {
+// Create a new runPrefixScheduler
+func newRunPrefix(p *Prefix) *runPrefix {
 	return &runPrefix{
 		p: p,
 
@@ -141,8 +166,9 @@ func (rp *runPrefix) GetEvent() (event.Event, error) {
 	return evt, nil
 }
 
+// Get the event from the pending events
+// Return nil if it is not found in the pending events
 func (rp *runPrefix) popEvent(evtId event.EventId) event.Event {
-	// Remove the message from the message queue
 	for i, pendingEvt := range rp.pendingEvents {
 		if evtId == pendingEvt.Id() {
 			rp.pendingEvents = append(rp.pendingEvents[:i], rp.pendingEvents[i+1:]...)
@@ -152,13 +178,23 @@ func (rp *runPrefix) popEvent(evtId event.EventId) event.Event {
 	return nil
 }
 
-// Add an event to the list of possible events
+// Implements the event adder interface.
+//
+// It must be safe to add events from different goroutines.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (rp *runPrefix) AddEvent(evt event.Event) {
 	rp.Lock()
 	defer rp.Unlock()
 	rp.pendingEvents = append(rp.pendingEvents, evt)
 }
 
+// Prepare for starting a new run.
+//
+// Returns a NoRunsError if all possible runs have been completed.
+// May block until new runs are available.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (rp *runPrefix) StartRun() error {
 	rp.Lock()
 	defer rp.Unlock()
@@ -172,7 +208,12 @@ func (rp *runPrefix) StartRun() error {
 	return nil
 }
 
-// Finish the current run and prepare for the next one
+// Finish the current run and prepare for the next one.
+//
+// Will always be called after a run has been completely executed,
+// even if an error occurred during execution of the run.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (rp *runPrefix) EndRun() {
 	rp.p.endRun()
 }

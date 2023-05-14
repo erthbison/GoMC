@@ -11,6 +11,10 @@ type GuidedSearch struct {
 	search GlobalScheduler
 }
 
+// Create a new GuidedSearch scheduled
+//
+// search is the Scheduler that will be used to explore the state space after the provided run has been completed.
+// run is the sequence of events that will be executed before beginning to search the state space.
 func NewGuidedSearch(search GlobalScheduler, run []event.EventId) *GuidedSearch {
 	return &GuidedSearch{
 		run:    run,
@@ -18,15 +22,22 @@ func NewGuidedSearch(search GlobalScheduler, run []event.EventId) *GuidedSearch 
 	}
 }
 
+// Create a RunScheduler that will communicate with the global scheduler
 func (gs *GuidedSearch) GetRunScheduler() RunScheduler {
 	search := gs.search.GetRunScheduler()
 	return newRunGuidedSearch(search, gs.run)
 }
 
+// Reset the global state of the GlobalScheduler.
+// Prepare the scheduler for the next simulation.
 func (gs *GuidedSearch) Reset() {
 	gs.search.Reset()
 }
 
+// Manages the exploration of the state space in a single goroutine.
+// Events can safely be added from multiple goroutines.
+// Events will only be retrieved from a single goroutine during the simulation.
+// Communicates with the GlobalScheduler to ensure that the state exploration remains consistent.
 type runGuidedSearch struct {
 	sync.Mutex
 	// The scheduler used to search the state space
@@ -39,7 +50,7 @@ type runGuidedSearch struct {
 	useGuided bool
 }
 
-// Create a new GuidedSearch scheduler using the provided search scheduler for searching the state space after it hasa followed the provided run
+// Create a new GuidedSearch scheduler using the provided search scheduler for searching the state space after it has followed the provided run
 func newRunGuidedSearch(search RunScheduler, run []event.EventId) *runGuidedSearch {
 	return &runGuidedSearch{
 		search: search,
@@ -50,10 +61,12 @@ func newRunGuidedSearch(search RunScheduler, run []event.EventId) *runGuidedSear
 	}
 }
 
-// Get the next event in the run. Will return RunEndedError if there are no more events in the run. Will return NoEventError if there are no more available events in any run.
-// The event returned must be an event that has been added during the current run.
+// Get the next event in the run.
+//
 // Will follow the provided run until it has been completed or until it is unable to find the next event.
 // After that the scheduler will begin to search the state space using teh provided search scheduler.
+//
+// Will return RunEndedError if there are no more events in the run.
 func (gs *runGuidedSearch) GetEvent() (event.Event, error) {
 	gs.Lock()
 	defer gs.Unlock()
@@ -73,7 +86,11 @@ func (gs *runGuidedSearch) GetEvent() (event.Event, error) {
 	}
 }
 
-// Add an event to the list of possible events
+// Implements the event adder interface.
+//
+// It must be safe to add events from different goroutines.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (gs *runGuidedSearch) AddEvent(evt event.Event) {
 	gs.Lock()
 	defer gs.Unlock()
@@ -84,6 +101,12 @@ func (gs *runGuidedSearch) AddEvent(evt event.Event) {
 	}
 }
 
+// Prepare for starting a new run.
+//
+// Returns a NoRunsError if all possible runs have been completed.
+// May block until new runs are available.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (gs *runGuidedSearch) StartRun() error {
 	gs.Lock()
 	defer gs.Unlock()
@@ -96,7 +119,12 @@ func (gs *runGuidedSearch) StartRun() error {
 	return gs.search.StartRun()
 }
 
-// Finish the current run and prepare for the next one
+// Finish the current run and prepare for the next one.
+//
+// Will always be called after a run has been completely executed,
+// even if an error occurred during execution of the run.
+// StartRun, EndRun and GetEvent will always be called from the same goroutine,
+// but not from the same goroutine as AddEvent.
 func (gs *runGuidedSearch) EndRun() {
 	gs.search.EndRun()
 	gs.guided.EndRun()
