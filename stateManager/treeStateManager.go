@@ -10,9 +10,10 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// A type that manages the state of several runs of the same system and represent all discovered states of the system.
-// The TreeStateManger waits for completed runs on the send channel. Once they are received they are added to the state tree that is used to represent the state space.
-// After calling Stop() the send channel will be closed and the TreeStateManager will no longer add new runs to the state tree
+// Organizes the discovered StateSpace as a tree structure
+//
+// Collect the discovered runs as a tree with the initial state as the root.
+// A path from the root to a leaf node is one run.
 type TreeStateManager[T, S any] struct {
 	sync.RWMutex
 	stateRoot *tree.Tree[state.GlobalState[S]]
@@ -21,6 +22,10 @@ type TreeStateManager[T, S any] struct {
 	stateEq       func(S, S) bool
 }
 
+// Create a new TreeStateManager
+//
+// The TreeStateManager is configured with a function collecting the local state from a node
+// and a function checking the equality of two states.
 func NewTreeStateManager[T, S any](getLocalState func(*T) S, stateEq func(S, S) bool) *TreeStateManager[T, S] {
 	return &TreeStateManager[T, S]{
 		getLocalState: getLocalState,
@@ -28,13 +33,20 @@ func NewTreeStateManager[T, S any](getLocalState func(*T) S, stateEq func(S, S) 
 	}
 }
 
+// Adds the run to the discovered state space.
+//
+// Ïs safe to call from multiple goroutines.
 func (sm *TreeStateManager[T, S]) AddRun(run []state.GlobalState[S]) {
 	sm.Lock()
 	defer sm.Unlock()
-	currentTree := sm.stateRoot
+
 	if len(run) < 1 {
 		return
 	}
+
+	currentTree := sm.stateRoot
+	// If the tree has not been initialized:
+	// Initialize it with the initial state as the root
 	if currentTree == nil {
 		currentTree = sm.initStateTree(run[0])
 		sm.stateRoot = currentTree
