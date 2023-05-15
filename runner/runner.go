@@ -6,6 +6,9 @@ import (
 	"sync"
 )
 
+// The Runner Runs the algorithm in real time and records the execution of events.
+//
+// Each of the nodes maintains its own event loop where it executes events sequentially.
 type Runner[T, S any] struct {
 	sync.Mutex
 
@@ -15,6 +18,9 @@ type Runner[T, S any] struct {
 	resp chan error
 }
 
+// Create a new Runner
+//
+// recordChanBuffer specifies the size of the buffers for the record channels
 func NewRunner[T, S any](recordChanBuffer int) *Runner[T, S] {
 	return &Runner[T, S]{
 		rc: NewEventController[T, S](recordChanBuffer),
@@ -24,6 +30,14 @@ func NewRunner[T, S any](recordChanBuffer int) *Runner[T, S] {
 	}
 }
 
+// Start the Runner
+//
+// The Runner must be started before commands can be given to it.
+//
+// initNodes creates the nodes used when running the algorithm.
+// getState specifies how to collect the state of a node.
+// stop specifies how to stop the node when it crashes or when the running is stopped.
+// eventChanBuffer specifies how many pending events can be buffered by each node.
 func (r *Runner[T, S]) Start(initNodes func(sp eventManager.SimulationParameters) map[int]*T, getState func(*T) S, stop func(*T), eventChanBuffer int) {
 
 	nodes := initNodes(eventManager.SimulationParameters{
@@ -66,11 +80,17 @@ func (r *Runner[T, S]) SubscribeRecords() <-chan Record {
 	return r.rc.Subscribe()
 }
 
+// Stop the running of the algorithm
+//
+// Must be called after the running has been started.
 func (r *Runner[T, S]) Stop() error {
 	r.cmd <- stopCmd{}
 	return <-r.resp
 }
 
+// Send a request to a node.
+//
+// Must be called after the running has been started.
 func (r *Runner[T, S]) Request(req request.Request) error {
 	r.cmd <- requestCmd{
 		Id:     req.Id,
@@ -80,6 +100,9 @@ func (r *Runner[T, S]) Request(req request.Request) error {
 	return <-r.resp
 }
 
+// Pause the execution of events on the specified node.
+//
+// Must be called after the running has been started.
 func (r *Runner[T, S]) PauseNode(id int) error {
 	r.cmd <- pauseCmd{
 		Id: id,
@@ -87,6 +110,9 @@ func (r *Runner[T, S]) PauseNode(id int) error {
 	return <-r.resp
 }
 
+// Resume the execution of events on the specified node.
+//
+// Must be called after the running has been started.
 func (r *Runner[T, S]) ResumeNode(id int) error {
 	r.cmd <- resumeCmd{
 		Id: id,
@@ -94,6 +120,9 @@ func (r *Runner[T, S]) ResumeNode(id int) error {
 	return <-r.resp
 }
 
+// Crash the specified node.
+//
+// Must be called after the running has been started.
 func (r *Runner[T, S]) CrashNode(id int) error {
 	r.cmd <- crashCmd{
 		Id: id,
