@@ -5,7 +5,8 @@ import (
 	"reflect"
 )
 
-// Create a new Func object.
+// Create a new Request that will be sent to a node.
+//
 // Id: The id of the node
 // Method: The name of the method to be called on the node
 // Params: The parameters to be passed to the method

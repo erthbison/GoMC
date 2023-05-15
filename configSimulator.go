@@ -214,14 +214,24 @@ func IgnoreError() SimulatorOption {
 	return config.IgnoreErrorOption{}
 }
 
+// Optional parameters used to configure a simulation
 type RunOptions interface {
 	RunOpt()
 }
 
+// Specify the failure manager used for the Simulation
+//
+// Default value is a PerfectFailureManager with no node crashes.
 func WithFailureManager[T any](fm failureManager.FailureManger[T]) RunOptions {
 	return config.FailureManagerOption[T]{Fm: fm}
 }
 
+// Configure the simulation to use a PerfectFailureManager.
+//
+// The PerfectFailureManager implements the crash-stop failures in a synchronous system.
+// It imitates the behavior of the Perfect Failure Detector.
+//
+// Default value is a PerfectFailureManager with no node crashes.
 func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) RunOptions {
 	fm := failureManager.NewPerfectFailureManager(
 		crashFunc,
@@ -241,6 +251,8 @@ func WithStateManager[T, S any](sm stateManager.StateManager[T, S]) StateManager
 }
 
 // Use a TreeStateManager in the simulation.
+//
+// The TreeStateManager organizes the state in a tree structure, which is stored in memory.
 func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S, S) bool) StateManagerOption[T, S] {
 	sm := stateManager.NewTreeStateManager(getLocalState, statesEqual)
 	return StateManagerOption[T, S]{sm: sm}
@@ -256,7 +268,7 @@ func InitNodeFunc[T any](f func(sp eventManager.SimulationParameters) map[int]*T
 	return InitNodeOption[T]{f: f}
 }
 
-// Uses the provided function f to generate nodes with the provided id and add them to a map of the nodes.
+// Uses the provided function f to generate individual nodes with the provided id and add them to a map of the nodes.
 func InitSingleNode[T any](nodeIds []int, f func(id int, sp eventManager.SimulationParameters) *T) InitNodeOption[T] {
 	t := func(sp eventManager.SimulationParameters) map[int]*T {
 		nodes := map[int]*T{}
@@ -283,7 +295,7 @@ func WithPredicateChecker[S any](predicates ...checking.Predicate[S]) CheckerOpt
 	}
 }
 
-// Use a custom Checker to verify the algorithm.
+// Specify the Checker used to verify the algorithm.
 func WithChecker[S any](checker checking.Checker[S]) CheckerOption[S] {
 	return CheckerOption[S]{checker: checker}
 }
@@ -302,11 +314,19 @@ func WithRequests(requests ...request.Request) RequestOption {
 	return RequestOption{request: requests}
 }
 
-// Write the state to the writer
+// Add a writer that the state will be exported to
+//
+// Can be called multiple times.
+// Default value is no writers
 func Export(w io.Writer) RunOptions {
 	return config.ExportOption{W: w}
 }
 
-func WithStopFunction[T any](stop func(*T)) RunOptions {
+// Configures a function used to stop the nodes after a run.
+//
+// The function should clean up all operations of the nodes to avoid memory leaks across runs.
+//
+// Default value is empty function.
+func WithStopFunctionSimulator[T any](stop func(*T)) RunOptions {
 	return config.StopOption[T]{Stop: stop}
 }
