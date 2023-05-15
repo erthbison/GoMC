@@ -34,13 +34,16 @@ type RunnerController[T, S any] struct {
 //
 // recordChanBuffer specifies the buffer size of the channel used to receive records from the nodes.
 func NewEventController[T, S any](recordChanBuffer int) *RunnerController[T, S] {
+	// The event controller is initially stopped and is started when the main function is called,
+	stop := make(chan bool)
+	close(stop)
 	return &RunnerController[T, S]{
 		subscribeRecordChan: make(chan chan Record),
 		recordChanBuffer:    recordChanBuffer,
 
 		crashSubscribes: make(map[int]func(id int, status bool)),
 
-		stop: make(chan bool),
+		stop: stop,
 	}
 }
 
@@ -86,6 +89,8 @@ func (ec *RunnerController[T, S]) NextEvent(err error, id int) {
 // Starts the record loop that collects and forwards record.
 // Initializes the nodes and starts their separate main loops.
 func (ec *RunnerController[T, S]) MainLoop(nodes map[int]*T, eventChanBuffer int, crashFunc func(*T), getState func(*T) S) {
+	ec.stop = make(chan bool)
+
 	// Receive the records of events and states from the different nodes
 	inRecordChan := make(chan Record, ec.recordChanBuffer)
 	// Start the record loop that collects and forwards records
@@ -138,6 +143,9 @@ func (ec *RunnerController[T, S]) Stop() {
 	}
 	// Signal to the recordLoop to close all record channels
 	close(ec.stop)
+
+	// Remove the nodes.
+	ec.nodes = nil
 }
 
 // Pause the execution of events on the specified node.
