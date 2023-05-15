@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 )
 
+// Performs the simulation of runs
 type runSimulator[T, S any] struct {
 	sch scheduler.RunScheduler
 	sm  *stateManager.RunStateManager[T, S]
@@ -23,6 +24,10 @@ type runSimulator[T, S any] struct {
 	ignorePanics bool
 }
 
+// create a new runSimulator
+//
+// Configure a new runSimulator with a runScheduler, runStateManager and a RunFailureManager.
+// Also specify the max depth of the run and whether to ignore panics that occur when executing an event.
 func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *stateManager.RunStateManager[T, S], fm failureManager.RunFailureManager[T], maxDepth int, ignorePanics bool) *runSimulator[T, S] {
 	return &runSimulator[T, S]{
 		sch: sch,
@@ -37,6 +42,7 @@ func newRunSimulator[T, S any](sch scheduler.RunScheduler, sm *stateManager.RunS
 }
 
 // Main loop of the runSimulator.
+//
 // Continuously listens to the nextRun channel and starts simulating a new run each time it receives a signal.
 // Stops simulating runs when the channel is closed or when a scheduler.NoRunsError is returned.
 // Sends the status of each run on the status channel.
@@ -56,6 +62,10 @@ func (rs *runSimulator[T, S]) SimulateRuns(nextRun chan bool, status chan error,
 	closing <- true
 }
 
+// Simulate a run
+//
+// Simulating consists of three parts: initialization, execution and teardown of the run.
+// teardown of the run is always called after the run, even if errors occur.
 func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 	nodes, err := rs.initRun(cfg.initNodes, cfg.requests...)
 	if err != nil {
@@ -72,6 +82,11 @@ func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 	return nil
 }
 
+// Initialization of a run
+//
+// Creates the nodes and collects the initial state.
+// prepares the scheduler and the failure manager for the new run.
+// schedules new requests.
 func (rs *runSimulator[T, S]) initRun(initNodes func(sp eventManager.SimulationParameters) map[int]*T, requests ...request.Request) (map[int]*T, error) {
 	nodes := initNodes(eventManager.SimulationParameters{
 		NextEvt:        rs.nextEvent,
@@ -97,12 +112,27 @@ func (rs *runSimulator[T, S]) initRun(initNodes func(sp eventManager.SimulationP
 	return nodes, nil
 }
 
-func (rs *runSimulator[T, S]) nextEvent(err error, _ int) {
-	rs.nextEvt <- err
+// Teardown the current run.
+//
+// This includes indicating to the scheduler and state manager that the run has ended.
+// Also ensure that all nodes are no longer running.
+func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, stopFunc func(*T)) {
+	// Call end run on scheduler and state manager
+	rs.sch.EndRun()
+	rs.sm.EndRun()
+
+	// Stop all  nodes
+	// What happens if nodes is a nil map???
+	// Will not iterate over nil map. No problems.
+	for _, node := range nodes {
+		stopFunc(node)
+	}
 }
 
+// Execute the run
+//
 // Schedules and executes new events until either the scheduler returns a RunEndedError or there is an error during execution of an event.
-// If there is an error during the execution it returns the error, otherwise it returns nil
+// If there is any other error during the execution it returns the error, otherwise it returns nil
 // Uses the state manager to get the global state of the system after the execution of each event
 func (rs *runSimulator[T, S]) executeRun(nodes map[int]*T) error {
 	depth := 0
@@ -128,6 +158,8 @@ func (rs *runSimulator[T, S]) executeRun(nodes map[int]*T) error {
 	return nil
 }
 
+// Execute an event on the provided node
+//
 // Executes the provided event on the provided node in a separate goroutine and returns the error.
 // Blocks until the event has been executed and a signal is received on the NextEvt channel
 func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
@@ -147,6 +179,9 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	return <-rs.nextEvt
 }
 
+// Add the requests to the scheduler.
+//
+// Discards the request if the target node of the request is not a valid node
 func (rs *runSimulator[T, S]) scheduleRequests(requests []request.Request, nodes map[int]*T) error {
 	// add all the functions to the scheduler
 	addedRequests := 0
@@ -167,20 +202,9 @@ func (rs *runSimulator[T, S]) scheduleRequests(requests []request.Request, nodes
 	return nil
 }
 
-// Teardown the current run
-// This includes indicating to the scheduler and state manager that the run has ended
-// Also ensure that all nodes are no longer running
-func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, stopFunc func(*T)) {
-	// Call end run on scheduler and state manager
-	rs.sch.EndRun()
-	rs.sm.EndRun()
-
-	// Stop all  nodes
-	// What happens if nodes is a nil map???
-	// Will not iterate over nil map. No problems.
-	for _, node := range nodes {
-		stopFunc(node)
-	}
+// Signal the status of the event to the runSimulator.
+func (rs *runSimulator[T, S]) nextEvent(status error, _ int) {
+	rs.nextEvt <- status
 }
 
 // Stores the parameters used to start a run.

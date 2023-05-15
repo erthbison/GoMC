@@ -9,21 +9,9 @@ import (
 	"gomc/stateManager"
 )
 
-/*
-	Requirements of nodes:
-		- Must call the Send function with the required input when sending a message.
-		- The message type in the Send function must correspond to a method of the node, whose arguments must match the args passed to the send function.
-		- All functions must run to completion without waiting for a response from the tester
-*/
-
-type simulationError struct {
-	errorSlice []error
-}
-
-func (se simulationError) Error() string {
-	return fmt.Sprintf("Simulator: %v Errors occurred running simulations. \nError 1: %v", len(se.errorSlice), se.errorSlice[0])
-}
-
+// Simulates the a distributed algorithm
+//
+// Executed all events in the distributed system in a sequential order.
 type Simulator[T any, S any] struct {
 
 	// The scheduler keeps track of the events and selects the next event to be executed
@@ -42,9 +30,21 @@ type Simulator[T any, S any] struct {
 	numConcurrent int
 }
 
+// Create a mew simulator
+//
+// Configure the simulator with the Scheduler and the StateManager used for the simulation.
+//
+// ignoreErrors specifies whether to ignore errors. If errors are ignored the simulation will continue simulating runs even if errors occur in some runs.
+// A summary of the errors will be provided at the end.
+//
+// ignorePanics specifies whether to ignore panics. If panics are ignored the simulation will catch panics that occur when executing events and return them.
+//
+// maxRuns specifies the maximum number of runs to be simulated.
+//
+// maxDepth specifies the maximum depth of the simulation, i.e. the number of events in a run
+//
+// numConcurrent specifies the maximum number of runs that are concurrently simulated.
 func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, sm stateManager.StateManager[T, S], ignoreErrors bool, ignorePanics bool, maxRuns int, maxDepth int, numConcurrent int) *Simulator[T, S] {
-	// Create a crash manager and make the scheduler subscribe to node crash messages
-
 	return &Simulator[T, S]{
 		Scheduler: sch,
 		sm:        sm,
@@ -59,10 +59,17 @@ func NewSimulator[T any, S any](sch scheduler.GlobalScheduler, sm stateManager.S
 }
 
 // Run the simulations of the algorithm.
-// initNodes: is a function that generates the nodes used and returns them in a map with the id as a key and the node as the value
-// funcs: is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
+//
+// fm configures the failure manager used when simulating.
+//
+// initNodes is a function that generates the nodes used and returns them in a map with the id as a key and the node as the value.
+//
+// stopFunc is a function specifying how to stop and cleanup the node after the execution of a run.
+//
+// requests is a variadic arguments of functions that will be scheduled as events by the scheduler. These are used to start the execution of the argument and can represent commands or requests to the service.
 // At least one function must be provided for the simulation to start. Otherwise the simulator returns an error.
-// Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation
+//
+// Simulate returns nil if the it runs to completion or reaches the max number of runs. It returns an error if it was unable to complete the simulation.
 func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes func(eventManager.SimulationParameters) map[int]*T, stopFunc func(*T), requests ...request.Request) error {
 	if len(requests) < 1 {
 		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
@@ -89,7 +96,7 @@ func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes 
 
 	ongoing := 0
 	startedRuns := 0
-	for i := 0; i < s.numConcurrent; i++ {
+	for ongoing < s.numConcurrent {
 		ongoing++
 		rsch := s.Scheduler.GetRunScheduler()
 		rsim := newRunSimulator(rsch, s.sm.GetRunStateManager(), fm.GetRunFailureManager(rsch), s.maxDepth, s.ignorePanics)
@@ -107,6 +114,10 @@ func (s Simulator[T, S]) Simulate(fm failureManager.FailureManger[T], initNodes 
 	return s.mainLoop(ongoing, startedRuns, nextRun, status, closing)
 }
 
+// The main loop of the simulation.
+//
+// Manages the simulation of runs and coordinates the runSimulators.
+//
 // Receives status updates from each of the runSimulators. One status update for each completed run.
 // Processes the status updates and signals for the runSimulator to begin simulating the next run.
 // Does not start new simulations if more than maxRuns simulations has been started.
