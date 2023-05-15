@@ -6,20 +6,33 @@ import (
 	"runtime"
 
 	"gomc/checking"
+	"gomc/config"
 	"gomc/event"
 	"gomc/failureManager"
 	"gomc/scheduler"
 	"gomc/stateManager"
 )
 
+// Prepare simulation with initial configuration.
+//
+// Initializes the simulator with the necessary parameters.
+// See the SimulatorOptions for a full overview of possible options.
+// Default values will be used if no value is provided.
+// Default scheduler is PrefixScheduler.
 func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...SimulatorOption) Simulation[T, S] {
 	var (
-		maxRuns  = 10000
-		maxDepth = 1000
+		// Maximum number of runs simulated
+		maxRuns = 10000
+
+		// Maximum number of events in a run
+		maxDepth = 100
+
 		// number of runs that is simulated at the same time
 		numConcurrent = runtime.GOMAXPROCS(0) // Will not change GOMAXPROCS but only return the current value
+
 		// If true will ignore all errors while simulating runs. Will return aggregate of errors at the end. If false will interrupt simulation if an error occur
 		ignoreErrors = false
+
 		// If true will ignore panics that occur during the simulation and let them execute as normal, stopping the simulation. If false will catch the panic and return it as an error.
 		// ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
 		ignorePanics = false
@@ -27,25 +40,27 @@ func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...Simula
 		sch scheduler.GlobalScheduler
 	)
 
-	sch = scheduler.NewPrefix()
-
 	// Use the simulator options to configure
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case schedulerOption:
-			sch = t.sch
-		case maxRunsOption:
-			maxRuns = t.maxRuns
-		case maxDepthOption:
-			maxDepth = t.maxDepth
-		case numConcurrentOption:
-			numConcurrent = t.n
-		case ignoreErrorOption:
+		case config.SchedulerOption:
+			sch = t.Sch
+		case config.MaxRunsOption:
+			maxRuns = t.MaxRuns
+		case config.MaxDepthOption:
+			maxDepth = t.MaxDepth
+		case config.NumConcurrentOption:
+			numConcurrent = t.N
+		case config.IgnoreErrorOption:
 			ignoreErrors = true
-		case ignorePanicOption:
+		case config.IgnorePanicOption:
 			ignorePanics = true
 		}
 	}
+	if sch == nil {
+		sch = scheduler.NewPrefix()
+	}
+
 	sm := smOpts.sm
 
 	sim := NewSimulator(sch, sm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
@@ -55,11 +70,22 @@ func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...Simula
 	}
 }
 
+// Stores the configured Simulator.
+//
+// Can be used to run multiple simulations.
+// A simulation is started by calling the Run method.
+// Only one simulation can be run at a time.
 type Simulation[T, S any] struct {
 	sim *Simulator[T, S]
 	sm  stateManager.StateManager[T, S]
 }
 
+// Run the simulation of the algorithm.
+//
+// The InitNodeOption, requestOption and CheckerOptions are mandatory.
+// All RunOptions are optional. Default values will be used if no values are provided.
+//
+// Returns a checking.CheckerResponse type containing the results of the simulation
 func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, checker CheckerOption[S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
@@ -71,17 +97,20 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 
 		fm failureManager.FailureManger[T]
 	)
-	fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
 
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case stopOption[T]:
-			stopFunc = t.stop
-		case exportOption:
-			export = append(export, t.w)
-		case failureManagerOption[T]:
-			fm = t.fm
+		case config.StopOption[T]:
+			stopFunc = t.Stop
+		case config.ExportOption:
+			export = append(export, t.W)
+		case config.FailureManagerOption[T]:
+			fm = t.Fm
 		}
+	}
+
+	if fm == nil {
+		fm = failureManager.NewPerfectFailureManager(func(t *T) {}, []int{})
 	}
 
 	requests = append(requests, requestOpts.request...)
@@ -102,51 +131,11 @@ func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestO
 	return checker.checker.Check(state)
 }
 
-func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunOptions) *Runner[T, S] {
-	var (
-		stop = func(*T) {}
-
-		eventChanBuffer  = 100
-		recordChanBuffer = 100
-	)
-
-	for _, opt := range opts {
-		switch t := opt.(type) {
-		case stopOption[T]:
-			stop = t.stop
-		case eventChanBufferOption:
-			eventChanBuffer = t.size
-		case recordChanBufferOption:
-			recordChanBuffer = t.size
-		}
-	}
-
-	r := NewRunner[T, S](
-		recordChanBuffer,
-	)
-
-	r.Start(
-		initNodes.f,
-		getState.getState,
-		stop,
-		eventChanBuffer,
-	)
-	return r
+// A option used to configure the Simulator
+type SimulatorOption interface {
+	// noop method
+	SimOpt()
 }
-
-type GetStateOption[T, S any] struct {
-	getState func(*T) S
-}
-
-func WithStateFunction[T, S any](f func(*T) S) GetStateOption[T, S] {
-	return GetStateOption[T, S]{getState: f}
-}
-
-type schedulerOption struct {
-	sch scheduler.GlobalScheduler
-}
-
-func (so schedulerOption) simOpt() {}
 
 // Use a random walk scheduler for the simulation.
 //
@@ -156,7 +145,7 @@ func (so schedulerOption) simOpt() {}
 // It does not guarantee that all runs have been tested, nor does it guarantee that the same run will not be simulated multiple times.
 // Generally, it provides a more even/varied exploration of the state space than systematic exploration
 func RandomWalkScheduler(seed int64) SimulatorOption {
-	return schedulerOption{sch: scheduler.NewRandom(seed)}
+	return config.SchedulerOption{Sch: scheduler.NewRandom(seed)}
 }
 
 // Use a prefix scheduler for the simulation.
@@ -164,7 +153,7 @@ func RandomWalkScheduler(seed int64) SimulatorOption {
 // The prefix scheduler is a systematic tester, that performs a depth first search of the state space.
 // It will stop when the entire state space is explored and will not schedule identical runs.
 func PrefixScheduler() SimulatorOption {
-	return schedulerOption{sch: scheduler.NewPrefix()}
+	return config.SchedulerOption{Sch: scheduler.NewPrefix()}
 }
 
 // Use a replay scheduler for the simulation
@@ -172,58 +161,38 @@ func PrefixScheduler() SimulatorOption {
 // The replay scheduler replays the provided run, returning an error if it is unable to reproduce it
 // The provided run is represented as a slice of event ids, and can be exported using the CheckerResponse.Export()
 func ReplayScheduler(run []event.EventId) SimulatorOption {
-	return schedulerOption{sch: scheduler.NewReplay(run)}
+	return config.SchedulerOption{Sch: scheduler.NewReplay(run)}
 }
 
 // Use the provided scheduler for the simulation
 //
 // Used to configure the simulation to use a different implementation of scheduler than is commonly provided
 func WithScheduler(sch scheduler.GlobalScheduler) SimulatorOption {
-	return schedulerOption{sch: sch}
+	return config.SchedulerOption{Sch: sch}
 }
-
-type SimulatorOption interface {
-	simOpt()
-}
-
-type maxRunsOption struct{ maxRuns int }
-
-func (mro maxRunsOption) simOpt() {}
 
 // Configure the maximum number of runs simulated
 //
 // Default value is 10000
 func MaxRuns(maxRuns int) SimulatorOption {
-	return maxRunsOption{maxRuns: maxRuns}
+	return config.MaxRunsOption{MaxRuns: maxRuns}
 }
-
-type maxDepthOption struct{ maxDepth int }
-
-func (mdo maxDepthOption) simOpt() {}
 
 // Configure the maximum depth explored.
 //
-// Default value is 1000.
+// Default value is 100.
 //
 // Note that liveness properties can not be verified if a run is not fully explored to its end.
 func MaxDepth(maxDepth int) SimulatorOption {
-	return maxDepthOption{maxDepth: maxDepth}
+	return config.MaxDepthOption{MaxDepth: maxDepth}
 }
-
-type numConcurrentOption struct{ n int }
-
-func (nco numConcurrentOption) simOpt() {}
 
 // Configure the number of runs that will be executed concurrently.
 //
 // Default value is GOMAXPROCS
 func NumConcurrent(n int) SimulatorOption {
-	return numConcurrentOption{n: n}
+	return config.NumConcurrentOption{N: n}
 }
-
-type ignorePanicOption struct{}
-
-func (ipo ignorePanicOption) simOpt() {}
 
 // Set the ignorePanic flag to true.
 //
@@ -231,33 +200,23 @@ func (ipo ignorePanicOption) simOpt() {}
 // If false will catch the panic and return it as an error.
 // Ignoring the panic will make it easier to troubleshoot the error since you can use the debugger to inspect the state when it panics. It will also make the simulation stop.
 func IgnorePanic() SimulatorOption {
-	return ignorePanicOption{}
+	return config.IgnorePanicOption{}
 }
-
-type ignoreErrorOption struct{}
-
-func (ieo ignoreErrorOption) simOpt() {}
 
 // Set the ignoreError flag to true.
 //
 // If true will ignore all errors while simulating runs. Will return aggregate of errors at the end.
 // If false will interrupt simulation if an error occur.
 func IgnoreError() SimulatorOption {
-	return ignoreErrorOption{}
-}
-
-type failureManagerOption[T any] struct {
-	fm failureManager.FailureManger[T]
+	return config.IgnoreErrorOption{}
 }
 
 type RunOptions interface {
-	runOpt()
+	RunOpt()
 }
 
-func (fmo failureManagerOption[T]) runOpt() {}
-
 func WithFailureManager[T any](fm failureManager.FailureManger[T]) RunOptions {
-	return failureManagerOption[T]{fm: fm}
+	return config.FailureManagerOption[T]{Fm: fm}
 }
 
 func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) RunOptions {
@@ -265,9 +224,10 @@ func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) R
 		crashFunc,
 		failingNodes,
 	)
-	return failureManagerOption[T]{fm: fm}
+	return config.FailureManagerOption[T]{Fm: fm}
 }
 
+// Configure the StateManager used to manage the state of the distributed system.
 type StateManagerOption[T, S any] struct {
 	sm stateManager.StateManager[T, S]
 }
@@ -305,67 +265,45 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters
 	return InitNodeOption[T]{f: t}
 }
 
+// Configures the Checker to be used when verifying the algorithm.
 type CheckerOption[S any] struct {
 	checker checking.Checker[S]
 }
 
+// Use a PredicateChecker to verify the algorithm.
+//
+// The predicate checker uses functions to define the properties of the algorithm.
+// functions are provided as the checking.Predicate type.
 func WithPredicateChecker[S any](predicates ...checking.Predicate[S]) CheckerOption[S] {
 	return CheckerOption[S]{
 		checker: checking.NewPredicateChecker(predicates...),
 	}
 }
 
+// Use a custom Checker to verify the algorithm.
 func WithChecker[S any](checker checking.Checker[S]) CheckerOption[S] {
 	return CheckerOption[S]{checker: checker}
 }
 
+// Configures the requests to the distributed system.
+//
+// The request are used to start the simulation and define the scenario of the simulation.
 type RequestOption struct {
 	request []Request
 }
 
+// Configures the requests to the distributed system.
+//
+// The request are used to start the simulation and define the scenario of the simulation.
 func WithRequests(requests ...Request) RequestOption {
 	return RequestOption{request: requests}
 }
 
-type exportOption struct {
-	w io.Writer
-}
-
-func (eo exportOption) runOpt() {}
-
 // Write the state to the writer
 func Export(w io.Writer) RunOptions {
-	return exportOption{w: w}
+	return config.ExportOption{W: w}
 }
-
-// Configure a function to shut down a node after the execution of a run.
-// Default value is an empty function.
-type stopOption[T any] struct {
-	stop func(*T)
-}
-
-func (so stopOption[T]) runOpt() {}
 
 func WithStopFunction[T any](stop func(*T)) RunOptions {
-	return stopOption[T]{stop: stop}
-}
-
-type recordChanBufferOption struct {
-	size int
-}
-
-func (opt recordChanBufferOption) runOpt() {}
-
-func RecordChanSize(size int) RunOptions {
-	return recordChanBufferOption{size: size}
-}
-
-type eventChanBufferOption struct {
-	size int
-}
-
-func (opt eventChanBufferOption) runOpt() {}
-
-func EventChanBufferSize(size int) RunOptions {
-	return eventChanBufferOption{size: size}
+	return config.StopOption[T]{Stop: stop}
 }
