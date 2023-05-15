@@ -27,7 +27,7 @@ func TestGrpcConsensusCreateReplay(t *testing.T) {
 		gomc.WithPerfectFailureManager(
 			func(t *GrpcConsensus) { t.Stop() }, 1,
 		),
-		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+		gomc.WithStopFunctionSimulator(func(t *GrpcConsensus) { t.Stop() }),
 	)
 
 	fmt.Println()
@@ -68,7 +68,7 @@ func TestReplayConsensus(t *testing.T) {
 		gomc.WithPerfectFailureManager(
 			func(t *GrpcConsensus) { t.Stop() }, 1,
 		),
-		gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+		gomc.WithStopFunctionSimulator(func(t *GrpcConsensus) { t.Stop() }),
 	)
 
 	fmt.Println()

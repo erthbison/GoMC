@@ -141,7 +141,7 @@ func TestMultiPaxosSim(t *testing.T) {
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(func(t *MultiPaxos) { t.Stop() }, 3),
-		gomc.WithStopFunction(func(t *MultiPaxos) { t.Stop() }),
+		gomc.WithStopFunctionSimulator(func(t *MultiPaxos) { t.Stop() }),
 		gomc.Export(w),
 	)
 	if ok, text := resp.Response(); !ok {

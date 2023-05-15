@@ -87,6 +87,7 @@ func main() {
 				decided:  t.Decided,
 			}
 		}),
+		gomc.WithStopFunctionRunner(func(t *paxos.Server) { t.Stop() }),
 	)
 
 	wait := new(sync.WaitGroup)

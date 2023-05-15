@@ -164,7 +164,7 @@ func TestGrpcConsensusPrefix(t *testing.T) {
 			gomc.WithRequests(requests...),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(func(t *GrpcConsensus) { t.Stop() }, test.crashedNodes...),
-			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+			gomc.WithStopFunctionSimulator(func(t *GrpcConsensus) { t.Stop() }),
 		)
 		duration := time.Since(start)
 		_, desc := resp.Response()
@@ -189,7 +189,7 @@ func TestGrpcConsensusRandom(t *testing.T) {
 			gomc.WithRequests(requests...),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(func(t *GrpcConsensus) { t.Stop() }, test.crashedNodes...),
-			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+			gomc.WithStopFunctionSimulator(func(t *GrpcConsensus) { t.Stop() }),
 		)
 		duration := time.Since(start)
 		_, desc := resp.Response()

@@ -132,7 +132,7 @@ func TestPaxosSim(t *testing.T) {
 		),
 		gomc.WithPredicateChecker(predicates...),
 		gomc.WithPerfectFailureManager(func(t *Server) { t.Stop() }, 5, 1),
-		gomc.WithStopFunction(func(t *Server) { t.Stop() }),
+		gomc.WithStopFunctionSimulator(func(t *Server) { t.Stop() }),
 		gomc.Export(w),
 	)
 	if ok, text := resp.Response(); !ok {

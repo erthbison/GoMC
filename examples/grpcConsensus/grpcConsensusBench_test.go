@@ -25,7 +25,7 @@ func BenchmarkConsensus(b *testing.B) {
 			gomc.WithPerfectFailureManager(
 				func(t *GrpcConsensus) { t.Stop() }, 2,
 			),
-			gomc.WithStopFunction(func(t *GrpcConsensus) { t.Stop() }),
+			gomc.WithStopFunctionSimulator(func(t *GrpcConsensus) { t.Stop() }),
 		)
 	}
 }
