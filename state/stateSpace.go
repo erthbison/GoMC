@@ -27,6 +27,8 @@ type StateSpace[S any] interface {
 
 // A StateSpace that organizes the states in a tree structure.
 //
+// The root of the tree is the initial state of the system.
+// The children of a node is the states that came after the current state in some of the runs.
 // Exports the StateSpace as a Newick representation of the tree, with parenthesis around the payload.
 // A wrapper around the Tree structure so that it implements the StateSpace interface
 type TreeStateSpace[S any] struct {
