@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"gomc"
-	"gomc/checking"
-	"gomc/eventManager"
 	"os"
 	"testing"
 
 	"golang.org/x/exp/slices"
+
+	"gomc"
+	"gomc/checking"
+	"gomc/eventManager"
 )
 
 type state struct {
@@ -81,8 +82,8 @@ func TestConsensus(t *testing.T) {
 	nodeIds := []int{1, 2, 3}
 	resp := sim.Run(
 		gomc.InitSingleNode(nodeIds,
-			func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
-				send := eventManager.NewSender(sp.EventAdder)
+			func(id int, sp eventManager.SimulationParameters) *HierarchicalConsensus[int] {
+				send := eventManager.NewSender(sp)
 				node := NewHierarchicalConsensus[int](
 					id,
 					nodeIds,

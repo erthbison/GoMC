@@ -8,8 +8,11 @@ import (
 	"gomc/checking"
 	"gomc/config"
 	"gomc/event"
+	"gomc/eventManager"
 	"gomc/failureManager"
+	"gomc/request"
 	"gomc/scheduler"
+	"gomc/simulator"
 	"gomc/stateManager"
 )
 
@@ -63,7 +66,7 @@ func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...Simula
 
 	sm := smOpts.sm
 
-	sim := NewSimulator(sch, sm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
+	sim := simulator.NewSimulator(sch, sm, ignoreErrors, ignorePanics, maxRuns, maxDepth, numConcurrent)
 	return Simulation[T, S]{
 		sim: sim,
 		sm:  sm,
@@ -76,7 +79,7 @@ func PrepareSimulation[T, S any](smOpts StateManagerOption[T, S], opts ...Simula
 // A simulation is started by calling the Run method.
 // Only one simulation can be run at a time.
 type Simulation[T, S any] struct {
-	sim *Simulator[T, S]
+	sim *simulator.Simulator[T, S]
 	sm  stateManager.StateManager[T, S]
 }
 
@@ -89,7 +92,7 @@ type Simulation[T, S any] struct {
 func (sr Simulation[T, S]) Run(InitNodes InitNodeOption[T], requestOpts RequestOption, checker CheckerOption[S], opts ...RunOptions) checking.CheckerResponse {
 	// If incorrectNodes is not provided use an empty slice
 	var (
-		requests = []Request{}
+		requests = []request.Request{}
 
 		export []io.Writer
 
@@ -245,17 +248,17 @@ func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S
 
 // Used to specify how the nodes are started.
 type InitNodeOption[T any] struct {
-	f func(SimulationParameters) map[int]*T
+	f func(eventManager.SimulationParameters) map[int]*T
 }
 
 // Uses the provided function f to generate a map of the nodes.
-func InitNodeFunc[T any](f func(sp SimulationParameters) map[int]*T) InitNodeOption[T] {
+func InitNodeFunc[T any](f func(sp eventManager.SimulationParameters) map[int]*T) InitNodeOption[T] {
 	return InitNodeOption[T]{f: f}
 }
 
 // Uses the provided function f to generate nodes with the provided id and add them to a map of the nodes.
-func InitSingleNode[T any](nodeIds []int, f func(id int, sp SimulationParameters) *T) InitNodeOption[T] {
-	t := func(sp SimulationParameters) map[int]*T {
+func InitSingleNode[T any](nodeIds []int, f func(id int, sp eventManager.SimulationParameters) *T) InitNodeOption[T] {
+	t := func(sp eventManager.SimulationParameters) map[int]*T {
 		nodes := map[int]*T{}
 		for _, id := range nodeIds {
 			nodes[id] = f(id, sp)
@@ -289,13 +292,13 @@ func WithChecker[S any](checker checking.Checker[S]) CheckerOption[S] {
 //
 // The request are used to start the simulation and define the scenario of the simulation.
 type RequestOption struct {
-	request []Request
+	request []request.Request
 }
 
 // Configures the requests to the distributed system.
 //
 // The request are used to start the simulation and define the scenario of the simulation.
-func WithRequests(requests ...Request) RequestOption {
+func WithRequests(requests ...request.Request) RequestOption {
 	return RequestOption{request: requests}
 }
 

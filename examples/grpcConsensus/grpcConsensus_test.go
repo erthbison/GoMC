@@ -9,6 +9,7 @@ import (
 	"gomc"
 	"gomc/checking"
 	"gomc/eventManager"
+	"gomc/request"
 
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
@@ -62,12 +63,12 @@ var addrMap = map[int32]string{
 	3: ":50002",
 }
 
-func createNodes(addrMap map[int32]string) func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
+func createNodes(addrMap map[int32]string) func(sp eventManager.SimulationParameters) map[int]*GrpcConsensus {
 	var addrToIdMap = map[string]int{}
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
 	}
-	return func(sp gomc.SimulationParameters) map[int]*GrpcConsensus {
+	return func(sp eventManager.SimulationParameters) map[int]*GrpcConsensus {
 		gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
 		lisMap := map[string]*bufconn.Listener{}
 		for _, addr := range addrMap {
@@ -153,7 +154,7 @@ func TestGrpcConsensusPrefix(t *testing.T) {
 	)
 
 	for i, test := range simulations {
-		requests := []gomc.Request{}
+		requests := []request.Request{}
 		for id, addr := range test.nodes {
 			requests = append(requests, gomc.NewRequest(int(id), "Propose", addr))
 		}
@@ -178,7 +179,7 @@ func TestGrpcConsensusRandom(t *testing.T) {
 	)
 
 	for i, test := range simulations {
-		requests := []gomc.Request{}
+		requests := []request.Request{}
 		for id, addr := range test.nodes {
 			requests = append(requests, gomc.NewRequest(int(id), "Propose", addr))
 		}

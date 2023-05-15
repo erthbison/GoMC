@@ -1,9 +1,11 @@
-package gomc
+package simulator
 
 import (
 	"fmt"
 	"gomc/event"
+	"gomc/eventManager"
 	"gomc/failureManager"
+	"gomc/request"
 	"gomc/stateManager"
 	"reflect"
 	"testing"
@@ -19,7 +21,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 	simulator := NewSimulator[MockNode, State](sch, sm, false, false, 10000, 1000, 1)
 	err := simulator.Simulate(
 		fm,
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
 		func(t *MockNode) {},
@@ -30,7 +32,7 @@ func TestSimulatorNoEvents(t *testing.T) {
 
 	err = simulator.Simulate(
 		fm,
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}}
 		},
 		func(t *MockNode) {},
@@ -124,22 +126,22 @@ var teardownTest = []struct {
 var emptyParams = []reflect.Value{}
 
 var addRequestTests = []struct {
-	requests []Request
+	requests []request.Request
 	nodes    map[int]*MockNode
 	events   []event.FunctionEvent
 	err      bool
 }{
 	{
-		[]Request{},
+		[]request.Request{},
 		map[int]*MockNode{},
 		[]event.FunctionEvent{},
 		true,
 	},
 	{
-		[]Request{
-			{0, "Foo", emptyParams},
-			{1, "Foo", emptyParams},
-			{0, "Foo", emptyParams},
+		[]request.Request{
+			{Id: 0, Method: "Foo", Params: emptyParams},
+			{Id: 1, Method: "Foo", Params: emptyParams},
+			{Id: 0, Method: "Foo", Params: emptyParams},
 		},
 		map[int]*MockNode{0: {}, 1: {}},
 		[]event.FunctionEvent{
@@ -150,10 +152,10 @@ var addRequestTests = []struct {
 		false,
 	},
 	{
-		[]Request{
-			{5, "Foo", []reflect.Value{}},
-			{1, "Foo", []reflect.Value{}},
-			{10, "Foo", []reflect.Value{}},
+		[]request.Request{
+			{Id: 5, Method: "Foo", Params: []reflect.Value{}},
+			{Id: 1, Method: "Foo", Params: []reflect.Value{}},
+			{Id: 10, Method: "Foo", Params: []reflect.Value{}},
 		},
 		map[int]*MockNode{0: {}, 1: {}},
 		[]event.FunctionEvent{
@@ -162,10 +164,10 @@ var addRequestTests = []struct {
 		false,
 	},
 	{
-		[]Request{
-			{5, "Foo", []reflect.Value{}},
-			{1, "Foo", []reflect.Value{}},
-			{10, "Foo", []reflect.Value{}},
+		[]request.Request{
+			{Id: 5, Method: "Foo", Params: []reflect.Value{}},
+			{Id: 1, Method: "Foo", Params: []reflect.Value{}},
+			{Id: 10, Method: "Foo", Params: []reflect.Value{}},
 		},
 		map[int]*MockNode{0: {}, 3: {}},
 		[]event.FunctionEvent{},
@@ -344,9 +346,9 @@ func TestInitRun(t *testing.T) {
 }
 
 var initRunTest = []struct {
-	initNodes    func(SimulationParameters) map[int]*MockNode
+	initNodes    func(eventManager.SimulationParameters) map[int]*MockNode
 	failingNodes []int
-	requests     []Request
+	requests     []request.Request
 	runEnded     bool
 
 	expectedError  bool
@@ -354,11 +356,15 @@ var initRunTest = []struct {
 	expectedEvents []event.Event
 }{
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 1: {}, 2: {}}
 		},
 		[]int{},
-		[]Request{NewRequest(0, "Foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		false,
 
 		false,
@@ -368,11 +374,11 @@ var initRunTest = []struct {
 		},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 1: {}, 2: {}}
 		},
 		[]int{},
-		[]Request{},
+		[]request.Request{},
 		false,
 
 		true,
@@ -380,11 +386,15 @@ var initRunTest = []struct {
 		[]event.Event{},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 1: {val: 3}, 2: {val: 5}}
 		},
 		[]int{},
-		[]Request{NewRequest(0, "Foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		false,
 
 		false,
@@ -394,11 +404,15 @@ var initRunTest = []struct {
 		},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
 		},
 		[]int{},
-		[]Request{NewRequest(0, "Foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		false,
 
 		false,
@@ -408,11 +422,15 @@ var initRunTest = []struct {
 		},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
 		},
 		[]int{3, 5},
-		[]Request{NewRequest(0, "Foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		false,
 
 		false,
@@ -424,11 +442,18 @@ var initRunTest = []struct {
 		},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
 		},
 		[]int{3, 5, 10},
-		[]Request{NewRequest(0, "Foo"), NewRequest(2, "foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+			{
+				Id: 2, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		false,
 
 		false,
@@ -440,11 +465,18 @@ var initRunTest = []struct {
 		},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
 		},
 		[]int{3, 5, 10},
-		[]Request{NewRequest(0, "Foo"), NewRequest(2, "foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+			{
+				Id: 2, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		true,
 
 		true,
@@ -452,11 +484,15 @@ var initRunTest = []struct {
 		[]event.Event{},
 	},
 	{
-		func(sp SimulationParameters) map[int]*MockNode {
+		func(sp eventManager.SimulationParameters) map[int]*MockNode {
 			return map[int]*MockNode{0: {}, 5: {val: 3}, 3: {val: 5}}
 		},
 		[]int{},
-		[]Request{NewRequest(0, "Foo")},
+		[]request.Request{
+			{
+				Id: 0, Method: "Foo", Params: []reflect.Value{},
+			},
+		},
 		true,
 
 		true,

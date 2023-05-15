@@ -14,10 +14,10 @@ type SleepManager struct {
 }
 
 // Create a SleepManager with the provided EventAdder and nextEvent function
-func NewSleepManager(ea EventAdder, nextEvent func(error, int)) *SleepManager {
+func NewSleepManager(sp SimulationParameters) *SleepManager {
 	return &SleepManager{
-		ea:      ea,
-		nextEvt: nextEvent,
+		ea:      sp.EventAdder,
+		nextEvt: sp.NextEvt,
 	}
 }
 

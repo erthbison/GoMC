@@ -108,38 +108,38 @@ func TestMultipleClose(t *testing.T) {
 	ec.Stop()
 }
 
-type command struct {
+type testCommand struct {
 	cmd string
 	id  int
 }
 
 var commandTest = []struct {
 	nodeIds  []int
-	commands []command
+	commands []testCommand
 }{
 	{
 		[]int{0, 1, 2},
-		[]command{{"pause", 10}},
+		[]testCommand{{"pause", 10}},
 	},
 	{
 		[]int{0, 1, 2},
-		[]command{{"stop", -1}, {"pause", 0}},
+		[]testCommand{{"stop", -1}, {"pause", 0}},
 	},
 	{
 		[]int{0, 1, 2},
-		[]command{{"resume", 10}},
+		[]testCommand{{"resume", 10}},
 	},
 	{
 		[]int{0, 1, 2},
-		[]command{{"stop", -1}, {"resume", 0}},
+		[]testCommand{{"stop", -1}, {"resume", 0}},
 	},
 	{
 		[]int{0, 1, 2},
-		[]command{{"crash", 10}},
+		[]testCommand{{"crash", 10}},
 	},
 	{
 		[]int{0, 1, 2},
-		[]command{{"stop", -1}, {"crash", 1}},
+		[]testCommand{{"stop", -1}, {"crash", 1}},
 	},
 }
 

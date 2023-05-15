@@ -1,8 +1,11 @@
 package gomc
 
-import "gomc/config"
+import (
+	"gomc/config"
+	"gomc/runner"
+)
 
-func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunnerOption) *Runner[T, S] {
+func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOption[T, S], opts ...RunnerOption) *runner.Runner[T, S] {
 	var (
 		stop = func(*T) {}
 
@@ -21,7 +24,7 @@ func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOptio
 		}
 	}
 
-	r := NewRunner[T, S](
+	r := runner.NewRunner[T, S](
 		recordChanBuffer,
 	)
 

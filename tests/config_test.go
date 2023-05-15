@@ -25,8 +25,8 @@ func TestConfig(t *testing.T) {
 	)
 	resp := sim.Run(
 		gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*BroadcastNode {
-				send := eventManager.NewSender(sp.EventAdder)
+			func(sp eventManager.SimulationParameters) map[int]*BroadcastNode {
+				send := eventManager.NewSender(sp)
 				nodes := map[int]*BroadcastNode{}
 				nodeIds := []int{}
 				for i := 0; i < 2; i++ {

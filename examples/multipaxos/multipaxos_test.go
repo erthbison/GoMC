@@ -104,7 +104,7 @@ func TestMultiPaxosSim(t *testing.T) {
 	}
 	defer w.Close()
 	resp := sim.Run(
-		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*MultiPaxos {
+		gomc.InitNodeFunc(func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)

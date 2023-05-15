@@ -1,10 +1,12 @@
-package gomc
+package simulator
 
 import (
 	"errors"
 	"fmt"
 	"gomc/event"
+	"gomc/eventManager"
 	"gomc/failureManager"
+	"gomc/request"
 	"gomc/scheduler"
 	"gomc/stateManager"
 	"runtime/debug"
@@ -70,8 +72,8 @@ func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 	return nil
 }
 
-func (rs *runSimulator[T, S]) initRun(initNodes func(sp SimulationParameters) map[int]*T, requests ...Request) (map[int]*T, error) {
-	nodes := initNodes(SimulationParameters{
+func (rs *runSimulator[T, S]) initRun(initNodes func(sp eventManager.SimulationParameters) map[int]*T, requests ...request.Request) (map[int]*T, error) {
+	nodes := initNodes(eventManager.SimulationParameters{
 		NextEvt:        rs.nextEvent,
 		CrashSubscribe: rs.fm.Subscribe,
 		EventAdder:     rs.sch,
@@ -145,7 +147,7 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 	return <-rs.nextEvt
 }
 
-func (rs *runSimulator[T, S]) scheduleRequests(requests []Request, nodes map[int]*T) error {
+func (rs *runSimulator[T, S]) scheduleRequests(requests []request.Request, nodes map[int]*T) error {
 	// add all the functions to the scheduler
 	addedRequests := 0
 	for _, f := range requests {
@@ -184,7 +186,7 @@ func (rs *runSimulator[T, S]) teardownRun(nodes map[int]*T, stopFunc func(*T)) {
 // Stores the parameters used to start a run.
 // Should be read only.
 type runParameters[T any] struct {
-	initNodes func(sp SimulationParameters) map[int]*T
+	initNodes func(sp eventManager.SimulationParameters) map[int]*T
 	stopNode  func(*T)
-	requests  []Request
+	requests  []request.Request
 }

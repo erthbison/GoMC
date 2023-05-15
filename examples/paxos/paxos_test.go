@@ -91,7 +91,7 @@ func TestPaxosSim(t *testing.T) {
 	}
 	defer w.Close()
 	resp := sim.Run(
-		gomc.InitNodeFunc(func(sp gomc.SimulationParameters) map[int]*Server {
+		gomc.InitNodeFunc(func(sp eventManager.SimulationParameters) map[int]*Server {
 			lisMap := map[string]*bufconn.Listener{}
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)

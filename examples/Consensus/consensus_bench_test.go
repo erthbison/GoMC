@@ -33,8 +33,8 @@ func BenchmarkConsensus(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitSingleNode(nodeIds,
-				func(id int, sp gomc.SimulationParameters) *HierarchicalConsensus[int] {
-					send := eventManager.NewSender(sp.EventAdder)
+				func(id int, sp eventManager.SimulationParameters) *HierarchicalConsensus[int] {
+					send := eventManager.NewSender(sp)
 					node := NewHierarchicalConsensus[int](
 						id,
 						nodeIds,

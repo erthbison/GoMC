@@ -8,7 +8,9 @@ import (
 func TestSender(t *testing.T) {
 	// Basic test testing that it the sender can send a message.
 	sch := NewMockScheduler()
-	sender := NewSender(sch)
+	sender := NewSender(SimulationParameters{
+		EventAdder: sch,
+	})
 	send := sender.SendFunc(0)
 	send(0, "Foo", []byte("Foo"))
 	out, _ := sch.GetEvent()

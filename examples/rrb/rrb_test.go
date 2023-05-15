@@ -132,8 +132,8 @@ var simulations = []struct {
 func TestRrb(t *testing.T) {
 	for i, test := range simulations {
 		resp := sim.Run(gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*Rrb {
-				send := eventManager.NewSender(sp.EventAdder)
+			func(sp eventManager.SimulationParameters) map[int]*Rrb {
+				send := eventManager.NewSender(sp)
 				nodes := map[int]*Rrb{}
 				for _, id := range test.nodes {
 					nodes[id] = NewRrb(

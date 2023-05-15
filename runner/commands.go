@@ -2,27 +2,41 @@ package runner
 
 import "reflect"
 
+type command interface {
+	cmd()
+}
+
 // Pause the execution of the node with the provided Id
-type Pause struct {
+type pauseCmd struct {
 	Id int
 }
+
+func (pc pauseCmd) cmd() {}
 
 // Resume the execution of the node with the provided Id
-type Resume struct {
+type resumeCmd struct {
 	Id int
 }
+
+func (pc resumeCmd) cmd() {}
 
 // Crash the node with the provided Id
-type Crash struct {
+type crashCmd struct {
 	Id int
 }
 
+func (pc crashCmd) cmd() {}
+
 // Send a request to the node with teh provided Id
-type Request struct {
+type requestCmd struct {
 	Id     int
 	Method string
 	Params []reflect.Value
 }
 
+func (pc requestCmd) cmd() {}
+
 // Stop the running of the algorithm
-type Stop struct{}
+type stopCmd struct{}
+
+func (pc stopCmd) cmd() {}

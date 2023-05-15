@@ -44,7 +44,7 @@ func main() {
 	}
 	r := gomc.PrepareRunner(
 		gomc.InitNodeFunc(
-			func(sp gomc.SimulationParameters) map[int]*paxos.Server {
+			func(sp eventManager.SimulationParameters) map[int]*paxos.Server {
 				lisMap := map[string]*bufconn.Listener{}
 				for _, addr := range addrMap {
 					lisMap[addr] = bufconn.Listen(bufSize)

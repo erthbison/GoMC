@@ -43,7 +43,10 @@ func TestSleepManager(t *testing.T) {
 	nextEvent := func(err error, id int) {
 		nextEventChan <- err
 	}
-	sm := NewSleepManager(sch, nextEvent)
+	sm := NewSleepManager(SimulationParameters{
+		EventAdder: sch,
+		NextEvt:    nextEvent,
+	})
 	sleep := sm.SleepFunc(0)
 	notBlockedChan := make(chan bool)
 	go func() {

@@ -13,8 +13,8 @@ type Sender struct {
 }
 
 // Create a new Sender with the provided EventAdder
-func NewSender(ea EventAdder) *Sender {
-	return &Sender{ea: ea}
+func NewSender(sp SimulationParameters) *Sender {
+	return &Sender{ea: sp.EventAdder}
 }
 
 // Creates a send function that creates an event representing the message to be sent to the target node
