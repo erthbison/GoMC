@@ -8,6 +8,7 @@ import (
 
 // The Runner Runs the algorithm in real time and records the execution of events.
 //
+// Can only perform one running at a time
 // Each of the nodes maintains its own event loop where it executes events sequentially.
 type Runner[T, S any] struct {
 	sync.Mutex
@@ -22,10 +23,13 @@ type Runner[T, S any] struct {
 //
 // recordChanBuffer specifies the size of the buffers for the record channels
 func NewRunner[T, S any](recordChanBuffer int) *Runner[T, S] {
+	// cmd starts closed, since commands can not be given before the main loop has been started
+	cmd := make(chan command)
+	close(cmd)
 	return &Runner[T, S]{
 		rc: NewEventController[T, S](recordChanBuffer),
 
-		cmd:  make(chan command),
+		cmd:  cmd,
 		resp: make(chan error),
 	}
 }
@@ -45,7 +49,7 @@ func (r *Runner[T, S]) Start(initNodes func(sp eventManager.SimulationParameters
 		EventAdder:     r.rc,
 		NextEvt:        r.rc.NextEvent,
 	})
-
+	r.cmd = make(chan command)
 	r.rc.MainLoop(nodes, eventChanBuffer, stop, getState)
 
 	go func() {
@@ -83,6 +87,7 @@ func (r *Runner[T, S]) SubscribeRecords() <-chan Record {
 // Stop the running of the algorithm
 //
 // Must be called after the running has been started.
+// Can be called from multiple goroutines.
 func (r *Runner[T, S]) Stop() error {
 	r.cmd <- stopCmd{}
 	return <-r.resp
@@ -91,6 +96,7 @@ func (r *Runner[T, S]) Stop() error {
 // Send a request to a node.
 //
 // Must be called after the running has been started.
+// Can be called from multiple goroutines.
 func (r *Runner[T, S]) Request(req request.Request) error {
 	r.cmd <- requestCmd{
 		Id:     req.Id,
@@ -103,6 +109,7 @@ func (r *Runner[T, S]) Request(req request.Request) error {
 // Pause the execution of events on the specified node.
 //
 // Must be called after the running has been started.
+// Can be called from multiple goroutines.
 func (r *Runner[T, S]) PauseNode(id int) error {
 	r.cmd <- pauseCmd{
 		Id: id,
@@ -113,6 +120,7 @@ func (r *Runner[T, S]) PauseNode(id int) error {
 // Resume the execution of events on the specified node.
 //
 // Must be called after the running has been started.
+// Can be called from multiple goroutines.
 func (r *Runner[T, S]) ResumeNode(id int) error {
 	r.cmd <- resumeCmd{
 		Id: id,
@@ -123,6 +131,7 @@ func (r *Runner[T, S]) ResumeNode(id int) error {
 // Crash the specified node.
 //
 // Must be called after the running has been started.
+// Can be called from multiple goroutines.
 func (r *Runner[T, S]) CrashNode(id int) error {
 	r.cmd <- crashCmd{
 		Id: id,
