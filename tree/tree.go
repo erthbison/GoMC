@@ -81,10 +81,12 @@ func (t *Tree[T]) String() string {
 	return out.String()
 }
 
+// Returns true if this is a Root node.
 func (t *Tree[T]) IsRoot() bool {
 	return t.Parent() == nil
 }
 
+// Returns true if this is a leaf node.
 func (t *Tree[T]) IsLeafNode() bool {
 	return len(t.Children()) == 0
 }
@@ -131,22 +133,29 @@ func (t *Tree[T]) DepthFirstSearch(search func(T) bool) bool {
 	return false
 }
 
+// Returns the payload
 func (t *Tree[T]) Payload() T {
 	return t.payload
 }
 
+// Returns the parent node
 func (t *Tree[T]) Parent() *Tree[T] {
 	return t.parent
 }
 
+// Returns the depth of the node
 func (t *Tree[T]) Depth() int {
 	return t.depth
 }
 
+// Returns the children of the node
 func (t *Tree[T]) Children() []*Tree[T] {
 	return t.children
 }
 
+// Create a Newick representation of the tree.
+//
+// The payload is surrounded by parenthesis.
 func (t *Tree[T]) Newick() string {
 	out := strings.Builder{}
 	if len(t.Children()) > 0 {
