@@ -241,6 +241,8 @@ func WithPerfectFailureManager[T any](crashFunc func(*T), failingNodes ...int) R
 }
 
 // Configure the StateManager used to manage the state of the distributed system.
+//
+// The State Manager collects and manages the state of the system under testing.
 type StateManagerOption[T, S any] struct {
 	sm stateManager.StateManager[T, S]
 }
@@ -253,12 +255,17 @@ func WithStateManager[T, S any](sm stateManager.StateManager[T, S]) StateManager
 // Use a TreeStateManager in the simulation.
 //
 // The TreeStateManager organizes the state in a tree structure, which is stored in memory.
+// The TreeStateManager is configured with a function collecting the local state from a node and a function checking the equality of two local states.
 func WithTreeStateManager[T, S any](getLocalState func(*T) S, statesEqual func(S, S) bool) StateManagerOption[T, S] {
 	sm := stateManager.NewTreeStateManager(getLocalState, statesEqual)
 	return StateManagerOption[T, S]{sm: sm}
 }
 
-// Used to specify how the nodes are started.
+// Configures how the nodes are started.
+//
+// The function should create the nodes that will be used when running the simulation.
+// It should also initialize the Event Manager that will be used.
+// The provided SimulationParameters should be used to configure the Event Managers with run specific data.
 type InitNodeOption[T any] struct {
 	f func(eventManager.SimulationParameters) map[int]*T
 }
@@ -281,6 +288,9 @@ func InitSingleNode[T any](nodeIds []int, f func(id int, sp eventManager.Simulat
 }
 
 // Configures the Checker to be used when verifying the algorithm.
+//
+// The Checker verifies that the properties of the algorithm holds.
+// It returns a CheckerResponse with the result of the simulation.
 type CheckerOption[S any] struct {
 	checker checking.Checker[S]
 }

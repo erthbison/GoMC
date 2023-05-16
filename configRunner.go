@@ -47,12 +47,12 @@ func PrepareRunner[T, S any](initNodes InitNodeOption[T], getState GetStateOptio
 	return r
 }
 
-// Specify the function used to collect local state from the nodes
+// Configure how to collect the local state from a node
 type GetStateOption[T, S any] struct {
 	getState func(*T) S
 }
 
-// Specify the function used to collect local state from the nodes
+// Configure how to collect the local state from a node
 func WithStateFunction[T, S any](f func(*T) S) GetStateOption[T, S] {
 	return GetStateOption[T, S]{getState: f}
 }
