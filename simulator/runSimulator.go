@@ -69,7 +69,7 @@ func (rs *runSimulator[T, S]) SimulateRuns(nextRun chan bool, status chan error,
 func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 	nodes, err := rs.initRun(cfg.initNodes, cfg.requests...)
 	if err != nil {
-		return err
+		return fmt.Errorf("Simulator: An error occurred while initializing a run: %v", err)
 	}
 
 	// Always teardown the run.
@@ -197,7 +197,7 @@ func (rs *runSimulator[T, S]) scheduleRequests(requests []request.Request, nodes
 		addedRequests++
 	}
 	if addedRequests == 0 {
-		return fmt.Errorf("Simulator: At least one request should be provided to start simulation.")
+		return fmt.Errorf("At least one request should be provided to start simulation.")
 	}
 	return nil
 }
