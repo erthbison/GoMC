@@ -131,22 +131,29 @@ var simulations = []struct {
 
 func TestRrb(t *testing.T) {
 	for i, test := range simulations {
-		resp := sim.Run(gomc.InitNodeFunc(
-			func(sp eventManager.SimulationParameters) map[int]*Rrb {
-				send := eventManager.NewSender(sp)
-				nodes := map[int]*Rrb{}
-				for _, id := range test.nodes {
-					nodes[id] = NewRrb(
-						id,
-						test.nodes,
-						send.SendFunc(id),
-					)
-				}
-				return nodes
-			}),
-			gomc.WithRequests(gomc.NewRequest(0, "Broadcast", "Test Message")),
+		resp := sim.Run(
+			gomc.InitNodeFunc(
+				func(sp eventManager.SimulationParameters) map[int]*Rrb {
+					send := eventManager.NewSender(sp)
+					nodes := map[int]*Rrb{}
+					for _, id := range test.nodes {
+						nodes[id] = NewRrb(
+							id,
+							test.nodes,
+							send.SendFunc(id),
+						)
+					}
+					return nodes
+				},
+			),
+			gomc.WithRequests(
+				gomc.NewRequest(0, "Broadcast", "Test Message"),
+			),
 			gomc.WithPredicateChecker(predicates...),
-			gomc.WithPerfectFailureManager(func(t *Rrb) { t.crashed = true }, test.crashedNodes...),
+			gomc.WithPerfectFailureManager(
+				func(t *Rrb) { t.crashed = true }, 
+				test.crashedNodes...
+			),
 		)
 		_, desc := resp.Response()
 		fmt.Printf("Test %v: Got result: %v\n", i, desc)
