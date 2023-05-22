@@ -52,6 +52,9 @@ type RunScheduler interface {
 	// It must be safe to add events from different goroutines.
 	// StartRun, EndRun and GetEvent will always be called from the same goroutine,
 	// but not from the same goroutine as AddEvent.
+	//
+	// Events that are added directly after an event has been returned are caused by that event.
+	// This can be used to establish a happened-before relationship.
 	eventManager.EventAdder
 }
 
