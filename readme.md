@@ -9,8 +9,8 @@ A modular implementation level model checker for Go.
 ## Learn More
 
 - [How To Use](/Documentation/user-guide.md)
-- [How To Implement Own Modules](/Documentation/module-guide.md)
 - [Configuration Options](/Documentation/configuration-guide.md)
+- [Event Managers](/Documentation/event-managers.md)
 - Thesis (???)
 
 
