@@ -3,7 +3,6 @@ package runner
 import (
 	"gomc/eventManager"
 	"gomc/request"
-	"sync"
 )
 
 // The Runner Runs the algorithm in real time and records the execution of events.
@@ -11,8 +10,6 @@ import (
 // Can only perform one running at a time
 // Each of the nodes maintains its own event loop where it executes events sequentially.
 type Runner[T, S any] struct {
-	sync.Mutex
-
 	rc *RunnerController[T, S]
 
 	cmd  chan command
