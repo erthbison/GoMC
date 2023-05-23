@@ -339,3 +339,5 @@ The runner sends three types of records:
 - `MessageRecord` are sent when a message is sent or received by a node.
 They contain information about the message. 
 - `StateRecord` are sent after an event has been executed and contains the new state of the node. 
+
+The running of an algorithm can be stopped by the `Stop` method. 
