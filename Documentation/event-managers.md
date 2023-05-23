@@ -47,3 +47,14 @@ type SimulationParameters struct {
 	EventAdder EventAdder
 }
 ```
+
+## Mocking Modules
+
+Event Managers can be used to mock modules that an algorithm relies on.
+This would significantly reduce the complexity of the module and make it possible to verify individual modules without relying on the actual implementation of other modules.
+
+Consider a module that relies on some consensus algorithm.
+Consensus algorithms may contain several rounds of messages between the nodes in the system and using an actual implementation would therefore increase the complexity of the simulation.
+Furthermore, the module does not rely on the timing of the intermediary events that is a part of the consensus algorithm, it only rely on the timing of the events where the nodes learn about the decided value.
+We can therefore implement an Event Manager that imitates the behavior of the consensus algorithm.
+The Event Manager can decide on a value and add an event representing each node learning the value, thus abstracting away the process of deciding on the value. 
