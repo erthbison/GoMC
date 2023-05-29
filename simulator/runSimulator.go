@@ -69,7 +69,7 @@ func (rs *runSimulator[T, S]) SimulateRuns(nextRun chan bool, status chan error,
 func (rs *runSimulator[T, S]) simulateRun(cfg *runParameters[T]) error {
 	nodes, err := rs.initRun(cfg.initNodes, cfg.requests...)
 	if err != nil {
-		return fmt.Errorf("Simulator: An error occurred while initializing a run: %v", err)
+		return fmt.Errorf("Simulator: An error occurred while initializing a run: %w", err)
 	}
 
 	// Always teardown the run.
