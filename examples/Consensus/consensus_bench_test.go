@@ -12,11 +12,9 @@ func BenchmarkConsensus(b *testing.B) {
 	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
 			func(node *HierarchicalConsensus[int]) state {
-				decided := make([]Value[int], len(node.DecidedVal))
-				copy(decided, node.DecidedVal)
 				return state{
 					proposed: node.ProposedVal,
-					decided:  decided,
+					decided:  slices.Clone(node.DecidedVal),
 				}
 			},
 			func(a, b state) bool {
