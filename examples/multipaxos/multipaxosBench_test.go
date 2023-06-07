@@ -23,9 +23,9 @@ func BenchmarkMultipaxos(b *testing.B) {
 				InitNodes(nodes),
 			),
 			gomc.WithRequests(
-				gomc.NewRequest(1, "Propose", "1"),
-				gomc.NewRequest(2, "Propose", "2"),
-				gomc.NewRequest(3, "Propose", "3"),
+				gomc.NewRequest(1, "ProposeVal", "1"),
+				gomc.NewRequest(2, "ProposeVal", "2"),
+				gomc.NewRequest(3, "ProposeVal", "3"),
 			),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(

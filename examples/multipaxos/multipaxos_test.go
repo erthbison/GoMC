@@ -72,7 +72,6 @@ var (
 		2: ":50001",
 		3: ":50002",
 	}
-	addrToIdMap = map[string]int{}
 )
 
 func getState(t *MultiPaxos) State {
@@ -90,6 +89,11 @@ func cmpState(s1, s2 State) bool {
 }
 
 func InitNodes(addrMap map[int64]string) func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
+	addrToIdMap := map[string]int{}
+	for id, addr := range addrMap {
+		addrToIdMap[addr] = int(id)
+	}
+
 	return func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
 		lisMap := map[string]*bufconn.Listener{}
 		for _, addr := range addrMap {
@@ -122,10 +126,6 @@ func InitNodes(addrMap map[int64]string) func(sp eventManager.SimulationParamete
 }
 
 func TestMultiPaxosSim(t *testing.T) {
-	for id, addr := range addrMap {
-		addrToIdMap[addr] = int(id)
-	}
-
 	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(getState, cmpState),
 		gomc.RandomWalkScheduler(1),
