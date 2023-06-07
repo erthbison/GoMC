@@ -40,6 +40,7 @@ func BenchmarkPaxos(b *testing.B) {
 		addrToIdMap[addr] = int(id)
 	}
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitNodeFunc(func(sp eventManager.SimulationParameters) map[int]*Server {

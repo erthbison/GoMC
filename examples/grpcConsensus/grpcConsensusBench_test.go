@@ -10,7 +10,8 @@ func BenchmarkConsensus(b *testing.B) {
 		gomc.WithTreeStateManager(getState, cmpState),
 		gomc.PrefixScheduler(),
 	)
-
+	
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitNodeFunc(

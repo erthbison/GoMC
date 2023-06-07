@@ -55,6 +55,7 @@ func BenchmarkOnrr(b *testing.B) {
 		gomc.MaxRuns(10000),
 	)
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitNodeFunc(

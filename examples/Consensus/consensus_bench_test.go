@@ -28,6 +28,7 @@ func BenchmarkConsensus(b *testing.B) {
 	)
 
 	nodeIds := []int{1, 2, 3}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sim.Run(
 			gomc.InitSingleNode(nodeIds,
