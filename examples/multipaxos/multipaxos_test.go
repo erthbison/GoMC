@@ -75,26 +75,59 @@ var (
 	addrToIdMap = map[string]int{}
 )
 
+func getState(t *MultiPaxos) State {
+	return State{
+		proposed: slices.Clone(t.proposed),
+		decided:  maps.Clone(t.LearntValues),
+	}
+}
+
+func cmpState(s1, s2 State) bool {
+	if !maps.Equal(s1.decided, s2.decided) {
+		return false
+	}
+	return slices.Equal(s1.proposed, s2.proposed)
+}
+
+func InitNodes(addrMap map[int64]string) func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
+	return func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
+		lisMap := map[string]*bufconn.Listener{}
+		for _, addr := range addrMap {
+			lisMap[addr] = bufconn.Listen(bufSize)
+		}
+		gem := eventManager.NewGrpcEventManager(addrToIdMap, sp)
+
+		nodes := make(map[int]*MultiPaxos)
+		for id, addr := range addrMap {
+			srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
+			go srv.Start(lisMap[addr])
+			sp.CrashSubscribe(int(id), srv.proposer.leader.NodeCrash)
+			nodes[int(id)] = srv
+		}
+
+		for id, node := range nodes {
+			node.DialNodes(
+				grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
+				grpc.WithContextDialer(
+					func(ctx context.Context, s string) (net.Conn, error) {
+						return lisMap[s].DialContext(ctx)
+					},
+				),
+				grpc.WithBlock(),
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+			)
+		}
+		return nodes
+	}
+}
+
 func TestMultiPaxosSim(t *testing.T) {
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
 	}
 
 	sim := gomc.PrepareSimulation(
-		gomc.WithTreeStateManager(
-			func(t *MultiPaxos) State {
-				return State{
-					proposed: slices.Clone(t.proposed),
-					decided:  maps.Clone(t.LearntValues),
-				}
-			},
-			func(s1, s2 State) bool {
-				if !maps.Equal(s1.decided, s2.decided) {
-					return false
-				}
-				return slices.Equal(s1.proposed, s2.proposed)
-			},
-		),
+		gomc.WithTreeStateManager(getState, cmpState),
 		gomc.RandomWalkScheduler(1),
 		gomc.MaxRuns(10000),
 	)
@@ -104,35 +137,7 @@ func TestMultiPaxosSim(t *testing.T) {
 	}
 	defer w.Close()
 	resp := sim.Run(
-		gomc.InitNodeFunc(func(sp eventManager.SimulationParameters) map[int]*MultiPaxos {
-			lisMap := map[string]*bufconn.Listener{}
-			for _, addr := range addrMap {
-				lisMap[addr] = bufconn.Listen(bufSize)
-			}
-			gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
-
-			nodes := make(map[int]*MultiPaxos)
-			for id, addr := range addrMap {
-				srv := NewMultiPaxos(id, addrMap, gem.WaitForSend(int(id)))
-				go srv.Start(lisMap[addr])
-				sp.CrashSubscribe(int(id), srv.proposer.leader.NodeCrash)
-				nodes[int(id)] = srv
-			}
-
-			for id, node := range nodes {
-				node.DialNodes(
-					grpc.WithUnaryInterceptor(gem.UnaryClientControllerInterceptor(id)),
-					grpc.WithContextDialer(
-						func(ctx context.Context, s string) (net.Conn, error) {
-							return lisMap[s].DialContext(ctx)
-						},
-					),
-					grpc.WithBlock(),
-					grpc.WithTransportCredentials(insecure.NewCredentials()),
-				)
-			}
-			return nodes
-		}),
+		gomc.InitNodeFunc(InitNodes(addrMap)),
 		gomc.WithRequests(
 			gomc.NewRequest(3, "ProposeVal", "Test1"),
 			gomc.NewRequest(2, "ProposeVal", "Test2"),
