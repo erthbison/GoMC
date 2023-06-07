@@ -31,8 +31,6 @@ var (
 		4: ":50003",
 		5: ":50004",
 	}
-	addrToIdMap = map[string]int{}
-
 	zeroVal string
 )
 
@@ -67,6 +65,7 @@ var predicates = []checking.Predicate[State]{
 }
 
 func TestPaxosSim(t *testing.T) {
+	addrToIdMap := map[string]int{}
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
 	}
@@ -96,7 +95,7 @@ func TestPaxosSim(t *testing.T) {
 			for _, addr := range addrMap {
 				lisMap[addr] = bufconn.Listen(bufSize)
 			}
-			gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+			gem := eventManager.NewGrpcEventManager(addrToIdMap, sp)
 
 			nodes := make(map[int]*Server)
 			for id, addr := range addrMap {
