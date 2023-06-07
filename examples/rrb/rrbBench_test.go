@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func BenchmarkConsensus(b *testing.B) {
+func BenchmarkRrb(b *testing.B) {
 	nodeIds := []int{0, 1, 2}
 	crashedNodes := []int{1}
 
