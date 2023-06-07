@@ -10,6 +10,12 @@ import (
 	"testing"
 )
 
+var addrMap = map[int32]string{
+	1: ":50000",
+	2: ":50001",
+	3: ":50002",
+}
+
 func TestGrpcConsensusCreateReplay(t *testing.T) {
 	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(getState, cmpState),

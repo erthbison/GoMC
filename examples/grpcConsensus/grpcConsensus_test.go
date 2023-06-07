@@ -57,19 +57,13 @@ var predicates = []checking.Predicate[state]{
 	},
 }
 
-var addrMap = map[int32]string{
-	1: ":50000",
-	2: ":50001",
-	3: ":50002",
-}
-
 func createNodes(addrMap map[int32]string) func(sp eventManager.SimulationParameters) map[int]*GrpcConsensus {
 	var addrToIdMap = map[string]int{}
 	for id, addr := range addrMap {
 		addrToIdMap[addr] = int(id)
 	}
 	return func(sp eventManager.SimulationParameters) map[int]*GrpcConsensus {
-		gem := eventManager.NewGrpcEventManager(addrToIdMap, sp.EventAdder, sp.NextEvt)
+		gem := eventManager.NewGrpcEventManager(addrToIdMap, sp)
 		lisMap := map[string]*bufconn.Listener{}
 		for _, addr := range addrMap {
 			lisMap[addr] = bufconn.Listen(bufSize)
