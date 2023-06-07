@@ -170,7 +170,7 @@ func (rs *runSimulator[T, S]) executeEvent(node *T, evt event.Event) error {
 			defer func() {
 				if p := recover(); p != nil {
 					// using the debug package to get the stack could be useful, but it adds some clutter at the top
-					rs.nextEvt <- fmt.Errorf("Node panicked while executing an: %v \nStack Trace:\n %s", p, debug.Stack())
+					rs.nextEvt <- fmt.Errorf("Node panicked while executing an event: %v \nStack Trace:\n %s", p, debug.Stack())
 				}
 			}()
 		}
