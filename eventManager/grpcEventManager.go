@@ -16,7 +16,7 @@ import (
 //
 // Uses a gRPC unary client interceptor to intercept and withhold messages.
 // The interceptor is created by the UnaryClientControllerInterceptor method.
-// 
+//
 // The function created by the WaitForSend method must be called after sending messages using gRPC.
 // This ensures that all the messages are added to the EventAdder before continuing.
 type GrpcEventManager struct {
@@ -32,15 +32,15 @@ type GrpcEventManager struct {
 // Grpc async calls are called in a separate goroutine without handling the response.
 // A context with a deadline should not be used when simulating since real time does not make sense during simulations.
 // addr is a map from address to node id, shc is the scheduler used and nextEvent is the NextEvent channel from the simulator
-func NewGrpcEventManager(addr map[string]int, ea EventAdder, nextEvent func(error, int)) *GrpcEventManager {
+func NewGrpcEventManager(addr map[string]int, sp SimulationParameters) *GrpcEventManager {
 	msgChan := make(map[int]chan bool)
 	for _, id := range addr {
 		msgChan[id] = make(chan bool)
 	}
 	return &GrpcEventManager{
 		addrIdMap: addr,
-		ea:        ea,
-		nextEvt:   nextEvent,
+		ea:        sp.EventAdder,
+		nextEvt:   sp.NextEvt,
 		msgChan:   msgChan,
 	}
 }
