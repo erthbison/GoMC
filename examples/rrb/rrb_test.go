@@ -85,10 +85,26 @@ type State struct {
 	deliveredSlice []message
 }
 
-var sim gomc.Simulation[Rrb, State]
+var simulations = []struct {
+	nodes        []int
+	crashedNodes []int
+}{
+	{
+		[]int{0, 1, 2},
+		[]int{},
+	},
+	{
+		[]int{0, 1, 2},
+		[]int{1},
+	},
+	{
+		[]int{0, 1, 2, 4, 5, 6, 7, 8, 9},
+		[]int{8},
+	},
+}
 
-func init() {
-	sim = gomc.PrepareSimulation(
+func TestRrb(t *testing.T) {
+	sim := gomc.PrepareSimulation(
 		gomc.WithTreeStateManager(
 			func(node *Rrb) State {
 				return State{
@@ -109,27 +125,7 @@ func init() {
 		),
 		gomc.PrefixScheduler(),
 	)
-}
 
-var simulations = []struct {
-	nodes        []int
-	crashedNodes []int
-}{
-	{
-		[]int{0, 1, 2},
-		[]int{},
-	},
-	{
-		[]int{0, 1, 2},
-		[]int{1},
-	},
-	{
-		[]int{0, 1, 2, 4, 5, 6, 7, 8, 9},
-		[]int{8},
-	},
-}
-
-func TestRrb(t *testing.T) {
 	for i, test := range simulations {
 		resp := sim.Run(
 			gomc.InitNodeFunc(
@@ -151,8 +147,8 @@ func TestRrb(t *testing.T) {
 			),
 			gomc.WithPredicateChecker(predicates...),
 			gomc.WithPerfectFailureManager(
-				func(t *Rrb) { t.crashed = true }, 
-				test.crashedNodes...
+				func(t *Rrb) { t.crashed = true },
+				test.crashedNodes...,
 			),
 		)
 		_, desc := resp.Response()
