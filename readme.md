@@ -11,8 +11,6 @@ A modular implementation level model checker for Go.
 - [How To Use](/Documentation/user-guide.md)
 - [Configuration Options](/Documentation/configuration-guide.md)
 - [Event Managers](/Documentation/event-managers.md)
-- Thesis (???)
-
 
 ## A (not so) Quick Showcase of Go-MC
 
