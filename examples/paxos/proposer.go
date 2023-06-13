@@ -3,14 +3,12 @@ package paxos
 import (
 	"context"
 	"gomc/examples/paxos/proto"
-	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Proposer struct {
-	sync.Mutex
 	proto.UnimplementedProposerServer
 
 	id *proto.NodeId
@@ -43,8 +41,6 @@ func NewProposer(id *proto.NodeId, waitForSend func(num int)) *Proposer {
 }
 
 func (p *Proposer) performPrepare(propsedVal string) {
-	// p.Lock()
-	// defer p.Unlock()
 	// Use a zero value for round. This will always be smaller than any value returned by the acceptor.
 	// This ensures that the value is only chosen if no value is returned by an acceptor
 	p.largestVal = &proto.Value{
@@ -62,8 +58,6 @@ func (p *Proposer) performPrepare(propsedVal string) {
 }
 
 func (p *Proposer) Promise(_ context.Context, in *proto.PromiseRequest) (*empty.Empty, error) {
-	// p.Lock()
-	// defer p.Unlock()
 	if in.GetRnd().GetVal() != p.crnd.GetVal() {
 		return &emptypb.Empty{}, nil
 	}

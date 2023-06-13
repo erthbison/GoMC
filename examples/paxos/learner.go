@@ -3,7 +3,6 @@ package paxos
 import (
 	"context"
 	"gomc/examples/paxos/proto"
-	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -20,7 +19,6 @@ func ValEquals(a, b *proto.Value) bool {
 }
 
 type Learner struct {
-	sync.Mutex
 	proto.UnimplementedLearnerServer
 
 	id *proto.NodeId
@@ -45,9 +43,6 @@ func NewLearner(id *proto.NodeId, numNodes int) *Learner {
 }
 
 func (l *Learner) Learn(_ context.Context, in *proto.LearnRequest) (*empty.Empty, error) {
-	// l.Lock()
-	// defer l.Unlock()
-
 	l.addValue(in.GetFrom().GetVal(), in.GetVal())
 	numLrn := 0
 	freqVal := &proto.Value{

@@ -3,7 +3,6 @@ package paxos
 import (
 	"gomc/examples/paxos/proto"
 	"net"
-	"sync"
 
 	"google.golang.org/grpc"
 )
@@ -25,8 +24,6 @@ func newPaxosClient(conn *grpc.ClientConn) *paxosClient {
 }
 
 type paxos struct {
-	sync.Mutex
-
 	*Proposer
 	*Acceptor
 	*Learner
@@ -97,8 +94,6 @@ func (p *paxos) nextLeader() int64 {
 }
 
 func (p *paxos) Propose(val string) {
-	// p.Lock()
-	// defer p.Unlock()
 	if p.stopped {
 		return
 	}
@@ -109,8 +104,6 @@ func (p *paxos) Propose(val string) {
 }
 
 func (p *paxos) decided(val string) {
-	// p.Lock()
-	// defer p.Unlock()
 	p.Decided = val
 }
 
@@ -148,8 +141,6 @@ func (p *Server) Stop() {
 }
 
 func (p *Server) DialNodes(dialOpts ...grpc.DialOption) error {
-	// p.Lock()
-	// defer p.Unlock()
 	nodes := make(map[int64]*paxosClient)
 	for id, addr := range p.addrMap {
 		conn, err := grpc.Dial(addr, dialOpts...)
