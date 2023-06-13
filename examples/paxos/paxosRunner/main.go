@@ -80,8 +80,6 @@ func main() {
 			},
 		),
 		gomc.WithStateFunction(func(t *paxos.Server) State {
-			t.Lock()
-			defer t.Unlock()
 			return State{
 				proposed: t.Proposal,
 				decided:  t.Decided,
